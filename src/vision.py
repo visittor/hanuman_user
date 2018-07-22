@@ -34,7 +34,7 @@ class ImageProcessing(VisionModule):
 		kwarg = {'line_angleThreshold':0.3, 'is_do_horizontal':False,
 		 'minPix': 1}
 
-		 self.scanlendmark = ScanLandmark(config, kwarg)
+		self.scanlendmark = ScanLandmark(config, kwarg)
 
 	def __calculateHorizon(self, js):
 		## TODO : complete this function.
