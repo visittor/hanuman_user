@@ -22,12 +22,12 @@ class ImageProcessing( VisionModule ):
 		#   define message
 		self.objectsMsgType = visionMsg
 
-		colorList = [9, 133, 176, 74, 255, 255]
+		colorList = [ 0, 142, 207, 59, 255, 255 ]
 
 		self.__lower = np.array( colorList[ : 3 ] )
 		self.__upper = np.array( colorList[ 3 : 6 ] )
 
-		self.__previousPosition = None
+		self.__previousPosition = [ 0., 0. ]
 
 	def ImageProcessingFunction(self, img, header): 
 
@@ -61,12 +61,13 @@ class ImageProcessing( VisionModule ):
 			isDetectBall = True
 			
 			#	calculate error
+			#	NOTE : edit error y for switch sign for control motor
 			errorX = ( ballPosition[ 0 ] - imageWidth / 2. ) / ( imageWidth / 2. )
-			errorY = ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
+			errorY = -1 * ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
 
 		else:
-			ballPosition = [ None, None ]
-			errorX, errorY = None, None
+			ballPosition = [ 0, 0 ]
+			errorX, errorY = 0., 0.
 			isDetectBall = False
 
 
@@ -74,8 +75,8 @@ class ImageProcessing( VisionModule ):
 		msg.ball = ballPosition
 		msg.imgH = hsvImage.shape[0]
 		msg.imgW = hsvImage.shape[1]
-		msg.error = [ errorX, errorY ]
-		msg.isDetect = isDetectBall
+		msg.ball_error = [ errorX, errorY ]
+		msg.ball_confidence = isDetectBall
 		msg.header.stamp = rospy.Time.now()
 
 		self.__previousPosition = ballPosition
@@ -85,11 +86,36 @@ class ImageProcessing( VisionModule ):
 	def visualizeFunction(self, img, msg):
 
 		#	draw circle
-		if msg.isDetect:
+		if msg.ball_confidence:
 			cv2.circle( img, ( msg.ball[ 0 ], msg.ball[ 1 ] ), 10, ( 255, 0, 0 ), -1 )
-			print msg.error
+			print " error X : {}, error Y : {} ".format( msg.ball_error[ 0 ], msg.ball_error[ 1 ] )
 
-	class Kinematic(KinematicModule):
-		pass
+class Kinematic( KinematicModule ):
+	
+	def __init__( self ):
+		
+		super( Kinematic, self ).__init__()
 
+		#	define object type 
+		self.objectsMsgType = visionMsg
+		self.posDictMsgType = postDictMsg
+
+	def kinematicCalculation(self, objMsg, joint):
+		
+		#	get ball error
+		errorX, errorY = objMsg.error
+
+		#	publist positon dict message
+		msg = postDictMsg()
+		msg.ball_cart = [ 1 ] * 2 
+		msg.ball_polar = [ 1 ] * 2 
+		msg.ball_img = objMsg.ball
+		msg.imgW = objMsg.imgW
+		msg.imgH = objMsg.imgH
+		msg.ball_error = [ errorX, errorY ]
+		msg.ball_confidence = objMsg.ball_confidence
+		msg.header.stamp = rospy.Time.now()
+
+#	create instance
 vision_module = ImageProcessing()
+kinematic_module = Kinematic()
