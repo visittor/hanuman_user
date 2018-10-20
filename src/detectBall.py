@@ -22,7 +22,7 @@ class ImageProcessing( VisionModule ):
 		#   define message
 		self.objectsMsgType = visionMsg
 
-		colorList = [ 0, 142, 207, 59, 255, 255 ]
+		colorList = [ 7, 95, 95, 22, 255, 255 ]
 
 		self.__lower = np.array( colorList[ : 3 ] )
 		self.__upper = np.array( colorList[ 3 : 6 ] )
@@ -57,13 +57,13 @@ class ImageProcessing( VisionModule ):
 			except ZeroDivisionError:
 				cx, cy = self.__previousPosition
 
-			ballPosition = [ cx, cy ]
+			ballPosition = [ int( cx ), int( cy ) ]
 			isDetectBall = True
 			
 			#	calculate error
 			#	NOTE : edit error y for switch sign for control motor
 			errorX = ( ballPosition[ 0 ] - imageWidth / 2. ) / ( imageWidth / 2. )
-			errorY = -1 * ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
+			errorY = ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
 
 		else:
 			ballPosition = [ 0, 0 ]
@@ -85,10 +85,12 @@ class ImageProcessing( VisionModule ):
 
 	def visualizeFunction(self, img, msg):
 
-		#	draw circle
+		rospy.logdebug( " error X : {}, error Y : {} ".format( msg.ball_error[ 0 ], msg.ball_error[ 1 ] ) )
+		# #	draw circle
 		if msg.ball_confidence:
 			cv2.circle( img, ( msg.ball[ 0 ], msg.ball[ 1 ] ), 10, ( 255, 0, 0 ), -1 )
-			print " error X : {}, error Y : {} ".format( msg.ball_error[ 0 ], msg.ball_error[ 1 ] )
+		
+		cv2.circle( img, ( msg.imgW / 2, msg.imgH / 2 ), 5, ( 0, 0, 255 ), -1 )
 
 class Kinematic( KinematicModule ):
 	
@@ -103,7 +105,9 @@ class Kinematic( KinematicModule ):
 	def kinematicCalculation(self, objMsg, joint):
 		
 		#	get ball error
-		errorX, errorY = objMsg.error
+		errorX, errorY = objMsg.ball_error
+
+		rospy.logdebug( " error X : {}, error Y : {} ".format( errorX, errorY ) )
 
 		#	publist positon dict message
 		msg = postDictMsg()
@@ -115,6 +119,8 @@ class Kinematic( KinematicModule ):
 		msg.ball_error = [ errorX, errorY ]
 		msg.ball_confidence = objMsg.ball_confidence
 		msg.header.stamp = rospy.Time.now()
+
+		return msg
 
 #	create instance
 vision_module = ImageProcessing()
