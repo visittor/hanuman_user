@@ -115,7 +115,7 @@ class Kinematic( KinematicModule ):
 
 		#	Load intrinsic camera
 		#	Path of camera matrix
-		intrinsicMatrixPath = '/home/neverholiday/work/camera_matrix_directorycamera_matrix.npy'
+		intrinsicMatrixPath = '/home/neverholiday/work/camera_matrix_directory/camera_matrix.npy'
 		intrinsicMatrix = np.load( intrinsicMatrixPath )
 
 		#	Set camera matrix
@@ -126,16 +126,16 @@ class Kinematic( KinematicModule ):
 		self.posDictMsgType = postDictMsg
 
 		#	Define translation and rotation for create homogenous transformation of plane
-		tranVec = np.array( [ 0, 0, 10 ], float )
+		tranVec = np.array( [ 0, 0, 0 ], float )
 		rotVec = np.array( [ 0, 0, 0 ], float )
 		self.grounPlaneTransformMatrix = self.create_transformationMatrix( tranVec, rotVec, 'zyz' )
 
 		#	Add plane
 		#	TODO : I'm not sure what boundary is, ask new later
 		self.add_plane(	"ground", self.grounPlaneTransformMatrix, 
-						( 0, 10 ), ( -5, 5 ), ( -1, 1 ))
+						( -np.inf, np.inf ), ( -np.inf, np.inf ), ( -1, 1 ))
 		#	Create instance of camera kinematics
-		self.cameraKinematic = CameraKinematic( 10, 10, 10, 10 )
+		self.cameraKinematic = CameraKinematic( 4, 0, 45, 2 )
 
 
 		#	
@@ -148,7 +148,7 @@ class Kinematic( KinematicModule ):
 		points[:,0] *= 0.25
 		points[:,1] = 0.25*points[:,1] - 0.5
 		points = np.hstack((points,z))
-		self.points = points.copy()*10
+		self.points = points.copy()*100
 
 		self.point2D1 = None
 
@@ -226,17 +226,17 @@ class Kinematic( KinematicModule ):
 		if objMsg.ball_confidence == False:
 			
 			#	Set ball 3D Cartesion is None
-			ball3DCartesian = None
-		
+			ball3DCartesian = None		
+
 		else:
-			
 			#	Calculate 3D coordinate respect to base frame
 			ballPosition = np.array( objMsg.ball, dtype = np.float64 ).reshape( -1, 2 )
 			ball3DCartesian = self.calculate3DCoor( ballPosition, HCamera = transformationMatrix )
+			ball3DCartesian = ball3DCartesian[ 0 ][ 1 ]
 
 		#	If ball 3D cartesion is None
 		if ball3DCartesian is not None:
-			
+
 			#	Calculate polar coordinate change x, y -> r, theta
 			ball2DPolar = cv2.cartToPolar( ball3DCartesian[ 0 ], ball3DCartesian[ 1 ] )
 			ball2DPolar = np.array( [ ball2DPolar[ 0 ][ 0 ], ball2DPolar[ 0 ][ 0 ] ] )
@@ -246,6 +246,8 @@ class Kinematic( KinematicModule ):
 			#	If can't calculate 3D return empty vector
 			ball3DCartesian = np.array( [  ] )
 			ball2DPolar = np.array( [  ] )
+
+		rospy.logdebug( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
 
 		#	Get 2D projection back to camera
 		self.point2D1 = self.calculate2DCoor( self.points, "ground", HCamera= transformationMatrix )

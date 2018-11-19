@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-
+from visionManager.visionModule import VisionModule, KinematicModule
 
 class CameraKinematic( object ):
     """
@@ -39,10 +39,17 @@ class CameraKinematic( object ):
         cos = np.cos
         sin = np.sin
 
+        qTilt *= -1
+
         #   Rotation matrix of camera
         rotationMatrix =  [ [  cos( self.angle + qTilt )*cos( qPan ), -sin( self.angle + qTilt )*cos( qPan ),  sin( qPan )  ],
                             [  cos( self.angle + qTilt )*sin( qPan ), -sin( self.angle + qTilt )*sin( qPan ), -cos( qPan )  ],
                             [              sin( self.angle + qTilt ),              cos( self.angle + qTilt ),            0  ] ]
+
+        translationVec = np.array( [ 0.0, 0.0, 0.0 ], np.float64 )
+        rotationVec = np.array( [ 0.0, np.pi/2, np.pi ], np.float64 )
+        #   multiply
+        rotation = KinematicModule.create_transformationMatrix( translationVec, rotationVec, 'zyz' )
 
         #   Translation vector of camera
         translationVector = [ self.distance * cos( self.angle + qTilt ) * cos( qPan ), 
@@ -56,6 +63,8 @@ class CameraKinematic( object ):
         homogenousTransformationMatrix = np.eye( 4 )
         homogenousTransformationMatrix[ 0:3, 0:3 ] = rotationMatrixNumpy
         homogenousTransformationMatrix[ 0:3, 3 ] = translationVectorNumpy
+        homogenousTransformationMatrix = np.matmul( homogenousTransformationMatrix, rotation )
+
 
         return homogenousTransformationMatrix
 
