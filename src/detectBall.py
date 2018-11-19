@@ -37,7 +37,7 @@ class ImageProcessing( VisionModule ):
 		#   define message
 		self.objectsMsgType = visionMsg
 
-		colorList = [ 7, 95, 95, 22, 255, 255 ]
+		colorList = [0, 133, 131, 18, 255, 255]
 
 		self.__lower = np.array( colorList[ : 3 ] )
 		self.__upper = np.array( colorList[ 3 : 6 ] )
@@ -69,20 +69,24 @@ class ImageProcessing( VisionModule ):
 				M = cv2.moments( ballContour )
 				cx = int( M['m10'] / M['m00'] )
 				cy = int( M['m01'] / M['m00'] )
-			except ZeroDivisionError:
-				cx, cy = self.__previousPosition
+				ballPosition = [ int( cx ), int( cy ) ]
+				#	calculate error
+				#	NOTE : edit error y for switch sign for control motor
+				errorX = ( ballPosition[ 0 ] - imageWidth / 2. ) / ( imageWidth / 2. )
+				errorY = ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
 
-			ballPosition = [ int( cx ), int( cy ) ]
-			isDetectBall = True
-			
-			#	calculate error
-			#	NOTE : edit error y for switch sign for control motor
-			errorX = ( ballPosition[ 0 ] - imageWidth / 2. ) / ( imageWidth / 2. )
-			errorY = ( ballPosition[ 1 ] - imageHeight / 2. ) / ( imageHeight / 2. )
+				ballError = [ errorX, errorY ]
+
+				isDetectBall = True
+
+			except ZeroDivisionError:
+				ballPosition = []
+				ballError = list()
+				isDetectBall = False
 
 		else:
-			ballPosition = [ 0, 0 ]
-			errorX, errorY = 0., 0.
+			ballPosition = []
+			ballError = list()
 			isDetectBall = False
 
 
@@ -90,7 +94,7 @@ class ImageProcessing( VisionModule ):
 		msg.ball = ballPosition
 		msg.imgH = hsvImage.shape[0]
 		msg.imgW = hsvImage.shape[1]
-		msg.ball_error = [ errorX, errorY ]
+		msg.ball_error = ballError
 		msg.ball_confidence = isDetectBall
 		msg.header.stamp = rospy.Time.now()
 
@@ -100,9 +104,9 @@ class ImageProcessing( VisionModule ):
 
 	def visualizeFunction(self, img, msg):
 
-		rospy.logdebug( " error X : {}, error Y : {} ".format( msg.ball_error[ 0 ], msg.ball_error[ 1 ] ) )
 		# #	draw circle
 		if msg.ball_confidence:
+			rospy.logdebug( " error X : {}, error Y : {} ".format( msg.ball_error[ 0 ], msg.ball_error[ 1 ] ) )
 			cv2.circle( img, ( msg.ball[ 0 ], msg.ball[ 1 ] ), 10, ( 255, 0, 0 ), -1 )
 		
 		cv2.circle( img, ( msg.imgW / 2, msg.imgH / 2 ), 5, ( 0, 0, 255 ), -1 )
@@ -215,12 +219,10 @@ class Kinematic( KinematicModule ):
 	def kinematicCalculation( self, objMsg, joint ):
 		
 		#	Get ball error
-		errorX, errorY = objMsg.ball_error
+		ballError = objMsg.ball_error
 
 		#	Get camera kinematics
 		transformationMatrix = self.forwardKinematics( joint )
-
-		rospy.logdebug( " error X : {}, error Y : {} ".format( errorX, errorY ) )
 
 		#	If not find the ball
 		if objMsg.ball_confidence == False:
@@ -260,7 +262,7 @@ class Kinematic( KinematicModule ):
 		msg.ball_img = objMsg.ball
 		msg.imgW = objMsg.imgW
 		msg.imgH = objMsg.imgH
-		msg.ball_error = [ errorX, errorY ]
+		msg.ball_error = ballError
 		msg.ball_confidence = objMsg.ball_confidence
 		msg.header.stamp = rospy.Time.now()
 
