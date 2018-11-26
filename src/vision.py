@@ -75,6 +75,7 @@ class ImageProcessing(VisionModule):
 		self.objectsMsgType = Empty
 		self.subscribePantiltTopic = False
 
+
 		self.__fieldContour = None
 		self.__pointClound = None
 
