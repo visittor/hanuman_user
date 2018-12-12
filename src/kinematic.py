@@ -20,3 +20,6 @@ class Kinematic(KinematicModule):
 
 	def loop(self):
 		pass
+
+vision_module = VisionModule()
+kinematic_module = Kinematic()
