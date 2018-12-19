@@ -1,0 +1,1 @@
+export PYTHONPATH="/home/visittor/ros_ws/src/hanuman_user/src/":$PYTHONPATH
