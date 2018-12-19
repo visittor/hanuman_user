@@ -11,27 +11,53 @@ import numpy as np
 
 import binascii
 
-def createPanTiltChunk( pan, tilt ):
-	dataArray = np.array( [pan, tilt], dtype = np.dtype("<f8") )
-	dataStr = dataArray.tostring()
-	length = "".join( [ chr(0), chr(0), chr(0), chr(16) ] )
-	chunkType = 'paNt'
+objectsPoint1 = np.zeros( (8*6, 3) )
+objectsPoint1[:,:2] = np.mgrid[:6,:8].transpose( 1,2,0 ).reshape(-1,2)[::-1]
 
-	crc = binascii.crc32( length + chunkType + dataStr )
-	crcStr = "".join([ chr((crc & (255 << i*8))>>i*8) for i in range( 3, -1, -1 ) ])
+OFFSETX1 = 0.3
+OFFSETY1 = -0.0245 * 3.5
+SCALEX1 = 0.0245
+SCALEY1 = 0.0245
 
-	return length + chunkType + dataStr + crcStr
+objectsPoint1[:,0] *= SCALEX1
+objectsPoint1[:,1] *= SCALEY1
 
-def embedToPNGBuffer( dataChunk, pngBuffer ):
-	firstDataLength = sum([ord(n)<<8*(3 - 1) for i,n in enumerate( pngBuffer[8:12] )])
-	splitIndx = 8 + firstDataLength + 12
+objectsPoint1[:,0] += OFFSETX1
+objectsPoint1[:,1] += OFFSETY1
 
-	return pngBuffer[:splitIndx] + dataChunk + pngBuffer[splitIndx:]
+objectsPoint2 = np.zeros( (8*6, 3) )
+objectsPoint2[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)[::-1]
 
-def getEmbededData( buffer ):
-	chunkIdx = buffer.find( "paNt" ) - 4
-	chunkData = buffer[ chunkIdx : chunkIdx + 28 ]
-	return np.frombuffer( chunkData[8:24], dtype = np.dtype("<f8") )
+OFFSETX2 = 0.085
+OFFSETY2 = -0.16
+SCALEX2 = 0.0245
+SCALEY2 = -0.0245
+
+objectsPoint2[:,0] *= SCALEX2
+objectsPoint2[:,1] *= SCALEY2
+
+objectsPoint2[:,0] += OFFSETX2
+objectsPoint2[:,1] += OFFSETY2
+
+objectsPoint3 = np.zeros( (8*6, 3) )
+objectsPoint3[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)
+objectsPoint3[:,1:2] = objectsPoint3[::-1,1:2]
+
+OFFSETX3 = 0.0585
+OFFSETY3 = 0.16
+SCALEX3 = 0.0245
+SCALEY3 = 0.0245
+
+objectsPoint3[:,0] *= SCALEX3
+objectsPoint3[:,1] *= SCALEY3
+
+objectsPoint3[:,0] += OFFSETX3
+objectsPoint3[:,1] += OFFSETY3
+
+camera_prop = np.load( "/home/visittor/camMat.npz" )
+cameraMatrix = camera_prop[ 'cameraMatrix' ]
+distCoeffs = camera_prop[ 'distCoeffs' ]
+roi = camera_prop[ 'roi' ]
 
 class Kinematic(KinematicModule):
 
@@ -43,29 +69,58 @@ class Kinematic(KinematicModule):
 
 		self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-		self.__count = 1
+		self.__objpoints = []
+		self.__imgpoints = []
+		self.__panTiltPoses = []
 
 	def kinematicCalculation(self, objMsg, js, rconfig=None):
 		frame = cvtImageMessageToCVImage( objMsg )
+
+		# frame = cv2.undistort( frame, cameraMatrix, distCoeffs )
+
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		
 		ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
 
 		frameCopy = frame.copy()
+		corner2 = None
+
 		if ret:
 			corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), self.criteria)
 			cv2.drawChessboardCorners(frameCopy, (8,6), corners2, ret)
+			# cv2.circle( frameCopy, tuple(corners[0,0]), 3, (0,0,255), -1 )
+			# cv2.circle( frameCopy, tuple(corners[1,0]), 3, (0,255,255), -1 )
+			# cv2.circle( frameCopy, tuple(corners[8,0]), 3, (255,0,255), -1 )
 
 		cv2.imshow( 'img', frameCopy )
 		k = cv2.waitKey( 1 )
 
-		if k == ord( 's' ):
-			buf = cv2.imencode( '.png', frame )[1].tostring()
-			embedData = createPanTiltChunk( js.position[0], js.position[1] )
-			embededBufferStr = embedToPNGBuffer( embedData, buf )
-			embededBufferArr = np.frombuffer( embededBufferStr, dtype=np.uint8 )
-			embededBufferArr.tofile( "~/chessboard/%d.png" % self.__count )
-			self.__count += 1
+		if k == ord( '1' ) and corners2 is not None:
+			panTiltPos = np.array( js.position, dtype = np.float64 )
+			self.__imgpoints.append( corners2 )
+			self.__objpoints.append( objectsPoint1 )
+			self.__panTiltPoses.append( panTiltPos )
+			print "Capture board 1", len( self.__imgpoints )
+
+		elif k == ord( '2' ) and corners2 is not None:
+			panTiltPos = np.array( js.position, dtype = np.float64 )
+			self.__imgpoints.append( corners2 )
+			self.__objpoints.append( objectsPoint2 )
+			self.__panTiltPoses.append( panTiltPos )
+			print "Capture board 2", len( self.__imgpoints )
+
+		elif k == ord( '3' ) and corners2 is not None:
+			panTiltPos = np.array( js.position, dtype = np.float64 )
+			self.__imgpoints.append( corners2 )
+			self.__objpoints.append( objectsPoint3 )
+			self.__panTiltPoses.append( panTiltPos )
+			print "Capture board 3", len( self.__imgpoints )
+
+		elif k == ord( 's' ):
+			np.savez( "/home/visittor/chessboard.npz",
+					imagePoints = self.__imgpoints,
+					objectPoints = self.__objpoints,
+					pantilt = self.__panTiltPoses )
 
 		return Empty()
 

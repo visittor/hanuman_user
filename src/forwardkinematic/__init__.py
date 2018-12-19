@@ -1,1 +1,2 @@
-from forward_kinematic import getMatrixForForwardKinematic, setPrefix
+from forward_kinematic import getMatrixForForwardKinematic, setPrefix, setNewRobotConfiguration, resetConfiguration
+from forward_kinematic import saveDimension, loadDimensionFromConfig
