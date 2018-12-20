@@ -23,6 +23,8 @@ _l2 = 5.00000000e-02
 _lx = 9.44950202e-03
 _Phi = math.radians( 1.43430832e+01 )
 
+_prefix = 1e-0
+
 H = _H
 L = _L
 h1 = _h1
@@ -51,18 +53,26 @@ def getMatrixForForwardKinematic( *q ):
 	-------------------------------------------------
 	|	4	|	q2-pi/2	|	0	|	h2	|	-pi/2	|
 	-------------------------------------------------
-	|	5	|	pi/2	|	l2	|	0	|	0		|
+	|	5	|	pi/2	|	l2	|	lx	|	0		|
 	=================================================
 	'''
 	global H, L, h1, l1, h2, l2, Phi, lx
 	q1 = q[0]
 	q2 = q[1]
 	q3 = q2 - ( np.pi / 2 )
+
+	H_ = _prefix * _H
+	L_ = _prefix * _L
+	h1_ = _prefix * _h1
+	l1_ = _prefix * _l1
+	h2_ = _prefix * _h2
+	l2_ = _prefix * _l2
+	lx_ = _prefix * _lx
 	
 	T_R_j3 = [
-				[  c(Phi)*s(q1), 	-c(q2)*s(Phi) - c(Phi)*c(q1)*s(q2),		c(Phi)*c(q1)*c(q2) - s(Phi)*s(q2), 		L + h1*s(Phi) + l1*c(Phi)*c(q1) + h2*c(q2)*s(Phi) - l2*s(Phi)*s(q2) + l2*c(Phi)*c(q1)*c(q2) + h2*c(Phi)*c(q1)*s(q2) - c(Phi)*s(q1)*lx],
-				[  -c(q1),          -s(q1)*s(q2),                     		c(q2)*s(q1),                        	s(q1)*(l1 + l2*c(q2) + h2*s(q2))],
-				[  -s(Phi)*s(q1),   c(q1)*s(Phi)*s(q2) - c(Phi)*c(q2), 		-c(Phi)*s(q2) - c(q1)*c(q2)*s(Phi), 	H + h1*c(Phi) + h2*c(Phi)*c(q2) - l1*c(q1)*s(Phi) - l2*c(Phi)*s(q2) - l2*c(q1)*c(q2)*s(Phi) - h2*c(q1)*s(Phi)*s(q2)],
+				[  c(Phi)*s(q1), 	-c(q2)*s(Phi) - c(Phi)*c(q1)*s(q2),		c(Phi)*c(q1)*c(q2) - s(Phi)*s(q2), 		L_ + h1_*s(Phi) + l1_*c(Phi)*c(q1) + h2_*c(q2)*s(Phi) - l2_*s(Phi)*s(q2) + l2_*c(Phi)*c(q1)*c(q2) + h2_*c(Phi)*c(q1)*s(q2) - c(Phi)*s(q1)*lx_],
+				[  -c(q1),          -s(q1)*s(q2),                     		c(q2)*s(q1),                        	s(q1)*(l1_ + l2_*c(q2) + h2_*s(q2))],
+				[  -s(Phi)*s(q1),   c(q1)*s(Phi)*s(q2) - c(Phi)*c(q2), 		-c(Phi)*s(q2) - c(q1)*c(q2)*s(Phi), 	H_ + h1_*c(Phi) + h2_*c(Phi)*c(q2) - l1_*c(q1)*s(Phi) - l2_*c(Phi)*s(q2) - l2_*c(q1)*c(q2)*s(Phi) - h2_*c(q1)*s(Phi)*s(q2)],
 				[  0,               0,                                  	0,                                  	1]
 			 ]
 	T_R_j3 = np.array( T_R_j3, dtype = np.float64 )
@@ -72,17 +82,45 @@ def getMatrixForForwardKinematic( *q ):
 
 
 def setPrefix( n ):
-	global H, L, h1, l1, h2, l2
+	'''
+	Set prefix for length. Currently this module use meters.
+	argument:
+		n 	:	( float ) prefix.
+	'''
+	global _prefix
 
-	H = n * _H
-	L = n * _L
-	h1 = n * _h1
-	l1 = n * _l1
-	h2 = n * _h2
-	l2 = n * _l2
-	lx = n * _lx
+	_prefix = n
 
 def setNewRobotConfiguration( HNew, LNew, h1New, l1New, h2New, l2New, lxNew, phiNew ):
+	'''
+	Set robot configuration.
+	H, L, h1, l1, h2, l2, lx and phi respectively.
+	Here is DH-table for forwardkinematic.
+
+	Forward kinematic from robot base to camera.
+	DH table
+	=================================================
+	| index	|	theta	|	d 	|	r 	| 	alpha	|
+	=================================================
+	|	1	|	0		|	H	|	L	|	-pi/2	|
+	-------------------------------------------------
+	|	2	|	phi		|	0	|	0	|	 pi/2	|
+	=================================================
+	DH table from robot base to pan-tilt base.^
+	-------------------------------------------------
+	DH table from pan-tilt base to camera. v
+	=================================================
+	|	3	|	q1		|	h1	|	l1	|	-pi/2	|
+	-------------------------------------------------
+	|	4	|	q2-pi/2	|	0	|	h2	|	-pi/2	|
+	-------------------------------------------------
+	|	5	|	pi/2	|	l2	|	lx	|	0		|
+	=================================================
+	
+	arguments:
+		H, L, h1, l1, h2, l2, lx and phi respectively. ( float )
+
+	'''
 	global H, L, h1, l1, h2, l2, Phi, lx
 
 	H = HNew
@@ -107,6 +145,11 @@ def resetConfiguration( ):
 	Phi = _Phi
 
 def loadDimensionFromConfig( filePath ):
+	'''
+	Load robot dimension from config file.
+	argument:
+		filePath	:	( str )
+	'''
 	config = configobj.ConfigObj( filePath )[ 'RobotDimension' ]
 
 	global H, L, h1, l1, h2, l2, Phi, lx
@@ -121,6 +164,11 @@ def loadDimensionFromConfig( filePath ):
 	Phi = math.radians( float( config['Phi'] ) )
 
 def saveDimension( filePath ):
+	'''
+	Save current robot dimension to config file.
+	arguments:
+		filePath	:	( str )
+	'''
 	dimensionDict = { 	'H' : 	H,
 						'L'	:	L,
 						'h1':	h1,
