@@ -10,47 +10,43 @@ from forwardkinematic import *
 from utility.transformationModule import getInverseHomoMat
 
 def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeff ):
+	'''
+	Loss function for minimizer. Project point in 3d coor to image plane then find
+	and distance between projected point with actual image point.
+	'''
+	## Set robot dimension.
 	setNewRobotConfiguration( *robotConfig )
 
+	## Error
 	sumError = 0
-	print distCoeff
-	k1,k2,p1,p2,k3 = distCoeff[0] 
 
+	## Loop for every points.
 	for objP, imgP, js in zip( objPointList, imgPointList, jsList ):
 	
+		## Get transformation matrix .
 		transformationMatrix = getMatrixForForwardKinematic( *js )
 		invTransformationMatrix = getInverseHomoMat( transformationMatrix )
+		
+		## Print this. To indicate that program is still running.
 		print 'HMat', transformationMatrix
 
+		## Get homogenouse point
 		homoObjP = np.vstack( (objP.T, np.ones( (objP.shape[0],) ) ) )
  
+ 		## Project point to image plane.
 		predObjP_cam = np.matmul( invTransformationMatrix[:3,:], homoObjP )
 		predObjP_cam /= predObjP_cam[2]
 
 		predImgP = np.matmul( camMat, predObjP_cam )
 		predImgP = predImgP[:-1]
 
-		# print "actual", imgP[:4]
-		# print "pred", predImgP.T[:4]
-		# print "objP", objP[:4]
-		# print predImgP.T[-1]
-
+		## Find error for each points.
 		error = np.linalg.norm( predImgP.T - imgP.reshape(-1,2), axis = 1 )
 		error = np.sum( error ) / error.shape[0]
 		sumError += error
 
+	## Find average error.
 	return sumError / len( objPointList )
-
-def findTranslationAndRotationVector( objPointList, imgPointList, camMat, distCoeff ):
-
-	tranVecList = []
-	rotVecList = []
-	for objP, imgP in zip( objPointList, imgPointList ):
-		ret, rvec, tvec = cv2.solvePnP( objP, imgP, camMat, distCoeff )
-		tranVecList.append( tvec )
-		rotVecList.append( rvec )
-
-	return rotVecList, tranVecList
 
 def main():
 	parser = optparse.OptionParser()
@@ -69,43 +65,25 @@ def main():
  
 	(options, args) = parser.parse_args()
 
+	## Load image points, object point and joint state.
 	data = np.load( options.path )
 
 	objPointList = data[ 'objectPoints' ]
 
-	# n = len( objPointList )	
-
-	# objPointList = np.zeros( (8*6, 3) )
-	# objPointList[:,:2] = np.mgrid[:6,:8].transpose( 1,2,0 ).reshape(-1,2)[::-1]
-
-	# objPointList = np.array( [ objPointList.copy() for i in range(n) ] )
-
-	# objPointList[:,:,0] *= 0.0245
-	# objPointList[:,:,1] *= 0.0245
-
-	# objPointList[:,:,0] += 0.3
-	# objPointList[:,:,1] -= (0.0245 * 7) / 2
-
-	# # objPointList *= 1000
-
-	print objPointList[2]
-
 	objPointList = objPointList.astype( np.float32 )
 	imgPointList = data[ 'imagePoints' ]
-	print len(objPointList)
-	print imgPointList[2]
-	# sys.exit
 
 	pantiltPosList = data[ 'pantilt' ]
 
 	if options.camMatPath is not None:
+		## Load camera matrix.
 		camera_prop = np.load( "/home/visittor/camMat.npz" )
 		cameraMatrix = camera_prop[ 'cameraMatrix' ]
 		distCoeffs = camera_prop[ 'distCoeffs' ]
 		roi = camera_prop[ 'roi' ]
 
 	else:
-
+		## Re-calculate camera matrix
 		retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera( objPointList, imgPointList, (640,480), None, None )
 
 		if options.savePath is not None:
@@ -118,20 +96,24 @@ def main():
 						cameraMatrix = newcameramtx,
 						distCoeffs = distCoeffs,
 						roi = roi )
+	###########################################################################
+	## Minimizer Part
 
+	## Our initial guess.
 	initialGuess = np.array( [ 0.46,
-								0.05,
+								0.0,
 								0.02,
 								0.03,
-								0.1,
+								0.07,
 								0.02,
 								0.005,
-								5.0] )
+								5.0 ] )
+
 	args = ( objPointList, imgPointList, pantiltPosList, cameraMatrix, distCoeffs )
 	method = "trust-constr"
 	jac = "2-point"
 	hess = BFGS()
-	bounds = [ (0.1,1.0), (-0.1	, 0.05), (0.0, 0.05), (0.0, 0.05), (0.0, 0.05), (0.0, 0.05),
+	bounds = [ (0.1,1.0), (-0.1	, 0.05), (0.005, 0.05), (0.005, 0.05), (0.035, 0.1), (0.0, 0.05),
 			(-0.02, 0.02 ), (-90, 90) ]
 
 	constr = LinearConstraint( np.eye(8), [i[0] for i in bounds], [i[1] for i in bounds] )
