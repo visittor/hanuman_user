@@ -4,7 +4,8 @@
 from visionManager.visionModule import VisionModule, KinematicModule
 from newbie_hanuman.msg import visionMsg, postDictMsg
 
-from camera_kinematics import CameraKinematic
+# from camera_kinematics import CameraKinematic
+from forwardkinematic import getMatrixForForwardKinematic, loadDimensionFromConfig
 
 import rospy
 
@@ -67,8 +68,9 @@ class ImageProcessing( VisionModule ):
 			try:
 				#	find image moments
 				M = cv2.moments( ballContour )
-				cx = int( M['m10'] / M['m00'] )
-				cy = int( M['m01'] / M['m00'] )
+				# cx = int( M['m10'] / M['m00'] )
+				# cy = int( M['m01'] / M['m00'] )
+				cx, cy = tuple(ballContour[ballContour[:,:,1].argmax()][0])
 				ballPosition = [ int( cx ), int( cy ) ]
 				#	calculate error
 				#	NOTE : edit error y for switch sign for control motor
@@ -119,8 +121,8 @@ class Kinematic( KinematicModule ):
 
 		#	Load intrinsic camera
 		#	Path of camera matrix
-		intrinsicMatrixPath = '/home/neverholiday/work/camera_matrix_directory/camera_matrix.npy'
-		intrinsicMatrix = np.load( intrinsicMatrixPath )
+		intrinsicMatrixPath = '/home/visittor/camMat.npz'
+		intrinsicMatrix = np.load( intrinsicMatrixPath )[ 'cameraMatrix' ]
 
 		#	Set camera matrix
 		self.set_IntrinsicCameraMatrix( intrinsicMatrix )
@@ -138,8 +140,10 @@ class Kinematic( KinematicModule ):
 		#	TODO : I'm not sure what boundary is, ask new later
 		self.add_plane(	"ground", self.grounPlaneTransformMatrix, 
 						( -np.inf, np.inf ), ( -np.inf, np.inf ), ( -1, 1 ))
+
 		#	Create instance of camera kinematics
-		self.cameraKinematic = CameraKinematic( 4, 0, 45, 2 )
+		# self.cameraKinematic = CameraKinematic( 4, 0, 45, 2 )
+		loadDimensionFromConfig( "/home/visittor/ros_ws/src/hanuman_user/script/robotDimension.ini" )
 
 
 		#	
@@ -152,7 +156,7 @@ class Kinematic( KinematicModule ):
 		points[:,0] *= 0.25
 		points[:,1] = 0.25*points[:,1] - 0.5
 		points = np.hstack((points,z))
-		self.points = points.copy()*100
+		self.points = points.copy()
 
 		self.point2D1 = None
 
@@ -200,21 +204,21 @@ class Kinematic( KinematicModule ):
 		# print ret
 		return ret, pt1, pt2
 
-	def forwardKinematics( self, jointState ):
-		"""
-			Calculate forward kinematics from base frame
-			return:
-				homogenousMatrix = Homogenous transformation matrix from base frame 
-				to camaraframe
-		"""
-		#	get joint state from pan and tilt
-		qPan = getJsPosFromName( jointState, "pan" )
-		qTilt = getJsPosFromName( jointState, "tilt" )
+	# def forwardKinematics( self, jointState ):
+	# 	"""
+	# 		Calculate forward kinematics from base frame
+	# 		return:
+	# 			homogenousMatrix = Homogenous transformation matrix from base frame 
+	# 			to camaraframe
+	# 	"""
+	# 	#	get joint state from pan and tilt
+	# 	qPan = getJsPosFromName( jointState, "pan" )
+	# 	qTilt = getJsPosFromName( jointState, "tilt" )
 
-		#	Calculate transformation matrix
-		transformationMatrix = self.cameraKinematic.updateMatrix( qPan, qTilt )
+	# 	#	Calculate transformation matrix
+	# 	transformationMatrix = self.cameraKinematic.updateMatrix( qPan, qTilt )
 
-		return transformationMatrix
+	# 	return transformationMatrix
 
 	def kinematicCalculation( self, objMsg, joint ):
 		
@@ -222,7 +226,10 @@ class Kinematic( KinematicModule ):
 		ballError = objMsg.ball_error
 
 		#	Get camera kinematics
-		transformationMatrix = self.forwardKinematics( joint )
+		# transformationMatrix = self.forwardKinematics( joint )
+		qPan = getJsPosFromName( joint, "pan" )
+		qTilt = getJsPosFromName( joint, "tilt" )
+		transformationMatrix = getMatrixForForwardKinematic( qPan, qTilt )
 
 		#	If not find the ball
 		if objMsg.ball_confidence == False:
@@ -249,7 +256,7 @@ class Kinematic( KinematicModule ):
 			ball3DCartesian = np.array( [  ] )
 			ball2DPolar = np.array( [  ] )
 
-		rospy.logdebug( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
+		rospy.loginfo( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
 
 		#	Get 2D projection back to camera
 		self.point2D1 = self.calculate2DCoor( self.points, "ground", HCamera= transformationMatrix )
