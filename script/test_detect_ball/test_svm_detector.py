@@ -31,6 +31,7 @@ import numpy as np
 from test_watershed import colorSegmentation, readConfig
 
 from scanLine2 import findBoundary
+from visionModule.Nasrun.hog_svm import HOG_SVM
 
 import time
 
@@ -209,6 +210,9 @@ def main():
 	#	get model
 	model = loadModel( modelPathStr )
 
+	#	initial hog/svm instance for classifier
+	predictor = HOG_SVM( modelPathStr )
+
 	while True:
 
 		#	get image
@@ -237,83 +241,86 @@ def main():
 		whiteObjectMask = whiteObjectMask.astype( np.uint8 )
 
 		#	get contours from white object
-		whiteContours = cv2.findContours( whiteObjectMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+		whiteContours = cv2.findContours( whiteObjectMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		#	copy image for visualize
 		visualizeImage = img.copy()
 
-		#	get bounding box list from cv2.boundingRect
-		boundingBoxList = map( cv2.boundingRect, whiteContours )
+		#	extract feature all white feature
+		predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
 
-		#	filter
-		filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
-		boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
+		#	predict all white feature, which the ball is ?
+		predictor.predict()
 
-		#	filter again check rectangle
-		filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
-		boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
+		# #	get bounding box list from cv2.boundingRect
+		# boundingBoxList = map( cv2.boundingRect, whiteContours )
 
-		print len( boundingBoxRectList )
+		# #	filter
+		# filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
+		# boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
 
-		for boundingBox in boundingBoxRectList:
+		# #	filter again check rectangle
+		# filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
+		# boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
 
-			# x = boundingBox[ 0 ]
-			# y = boundingBox[ 1 ]
-			# width = boundingBox[ 2 ]
-			# height = boundingBox[ 3 ]
+		# print len( boundingBoxRectList )
 
-			x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
+		# for boundingBox in boundingBoxRectList:
 
-			# cv2.rectangle( visualizeImage, ( x, y ), 
-			# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
+		# 	x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
 
-			cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
-										   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
+		# 	# cv2.rectangle( visualizeImage, ( x, y ), 
+		# 	# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
 
-			#	get roi
-			roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
+		# 	cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
+		# 								   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
+
+		# 	#	get roi
+		# 	roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
 			
-			#	resize
-			roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
+		# 	#	resize
+		# 	roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
 
-			#	extract feature
-			featureVector = extractFeatureHog( roiCandidateResizedImage ).T
+		# 	#	extract feature
+		# 	featureVector = extractFeatureHog( roiCandidateResizedImage ).T
 			
-			#	predict
-			predictClass = model.predict( featureVector )
+		# 	#	predict
+		# 	predictClass = model.predict( featureVector )
 
-			if predictClass[ 0 ] == 1:
-				cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
-										      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
-			
-
-		# for cnt in whiteContours:
-
-		# 	#	get rotated rect
-		# 	boundingBox = cv2.boundingRect( cnt )
-
-		# 	#	get coordinate ROI
-		# 	x = boundingBox[ 0 ]
-		# 	y = boundingBox[ 1 ]
-		# 	width = boundingBox[ 2 ]
-		# 	height = boundingBox[ 3 ]
-
-		# 	if width <= 10 and height <= 10:
-		# 		continue
-
-		# 	count += 1
-
-		# 	cv2.rectangle( visualizeImage, ( x, y ), 
-		# 							       ( x + width, y + height ), ( 255, 0, 0 ), 2 )
-			
-		# 	cv2.imshow( "roi", visualizeImage[ y : y + height, x : x + width ] )
-			
-		# 	time.sleep( 0.001 )
-			
+		# 	if predictClass[ 0 ] == 1:
+		# 		cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
+		# 								      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
+				
 		#
 		#	visualization zone
 		#
 
+		for boundingBoxObject in predictor.boundingBoxListObject.boundingBoxList:
+
+			# cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+			# 			   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
+			if boundingBoxObject.isFootball is True:
+				
+				cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+						   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
+				cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+			
+			else:
+
+				cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+						   boundingBoxObject.bottomRightPositionTuple, ( 0, 0, 255 ), 2 )
+				
+				cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+		#	get best region
+		predictor.chooseBestRegion()
+		
+		cv2.circle( visualizeImage, predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple, 10, ( 255, 0, 0 ), -1 )
+		
+		#print idxFrameInt
+		predictor.boundingBoxListObject.clearBoundingBoxList()
 		#	draw contours
 		cv2.drawContours( visualizeImage, [ fieldBoundary ], 0, ( 128, 0, 255 ), 3 )
 
