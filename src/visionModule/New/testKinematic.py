@@ -1,5 +1,4 @@
 from visionManager.visionModule import KinematicModule, VisionModule
-from newbie_hanuman.msg import HanumanStatusMsg
 
 from std_msgs.msg import Empty
 

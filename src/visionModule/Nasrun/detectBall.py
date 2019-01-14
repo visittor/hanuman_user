@@ -145,80 +145,7 @@ class Kinematic( KinematicModule ):
 		# self.cameraKinematic = CameraKinematic( 4, 0, 45, 2 )
 		loadDimensionFromConfig( "/home/visittor/ros_ws/src/hanuman_user/script/robotDimension.ini" )
 
-
-		#	
-		#	For visualize
-		#
-
-		x, y = np.indices((5,5))
-		z = np.zeros((25,1), float)
-		points = np.hstack((x.reshape(-1,1), y.reshape(-1,1))).astype(float)
-		points[:,0] *= 0.25
-		points[:,1] = 0.25*points[:,1] - 0.5
-		points = np.hstack((points,z))
-		self.points = points.copy()
-
-		self.point2D1 = None
-
-		self.pattern = [	[0, 4],
-							[5, 9],
-							[10, 14],
-							[15, 19],
-							[20, 24],
-							[0, 20],
-							[1, 21],
-							[2, 22],
-							[3, 23],
-							[4, 24]
-						]
-
-		self.worldCoors = list()
-		self.labels = list()
-		self.rects = list()
-
-	#	TODO : Not sure what it is ?
-	def __rect2CntAndCenter(self, rect):
-		cnt = np.zeros((4,2), dtype = float)
-		center = np.zeros((2), dtype = float)
-		for i,p in enumerate(rect.points):
-			cnt[i,0] = p.x
-			cnt[i,1] = p.y
-			center[0] += 0.25*p.x
-			center[1] += 0.25*p.y
-		return cnt, center
-
-	#	TODO : Not again.
-	def clipLine(self, point1, point2, shape):
-		if point1 is None or point2 is None:
-			return False, point1, point2
-
-		if (-1000000>=point1).any() or (point1>=1000000).any():
-			return False, point1, point2
-
-		if (-1000000>=point2).any() or (point2>=1000000).any():
-			return False, point1, point2
-
-		point1 = point1.astype(int)
-		point2 = point2.astype(int)
-		ret, pt1, pt2 = cv2.clipLine( (0,0,shape[1],shape[0]), tuple(point1), tuple(point2))
-		# print ret
-		return ret, pt1, pt2
-
-	# def forwardKinematics( self, jointState ):
-	# 	"""
-	# 		Calculate forward kinematics from base frame
-	# 		return:
-	# 			homogenousMatrix = Homogenous transformation matrix from base frame 
-	# 			to camaraframe
-	# 	"""
-	# 	#	get joint state from pan and tilt
-	# 	qPan = getJsPosFromName( jointState, "pan" )
-	# 	qTilt = getJsPosFromName( jointState, "tilt" )
-
-	# 	#	Calculate transformation matrix
-	# 	transformationMatrix = self.cameraKinematic.updateMatrix( qPan, qTilt )
-
-	# 	return transformationMatrix
+		self.msg = None
 
 	def kinematicCalculation( self, objMsg, joint ):
 		
@@ -258,38 +185,48 @@ class Kinematic( KinematicModule ):
 
 		rospy.loginfo( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
 
-		#	Get 2D projection back to camera
-		self.point2D1 = self.calculate2DCoor( self.points, "ground", HCamera= transformationMatrix )
-		self.point2D1 = np.array( self.point2D1 )
-
  		#	Publist positon dict message
-		msg = postDictMsg()
-		msg.ball_cart = ball3DCartesian.reshape( -1 )
-		msg.ball_polar = ball2DPolar.reshape( -1 )
-		msg.ball_img = objMsg.ball
-		msg.imgW = objMsg.imgW
-		msg.imgH = objMsg.imgH
-		msg.ball_error = ballError
-		msg.ball_confidence = objMsg.ball_confidence
-		msg.header.stamp = rospy.Time.now()
+		self.msg = postDictMsg()
+		self.msg.ball_cart = ball3DCartesian.reshape( -1 )
+		self.msg.ball_polar = ball2DPolar.reshape( -1 )
+		self.msg.ball_img = objMsg.ball
+		self.msg.imgW = objMsg.imgW
+		self.msg.imgH = objMsg.imgH
+		self.msg.ball_error = ballError
+		self.msg.ball_confidence = objMsg.ball_confidence
+		self.msg.header.stamp = rospy.Time.now()
 
-		return msg
+		return self.msg
 
 	#	Just visualize !
 	#	TODO : Clean and refactor later
 	def loop(self):
-		blank = np.zeros((480,640,3), dtype=np.uint8)
-		if self.point2D1 is not None:
-			for i in self.pattern:
-				point1 = self.point2D1[i[0]]
-				point2 = self.point2D1[i[1]]
-				# print point1, point2
-				ret, pt1, pt2 = self.clipLine(point1, point2, blank.shape)
-				if ret:
-					# print "Draw"
-					cv2.line(blank, pt1, pt2, (255,0,0), 4)
 		
-		cv2.imshow("img", blank)
+		field = np.zeros( (600, 600, 3), dtype = np.uint8 )
+		field[:,:,1] = 255
+
+		for ii in range( 0, 600, 100 ):
+			cv2.line( field, (ii, 0), (ii, 600), (0,0,0), 1 )
+			cv2.line( field, (0, ii), (600, ii), (0,0,0), 1 )
+
+		pt1 = (300, 550)
+		pt2 = (285, 600)
+		pt3 = (315, 600)
+
+		triangle_cnt = np.array( [pt1, pt2, pt3] )
+
+		cv2.drawContours(field, [triangle_cnt], 0, (0, 0, 255), -1)
+
+		if self.msg is not None and self.msg.ball_confidence:
+			x, y = self.msg.ball_cart[:2]
+			x = int( x * 100.0 )
+			y = int( y * 100.0 )
+			y = 300 - y
+			x = 600 - x
+
+			cv2.circle( field, (y,x), 4, (125,125,255), -1 )
+
+		cv2.imshow("img", field)
 		cv2.waitKey(1)
 
 	def end( self ):
