@@ -28,12 +28,13 @@ import pickle
 import cv2
 import numpy as np
 
-from test_watershed import colorSegmentation, readConfig
+#from test_watershed import colorSegmentation, readConfig
 
 from scanLine2 import findBoundary
 from visionModule.Nasrun.hog_svm import HOG_SVM
+from colorSegmentation import createColorDefFromDict, colorSegmentation
 
-import time
+import configobj
 
 ########################################################
 #
@@ -76,6 +77,16 @@ def loadModel( modelPathStr ):
 		model = pickle.load( modelPickle )
 
 	return model
+
+def getColorListFromConfig( colorConfigPathStr ):
+	
+	#	initial configobj
+	colorConfig = configobj.ConfigObj( colorConfigPathStr )
+
+	#	get color list from object of color config
+	colorList = colorConfig.values()
+
+	return colorList
 
 def openingMorphologicalWithCircularMask( binaryImage ):
 
@@ -174,8 +185,8 @@ def main():
 	parser = optparse.OptionParser( usage = programUsage, description=PROGRAM_DESCRIPTION )
 
 	#	add option of main script
-	# parser.add_option( "-o", "--myOption", dest = "myOption",
-	# 					help = "Specify option document here." )
+	parser.add_option( "--colorConfig", dest = "colorConfig", action = 'store', type = 'string',
+						help = "Specify color config.", default = '../../config/color_config/colordef_test.ini' )
 
 	#	add option
 	( options, args ) = parser.parse_args()
@@ -195,11 +206,17 @@ def main():
 	framePathStr = args[ 0 ]
 	modelPathStr = args[ 1 ]
 
+	colorConfigPathStr = options.colorConfig
+
 	#	get abs path
 	frameAbsPathStr = getImageList( framePathStr )
 
 	#	get config
-	colorDict = readConfig( 'color_2.ini' )
+	#colorDict = readConfig( 'color_2.ini' )
+	colorList = getColorListFromConfig( colorConfigPathStr )
+
+	#	create colordef msg
+	colorDef = createColorDefFromDict( colorList )
 
 	#	load image sequence
 	frameList = map( cv2.imread, frameAbsPathStr )
@@ -222,19 +239,21 @@ def main():
 		blurImage = cv2.blur( img, ( 5, 5 ) )
 
 		#	get marker
-		marker = colorSegmentation( blurImage, colorDict )
+		marker = colorSegmentation( blurImage, colorDef )
 
 		#	get only white object from marker
+		#	NOTE :
+		#		Change id of white marker, follow chattarin colordef template
+		#		ID White : 5, old : 8
+		#		ID Green : 2, old : 1
 		whiteImageObject = np.zeros( marker.shape )
-		whiteImageObject[ marker == 8 ] = 1
+		whiteImageObject[ marker == 5 ] = 1
  
 		#	get field boundary
-		fieldBoundary, fieldMask = findBoundary( marker, 1, flip = False )
-
-		fieldMask = fieldMask * 1
+		fieldBoundary, fieldMask = findBoundary( marker, 2, flip = False )
 		
 		#	get mask only ball
-		whiteObjectMask = fieldMask * whiteImageObject
+		whiteObjectMask = fieldMask * whiteImageObject 
 		whiteObjectMask *= 255
 
 		#	change back to uint8 (opencv support only uint8)
@@ -317,12 +336,13 @@ def main():
 		#	get best region
 		predictor.chooseBestRegion()
 		
-		cv2.circle( visualizeImage, predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple, 10, ( 255, 0, 0 ), -1 )
+		if predictor.boundingBoxListObject.previousBoundingBox is not None:
+			cv2.circle( visualizeImage, predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple, 10, ( 255, 0, 0 ), -1 )
 		
 		#print idxFrameInt
 		predictor.boundingBoxListObject.clearBoundingBoxList()
 		#	draw contours
-		cv2.drawContours( visualizeImage, [ fieldBoundary ], 0, ( 128, 0, 255 ), 3 )
+		cv2.drawContours( visualizeImage, [ fieldBoundary ], 0, ( 128, 0, 255 ), 1 )
 
 		#	show image
 		cv2.imshow( "show", visualizeImage )
