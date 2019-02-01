@@ -62,7 +62,17 @@ class ForwardToBall( FSMBrainState ):
 										ignorable = False )
 
 	def step( self ):
-		pass
+		
+		rospy.logdebug( "Robot is going forward!" )
+
+	# def leaveStateCallBack( self ):
+	# 	self.rosInterface.LocoCommand(	velX = 0.0,
+	# 									velY = 0.0,
+	# 									omgZ = 0.0,
+	# 									commandType = 0,
+	# 									ignorable = False ) 
+
+	# 	rospy.logdebug( "Exit state forward!" )
 
 class TurnRighToBall( FSMBrainState ):
 
@@ -80,7 +90,17 @@ class TurnRighToBall( FSMBrainState ):
 										ignorable = False )
 
 	def step( self ):
-		pass
+		
+		rospy.logdebug( "Robot is turn right!" )
+
+	# def leaveStateCallBack( self ):
+	# 	self.rosInterface.LocoCommand(	velX = 0.0,
+	# 									velY = 0.0,
+	# 									omgZ = 0.0,
+	# 									commandType = 0,
+	# 									ignorable = False ) 
+
+	# 	rospy.logdebug( "Exit state turn right!" )
 
 class TurnLeftToBall( FSMBrainState ):
 
@@ -98,7 +118,17 @@ class TurnLeftToBall( FSMBrainState ):
 										ignorable = False )
 
 	def step( self ):
-		pass
+		
+		rospy.logdebug( "Robot is turn left!" )
+
+	# def leaveStateCallBack( self ):
+	# 	self.rosInterface.LocoCommand(	velX = 0.0,
+	# 									velY = 0.0,
+	# 									omgZ = 0.0,
+	# 									commandType = 0,
+	# 									ignorable = False )
+
+	# 	rospy.logdebug( "Exit state turn left!" ) 
 
 class StandStill( FSMBrainState ):
 
@@ -116,4 +146,56 @@ class StandStill( FSMBrainState ):
 										ignorable = False )
 
 	def step( self ):
-		pass
+		
+		rospy.logdebug( "Robot is standstill" )
+
+class RightKick( FSMBrainState ):
+
+	def __init__( self ):
+
+		#	Set the name
+		super( RightKick, self ).__init__( "RightKick" )
+
+	def firstStep( self ):
+
+		self.rosInterface.LocoCommand( command = "RightKick",
+									   commandType = 1,
+									   ignorable = False )
+
+	def step( self ):
+		
+		rospy.logdebug( "Right kick like messi!" )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = 0.0,
+										commandType = 0,
+										ignorable = False ) 
+		rospy.logdebug( "Exit state right kick!" ) 
+
+class LeftKick( FSMBrainState ):
+
+	def __init__( self ):
+
+		#	Set the name
+		super( LeftKick, self ).__init__( "LeftKick" )
+
+	def firstStep( self ):
+
+		self.rosInterface.LocoCommand( command = "LeftKick",
+									   commandType = 1,
+									   ignorable = False )
+
+	def step( self ):
+		
+		rospy.logdebug( "Left kick like Ronaldoooo!" )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = 0.0,
+										commandType = 0,
+										ignorable = False ) 
+
+		rospy.logdebug( "Exit state left kick!" ) 
