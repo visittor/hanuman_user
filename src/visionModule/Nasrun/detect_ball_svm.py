@@ -41,6 +41,8 @@ import time
 #	GLOBALS
 #
 
+MODEL_PATH = "/home/neverholiday/work/ros_ws/src/hanuman_user/config/model/second_model.pkl"
+
 ########################################################
 #
 #	EXCEPTION DEFINITIONS
@@ -77,21 +79,16 @@ class ImageProcessing( VisionModule ):
 		self.objectsMsgType = visionMsg
 
 		#	get color config file path from rosparam
-		colorConfigPathStr = rospy.get_param( '/vision_manager/colorConfig', None )
+		robotConfigPathStr = rospy.get_param( '/robot_config', None )
 
-		if colorConfigPathStr is None:
-			raise TypeError( 'Required color config.' )
-
-		modelPathStr = rospy.get_param( '/vision_manager/modelPath', None )
-
-		if modelPathStr is None:
-			raise TypeError( 'Required trained model' )
+		if robotConfigPathStr is None:
+			raise TypeError( 'Required robot config.' )
 		
 		#	get model object
-		self.predictor = HOG_SVM( modelPathStr )
+		self.predictor = HOG_SVM( MODEL_PATH )
 
 		#	get color definition from color config ( get only values )
-		colorConfigList = configobj.ConfigObj( colorConfigPathStr )
+		colorConfigList = configobj.ConfigObj( robotConfigPathStr )[ "ColorDefinitions" ]
 		colorConfigList = colorConfigList.values()
 
 		#	create color definition for using segmentation 
@@ -189,14 +186,24 @@ class Kinematic( KinematicModule ):
 		
 		super( Kinematic, self ).__init__()
 
-		#	Load intrinsic camera
-		#	Path of camera matrix
-		#intrinsicMatrixPath = '/home/neverholiday/work/ros_ws/src/hanuman_user/config/camera_matrix/camMat.npz'
-		intrinsicMatrixPath = rospy.get_param( '/robot_kinematic/intrinsicCameraPath', None )
+		#	load robot parameter via configboj
+		robotConfigPathStr = rospy.get_param( "/robot_config", None )
+		if robotConfigPathStr is None:
+			raise TypeError( "Robot config should not NoneType" )
+		config = configobj.ConfigObj( robotConfigPathStr )
+		
+		#	get camera parameter
+		fx = float( config[ "CameraParameters" ][ "fx" ] )
+		fy = float( config[ "CameraParameters" ][ "fy" ] ) 
+		cx = float( config[ "CameraParameters" ][ "cx" ] ) 
+		cy = float( config[ "CameraParameters" ][ "cy" ] ) 
 
-		if intrinsicMatrixPath is None:
-			raise TypeError( "Intrinsic camera matrix should not NoneType" )
-		intrinsicMatrix = np.load( intrinsicMatrixPath )[ 'cameraMatrix' ]
+		#	create intrinsic matrix 3x3
+		intrinsicMatrix = np.array( [ [ fx,  0,  cx ],
+									  [  0, fy,  cy ],
+									  [  0,  0,   1 ] ] )
+
+		print intrinsicMatrix
 
 		#	Set camera matrix
 		self.set_IntrinsicCameraMatrix( intrinsicMatrix )
@@ -215,13 +222,8 @@ class Kinematic( KinematicModule ):
 		self.add_plane(	"ground", self.grounPlaneTransformMatrix, 
 						( -np.inf, np.inf ), ( -np.inf, np.inf ), ( -1, 1 ))
 
-		#	Create instance of camera kinematics
-		# self.cameraKinematic = CameraKinematic( 4, 0, 45, 2 )
-		robotDimensionPath = rospy.get_param( '/robot_kinematic/robotDimension', None )
-
-		if robotDimensionPath is None:
-			raise TypeError( "Robot dimension shold not NoneType" )
-		loadDimensionFromConfig( robotDimensionPath )
+		#	load dimension from config
+		loadDimensionFromConfig( robotConfigPathStr )
 		#loadDimensionFromConfig( "/home/neverholiday/work/ros_ws/src/hanuman_user/script/robotDimension.ini" )
 
 

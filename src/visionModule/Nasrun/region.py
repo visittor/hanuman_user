@@ -53,6 +53,7 @@ class BoundingBoxDataStruct( object ):
 		self.object2DPosTuple = self.calculateObjectPoint( positionObject )
 
 		#	initial other attribrute
+		self.footballProbabilityScore = 0
 		self.isFootball = False
 		self.distanceFromPreviousPosition = 0.0
 		self.featureVector = None

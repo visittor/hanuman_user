@@ -59,6 +59,9 @@ class HOG_SVM( object ):
 		#   get model for classifier
 		self.model = loadModel( modelPathStr )
 
+		#	set probability to true
+		print self.model.probability
+
 		#	define hog descriptor instance
 		self.hogDescriptor = cv2.HOGDescriptor( winSize, blockSize, blockStride, cellSize, nBins )
 
@@ -108,6 +111,9 @@ class HOG_SVM( object ):
 
 			#	predict by svm
 			classificationScore = self.model.predict( hogFeature )
+
+			#	get score in form probability
+			boundingObject.footballProbabilityScore =  self.model.predict_proba( hogFeature )
 
 			#	store the result to same object
 			if classificationScore[ 0 ] == 1:
