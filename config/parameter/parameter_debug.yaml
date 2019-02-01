@@ -1,21 +1,17 @@
 global_frequency: 10
 global_verbosity: debug
-motor_cortex: {comport: /dev/ttyACM0}
+motor_cortex:
+  comport: /dev/ttyACM0
 
-spinalcord: {
-  head_baurdrate: 115200, 
-  head_comport: /dev/ttyUSB0, 
-  pan_motor_serie: mx28, 
+spinalcord:
+  head_baurdrate: 115200
+  head_comport: /dev/ttyUSB0
+  pan_motor_serie: mx28
   tilt_motor_serie: mx28
-  }
 
-vision_manager: {
-  cameraID: 1, 
-  cranial_nerve_ii_frquency: 10,
-  vision_module_path: /home/neverholiday/work/ros_ws/src/hanuman_user/src/visionModule/Nasrun/detect_ball_svm.py,
-  colorConfig: /home/neverholiday/work/ros_ws/src/hanuman_user/config/color_config/colordef_field_fibo_hanuman2.ini,
-  modelPath: /home/neverholiday/work/ball_detector/crop_data/numpyData/model/second_model.pkl
-  }
+vision_manager:
+  cameraID: 1
+  cranial_nerve_ii_frquency: 10
 
 brain: {
   brain_module_path: /home/neverholiday/work/ros_ws/src/hanuman_user/src/Brain/gotoball_fsmbrainstate.py
