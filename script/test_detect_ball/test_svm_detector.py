@@ -81,7 +81,7 @@ def loadModel( modelPathStr ):
 def getColorListFromConfig( colorConfigPathStr ):
 	
 	#	initial configobj
-	colorConfig = configobj.ConfigObj( colorConfigPathStr )
+	colorConfig = configobj.ConfigObj( colorConfigPathStr )[ "ColorDefinitions" ]
 
 	#	get color list from object of color config
 	colorList = colorConfig.values()
@@ -332,6 +332,9 @@ def main():
 						   boundingBoxObject.bottomRightPositionTuple, ( 0, 0, 255 ), 2 )
 				
 				cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+			cv2.putText( visualizeImage, "{0:.4f}".format( boundingBoxObject.footballProbabilityScore[ 0, 1 ] ), 
+						boundingBoxObject.topLeftPositionTuple, cv2.FONT_HERSHEY_COMPLEX, 0.5, ( 0, 255, 0 ), 1, cv2.LINE_AA )
 
 		#	get best region
 		predictor.chooseBestRegion()
