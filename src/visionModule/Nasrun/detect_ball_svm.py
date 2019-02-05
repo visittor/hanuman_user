@@ -41,7 +41,7 @@ import time
 #	GLOBALS
 #
 
-MODEL_PATH = "/home/neverholiday/work/ros_ws/src/hanuman_user/config/model/second_model.pkl"
+MODEL_PATH = os.path.join( os.getenv( 'ROS_WS' ), 'src/hanuman_user/config/model/model_with_probability.pkl' )
 
 ########################################################
 #
@@ -141,8 +141,6 @@ class ImageProcessing( VisionModule ):
 
 			#	get ball position
 			ballPositionList = list( self.predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple )
-			
-			print ballPositionList
 
 			#	calculate error
 			errorX, errorY = self.calculateError( imageWidth, imageHeight, 
@@ -200,10 +198,8 @@ class Kinematic( KinematicModule ):
 
 		#	create intrinsic matrix 3x3
 		intrinsicMatrix = np.array( [ [ fx,  0,  cx ],
-									  [  0, fy,  cy ],
-									  [  0,  0,   1 ] ] )
-
-		print intrinsicMatrix
+					      [  0, fy,  cy ],
+			       		      [  0,  0,   1 ] ] )
 
 		#	Set camera matrix
 		self.set_IntrinsicCameraMatrix( intrinsicMatrix )
@@ -363,19 +359,20 @@ class Kinematic( KinematicModule ):
 	#	Just visualize !
 	#	TODO : Clean and refactor later
 	def loop(self):
-		blank = np.zeros((480,640,3), dtype=np.uint8)
-		if self.point2D1 is not None:
-			for i in self.pattern:
-				point1 = self.point2D1[i[0]]
-				point2 = self.point2D1[i[1]]
-				# print point1, point2
-				ret, pt1, pt2 = self.clipLine(point1, point2, blank.shape)
-				if ret:
-					# print "Draw"
-					cv2.line(blank, pt1, pt2, (255,0,0), 4)
-		
-		cv2.imshow("img", blank)
-		cv2.waitKey(1)
+#		blank = np.zeros((480,640,3), dtype=np.uint8)
+#		if self.point2D1 is not None:
+#			for i in self.pattern:
+#				point1 = self.point2D1[i[0]]
+#				point2 = self.point2D1[i[1]]
+#				# print point1, point2
+#				ret, pt1, pt2 = self.clipLine(point1, point2, blank.shape)
+#				if ret:
+#					# print "Draw"
+#					cv2.line(blank, pt1, pt2, (255,0,0), 4)
+#		
+#		cv2.imshow("img", blank)
+#		cv2.waitKey(1)
+		pass
 
 	def end( self ):
 		cv2.destroyAllWindows()
