@@ -1,5 +1,6 @@
 global_frequency: 10
-global_verbosity: debug
+#	available verbositiy : [ debug, info, warn, error, fetal ]
+global_verbosity: warn
 motor_cortex:
   comport: /dev/ttyACM0
 
@@ -10,10 +11,5 @@ spinalcord:
   tilt_motor_serie: mx28
 
 vision_manager:
-  cameraID: 1
+  cameraID: 0
   cranial_nerve_ii_frquency: 10
-  vision_module_path: /home/neverholiday/work/ros_ws/src/hanuman_user/src/visionModule/Nasrun/detect_ball_svm.py
-
-brain: {
-  brain_module_path: /home/neverholiday/work/ros_ws/src/hanuman_user/src/Brain/gotoball_fsmbrainstate.py
-  }
