@@ -57,19 +57,20 @@ class State:
 	STOP = 4
 	KICK_RIGHT = 5
 	KICK_LEFT = 6
+	TURN = 7
 
 class WalkAround( FSMBrainState ):
 
 	def __init__( self, nextState = None ):
 
-		super( WalkAround, self ).__init__( "Walk Around" )
+		super( WalkAround, self ).__init__( "WalkAround" )
 
 		#
 		#   initial instance basic move
 		#
 		goForward = ForwardToBall()
-		turnLeft = TurnRighToBall()
-		turnRight = TurnLeftToBall()
+		turnLeft = TurnLeftToBall()
+		turnRight = TurnRighToBall()
 		standStill = StandStill()
 		rightKick = RightKick()
 		leftKick = LeftKick()
@@ -93,13 +94,14 @@ class WalkAround( FSMBrainState ):
 		#   initial state attribute
 		self.previousState = None
 		self.state = None
+		self.stateTurn = None
 
 		#   set time interval each state
-		self.intervalForwardTime = 5.0 # second
-		self.intervalTurnRightTime = 2.5 # second
-		self.intervalTurnLeftTime = 2.5 # second
+		self.intervalForwardTime = 10.0 # second
+		self.intervalTurnRightTime = 5.0# second
+		self.intervalTurnLeftTime = 5.0 # second
 		self.intervalStopTime = 1.0 # second
-		self.intervalKickingTime = 2.0
+		self.intervalKickingTime = 3.0
 
 	def firstStep( self ):
 		
@@ -112,6 +114,11 @@ class WalkAround( FSMBrainState ):
 		#   set first state to go forward
 		self.ChangeSubBrain( "ForwardToBall" )
 		self.state = State.WALK
+		self.stateTurn = State.TURN_LEFT
+		
+		#	command to pan and tilt
+		self.rosInterface.Pantilt(	pattern="basic_pattern",
+						command=1 )
 
 	def step( self ):
 		#   TODO : comment after coding finish
@@ -121,44 +128,80 @@ class WalkAround( FSMBrainState ):
 		currentTime = time.time() - self.initTime
 
 		if self.state == State.WALK and currentTime >= self.intervalForwardTime:
- 			self.rosInterface.LocoCommand(	velX = 0.0,
+			self.rosInterface.LocoCommand(	velX = 0.0,
  							velY = 0.0,
  							omgZ = 0.0,
  							commandType = 0,
  							ignorable = False )
 
-			self.ChangeSubBrain( "TurnLeftToBall" )
+			#	Change state
+			#	toggle state between turn left and turn right
+			if self.stateTurn == State.TURN_LEFT:
+				
+				#	change sub brain
+				self.ChangeSubBrain( "TurnLeftToBall" )
+				
+				#	set next turn to oppostite direction
+				self.stateTurn = State.TURN_RIGHT
+			
+			elif self.stateTurn == State.TURN_RIGHT:
+				
+				#	change sub brain
+				self.ChangeSubBrain( "TurnRightToBall" )
+				
+				#	set next turn to oppostite direction
+				self.stateTurn = State.TURN_LEFT
+			
+			
+			#	re-initialize time
 			self.initTime = time.time()
-			self.state = State.TURN_LEFT
+			
+			#	set state
+			self.state = State.TURN
 		
-		if self.state == State.TURN_LEFT and currentTime >= self.intervalTurnLeftTime:
+		elif self.state == State.TURN and currentTime >= self.intervalTurnLeftTime:
 			self.rosInterface.LocoCommand(	velX = 0.0,
  							velY = 0.0,
  							omgZ = 0.0,
  							commandType = 0,
  							ignorable = False )
 			
+			self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+							position=[ 0, 0 ],
+							command=0 )
+			#	Change state			
 			self.ChangeSubBrain( "RightKick" )
+			
+			#	re-initialize time
 			self.initTime = time.time()
+			
+			#	set state
 			self.state = State.KICK_RIGHT
-
-		if self.state == State.KICK_RIGHT and currentTime >= self.intervalKickingTime:
+			
+		elif self.state == State.KICK_RIGHT and currentTime >= self.intervalKickingTime:
 			self.rosInterface.LocoCommand(	velX = 0.0,
  							velY = 0.0,
  							omgZ = 0.0,
  							commandType = 0,
  							ignorable = False )
+							
+			self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+							position=[ 0, 0 ],
+							command=0 )
 			
 			self.ChangeSubBrain( "LeftKick" )
 			self.initTime = time.time()
 			self.state = State.KICK_LEFT
 
-		if self.state == State.KICK_LEFT and currentTime >= self.intervalForwardTime:
+		elif self.state == State.KICK_LEFT and currentTime >= self.intervalKickingTime:
 			self.rosInterface.LocoCommand(	velX = 0.0,
  							velY = 0.0,
  							omgZ = 0.0,
  							commandType = 0,
  							ignorable = False )
+			
+			self.rosInterface.Pantilt(	pattern="basic_pattern",
+							command=1 )
 			
 			self.ChangeSubBrain( "ForwardToBall" )
 			self.initTime = time.time()
@@ -166,10 +209,27 @@ class WalkAround( FSMBrainState ):
 
 			
 
-			
+class MainBrain( FSMBrainState ):
+	# def firstStep(self):
+	# 	self.rosInterface.Pantilt(	pattern="basic_pattern",
+	# 								command=1)
+
+	def end(self):
+
+		self.rosInterface.Pantilt( command = 3 )
+		self.rosInterface.LocoCommand(	velX = 0.0,
+						velY = 0.0,
+						omgZ = 0.0,
+						commandType = 0,
+						ignorable = False )
+		time.sleep(1)			
 		
 
+walkAroundState = WalkAround()
 
+main_brain = MainBrain( "main_brain" )
+main_brain.addSubBrain( walkAroundState )
+main_brain.setFirstSubBrain( "WalkAround" ) 
 
 
 
