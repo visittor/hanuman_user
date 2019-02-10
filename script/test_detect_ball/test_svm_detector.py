@@ -223,12 +223,19 @@ def main():
 
 	#	initial index frame
 	idxFrameInt = 0
+	
+	#	initial finalPosition of football
+	finalPosition = None
+	
+	#	ball confidence
+	ballConfidence = 0.70
 
 	#	get model
 	model = loadModel( modelPathStr )
 
 	#	initial hog/svm instance for classifier
-	predictor = HOG_SVM( modelPathStr )
+	#	FYI : float is confidence
+	predictor = HOG_SVM( modelPathStr, ballConfidence )
 
 	while True:
 
@@ -266,81 +273,84 @@ def main():
 		visualizeImage = img.copy()
 
 		#	extract feature all white feature
-		predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
-
-		#	predict all white feature, which the ball is ?
-		predictor.predict()
-
-		# #	get bounding box list from cv2.boundingRect
-		# boundingBoxList = map( cv2.boundingRect, whiteContours )
-
-		# #	filter
-		# filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
-		# boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
-
-		# #	filter again check rectangle
-		# filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
-		# boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
-
-		# print len( boundingBoxRectList )
-
-		# for boundingBox in boundingBoxRectList:
-
-		# 	x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
-
-		# 	# cv2.rectangle( visualizeImage, ( x, y ), 
-		# 	# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
-
-		# 	cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
-		# 								   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
-
-		# 	#	get roi
-		# 	roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
-			
-		# 	#	resize
-		# 	roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
-
-		# 	#	extract feature
-		# 	featureVector = extractFeatureHog( roiCandidateResizedImage ).T
-			
-		# 	#	predict
-		# 	predictClass = model.predict( featureVector )
-
-		# 	if predictClass[ 0 ] == 1:
-		# 		cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
-		# 								      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
-				
-		#
-		#	visualization zone
-		#
-
-		for boundingBoxObject in predictor.boundingBoxListObject.boundingBoxList:
-
-			# cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
-			# 			   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
-
-			if boundingBoxObject.isFootball is True:
-				
-				cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
-						   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
-
-				cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
-			
-			else:
-
-				cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
-						   boundingBoxObject.bottomRightPositionTuple, ( 0, 0, 255 ), 2 )
-				
-				cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
-
-			cv2.putText( visualizeImage, "{0:.4f}".format( boundingBoxObject.footballProbabilityScore[ 0, 1 ] ), 
-						boundingBoxObject.topLeftPositionTuple, cv2.FONT_HERSHEY_COMPLEX, 0.5, ( 0, 255, 0 ), 1, cv2.LINE_AA )
-
-		#	get best region
-		predictor.chooseBestRegion()
+		extractStatus =  predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
 		
-		if predictor.boundingBoxListObject.previousBoundingBox is not None:
-			cv2.circle( visualizeImage, predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple, 10, ( 255, 0, 0 ), -1 )
+		
+		if extractStatus == True:
+		
+			#	predict all white feature, which the ball is ?
+			predictor.predict()
+
+			# #	get bounding box list from cv2.boundingRect
+			# boundingBoxList = map( cv2.boundingRect, whiteContours )
+
+			# #	filter
+			# filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
+			# boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
+
+			# #	filter again check rectangle
+			# filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
+			# boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
+
+			# print len( boundingBoxRectList )
+
+			# for boundingBox in boundingBoxRectList:
+
+			# 	x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
+
+			# 	# cv2.rectangle( visualizeImage, ( x, y ), 
+			# 	# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
+
+			# 	cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
+			# 								   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
+
+			# 	#	get roi
+			# 	roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
+
+			# 	#	resize
+			# 	roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
+
+			# 	#	extract feature
+			# 	featureVector = extractFeatureHog( roiCandidateResizedImage ).T
+
+			# 	#	predict
+			# 	predictClass = model.predict( featureVector )
+
+			# 	if predictClass[ 0 ] == 1:
+			# 		cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
+			# 								      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
+
+			#
+			#	visualization zone
+			#
+
+			for boundingBoxObject in predictor.boundingBoxListObject.boundingBoxList:
+
+				# cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+				# 			   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
+				if boundingBoxObject.footballProbabilityScore > ballConfidence:
+
+					cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+							   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
+					cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+				else:
+
+					cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+							   boundingBoxObject.bottomRightPositionTuple, ( 0, 0, 255 ), 2 )
+
+					cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+				cv2.putText( visualizeImage, "{0:.4f}".format( boundingBoxObject.footballProbabilityScore ), 
+							boundingBoxObject.topLeftPositionTuple, cv2.FONT_HERSHEY_COMPLEX, 0.5, ( 0, 255, 0 ), 1, cv2.LINE_AA )
+
+			#	get best region
+			finalPosition = predictor.getBestRegion()
+		
+		if finalPosition is not None:
+			cv2.circle( visualizeImage, finalPosition, 10, ( 255, 0, 0 ), -1 )
 		
 		#print idxFrameInt
 		predictor.boundingBoxListObject.clearBoundingBoxList()
@@ -350,6 +360,9 @@ def main():
 		#	show image
 		cv2.imshow( "show", visualizeImage )
 		cv2.imshow( "ball mask", whiteObjectMask )
+		
+		#	reset final position
+		finalPosition = None
 		
 		#	waitkey and break out of the loop
 		k = cv2.waitKey( 50 )
