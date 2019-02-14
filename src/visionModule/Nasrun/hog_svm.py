@@ -76,6 +76,9 @@ class HOG_SVM( object ):
 		
 		#	set threshold for positive classification
 		self.positiveThreshold = positiveThreshold
+		
+		#	initial best bounding box attribute
+		self.bestBoundingBox = None
 
 	def extractFeature( self, image, whiteContours, objectPointLocation = 'center' ):
 
@@ -146,6 +149,9 @@ class HOG_SVM( object ):
 				
 		#	flag to check that at least, one bounding box is football
 		foundBall = False
+		
+		#	re-initial bounding box object
+		self.bestBoundingBox = None
 
 		#	calculate
 		calculateStatus = self.boundingBoxListObject.calculateDistanceFromPreviousBoundingBox()
@@ -168,7 +174,10 @@ class HOG_SVM( object ):
 
 					#	save it
 					self.boundingBoxListObject.setPreviousBoundingBox( boundingBoxObj )
-						
+					
+					#	get best bounding box
+					self.bestBoundingBox = boundingBoxObj
+					
 					#	get position
 					bestPosition = boundingBoxObj.object2DPosTuple
 					
@@ -181,13 +190,13 @@ class HOG_SVM( object ):
 		else:
 			
 			#	get best bounding box from sorted list by probability score
-			bestBounding = self.boundingBoxListObject.boundingBoxList[ 0 ]
+			self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
 			
 			#	get position
-			bestPosition = bestBounding.object2DPosTuple
+			bestPosition = self.bestBoundingBox.object2DPosTuple
 			
 			#	set previous bounding box
-			self.boundingBoxListObject.setPreviousBoundingBox( bestBounding )
+			self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
 			
 			foundBall = True
 			
@@ -198,16 +207,17 @@ class HOG_SVM( object ):
 		self.isPredict = False
 		
 		if foundBall == True:
-			return bestPosition
+			return list( bestPosition )
 		else:
-			return None
-
-		
-
+			return list()
 			
-
-
+	
+	def getBestBoundingBox( self ):
+		"""
+			Must call after get best region
+		"""
 		
+		return self.bestBoundingBox	
 	
 
 	
