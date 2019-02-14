@@ -83,9 +83,9 @@ class TurnRighToBall( FSMBrainState ):
 
 	def firstStep( self ):
 
-		self.rosInterface.LocoCommand(	velX = -0.2,
+		self.rosInterface.LocoCommand(	velX = 0.0,
 						velY = 0.0,
-						omgZ = -0.3,
+						omgZ = -0.2,
 						commandType = 0,
 						ignorable = False )
 
@@ -111,9 +111,9 @@ class TurnLeftToBall( FSMBrainState ):
 
 	def firstStep( self ):
 
-		self.rosInterface.LocoCommand(	velX = -0.2,
+		self.rosInterface.LocoCommand(	velX = 0.0,
 						velY = 0.0,
-						omgZ = 0.3,
+						omgZ = 0.2,
 						commandType = 0,
 						ignorable = False )
 
