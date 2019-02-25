@@ -11,13 +11,13 @@ import numpy as np
 
 import binascii
 
-objectsPoint1 = np.zeros( (8*6, 3) )
-objectsPoint1[:,:2] = np.mgrid[:6,:8].transpose( 1,2,0 ).reshape(-1,2)[::-1]
+objectsPoint1 = np.zeros( (9*6, 3) )
+objectsPoint1[:,:2] = np.mgrid[:6,:9].transpose( 1,2,0 ).reshape(-1,2)[::-1]
 
-OFFSETX1 = 0.3
-OFFSETY1 = -0.0245 * 3.5
-SCALEX1 = 0.0245
-SCALEY1 = 0.0245
+OFFSETX1 = 0.385
+OFFSETY1 = -0.065
+SCALEX1 = 0.021
+SCALEY1 = 0.021
 
 objectsPoint1[:,0] *= SCALEX1
 objectsPoint1[:,1] *= SCALEY1
@@ -25,13 +25,13 @@ objectsPoint1[:,1] *= SCALEY1
 objectsPoint1[:,0] += OFFSETX1
 objectsPoint1[:,1] += OFFSETY1
 
-objectsPoint2 = np.zeros( (8*6, 3) )
-objectsPoint2[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)[::-1]
+objectsPoint2 = np.zeros( (9*6, 3) )
+objectsPoint2[:,:2] = np.mgrid[:9,:6].transpose( 2,1,0 ).reshape(-1,2)[::-1]
 
-OFFSETX2 = 0.085
-OFFSETY2 = -0.16
-SCALEX2 = 0.0245
-SCALEY2 = -0.0245
+OFFSETX2 = 0.102
+OFFSETY2 = -0.1725
+SCALEX2 = 0.021
+SCALEY2 = -0.021
 
 objectsPoint2[:,0] *= SCALEX2
 objectsPoint2[:,1] *= SCALEY2
@@ -39,14 +39,14 @@ objectsPoint2[:,1] *= SCALEY2
 objectsPoint2[:,0] += OFFSETX2
 objectsPoint2[:,1] += OFFSETY2
 
-objectsPoint3 = np.zeros( (8*6, 3) )
-objectsPoint3[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)
+objectsPoint3 = np.zeros( (9*6, 3) )
+objectsPoint3[:,:2] = np.mgrid[:9,:6].transpose( 2,1,0 ).reshape(-1,2)
 objectsPoint3[:,1:2] = objectsPoint3[::-1,1:2]
 
-OFFSETX3 = 0.0585
-OFFSETY3 = 0.16
-SCALEX3 = 0.0245
-SCALEY3 = 0.0245
+OFFSETX3 = 0.1015 
+OFFSETY3 = 0.158
+SCALEX3 = 0.021
+SCALEY3 = 0.021
 
 objectsPoint3[:,0] *= SCALEX3
 objectsPoint3[:,1] *= SCALEY3
@@ -54,10 +54,12 @@ objectsPoint3[:,1] *= SCALEY3
 objectsPoint3[:,0] += OFFSETX3
 objectsPoint3[:,1] += OFFSETY3
 
-camera_prop = np.load( "/home/visittor/camMat.npz" )
-cameraMatrix = camera_prop[ 'cameraMatrix' ]
-distCoeffs = camera_prop[ 'distCoeffs' ]
-roi = camera_prop[ 'roi' ]
+objectsPoint3 = objectsPoint3[::-1]
+
+# camera_prop = np.load( "/home/visittor/camMat.npz" )
+# cameraMatrix = camera_prop[ 'cameraMatrix' ]
+# distCoeffs = camera_prop[ 'distCoeffs' ]
+# roi = camera_prop[ 'roi' ]
 
 class Kinematic(KinematicModule):
 
@@ -80,14 +82,14 @@ class Kinematic(KinematicModule):
 
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		
-		ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
+		ret, corners = cv2.findChessboardCorners(gray, (9,6), None)
 
 		frameCopy = frame.copy()
 		corner2 = None
 
 		if ret:
 			corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), self.criteria)
-			cv2.drawChessboardCorners(frameCopy, (8,6), corners2, ret)
+			cv2.drawChessboardCorners(frameCopy, (9,6), corners2, ret)
 			# cv2.circle( frameCopy, tuple(corners[0,0]), 3, (0,0,255), -1 )
 			# cv2.circle( frameCopy, tuple(corners[1,0]), 3, (0,255,255), -1 )
 			# cv2.circle( frameCopy, tuple(corners[8,0]), 3, (255,0,255), -1 )
@@ -117,6 +119,7 @@ class Kinematic(KinematicModule):
 			print "Capture board 3", len( self.__imgpoints )
 
 		elif k == ord( 's' ):
+			print "Save ..."
 			np.savez( "/home/visittor/chessboard.npz",
 					imagePoints = self.__imgpoints,
 					objectPoints = self.__objpoints,

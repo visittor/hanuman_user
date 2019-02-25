@@ -5,15 +5,20 @@ import math
 
 import optparse
 
-from forwardkinematic import *
+from utility.HanumanForwardKinematic import *
 
 from utility.transformationModule import getInverseHomoMat
+
+ORIGINAL_CONFIG = getRobotConfiguration( )
 
 def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeff ):
 	'''
 	Loss function for minimizer. Project point in 3d coor to image plane then find
 	and distance between projected point with actual image point.
 	'''
+
+	robotConfig = list( robotConfig[:2] ) + list(ORIGINAL_CONFIG[2:-1]) + list( robotConfig[2:] )
+
 	## Set robot dimension.
 	setNewRobotConfiguration( *robotConfig )
 
@@ -77,7 +82,7 @@ def main():
 
 	if options.camMatPath is not None:
 		## Load camera matrix.
-		camera_prop = np.load( "/home/visittor/camMat.npz" )
+		camera_prop = np.load( options.camMatPath )
 		cameraMatrix = camera_prop[ 'cameraMatrix' ]
 		distCoeffs = camera_prop[ 'distCoeffs' ]
 		roi = camera_prop[ 'roi' ]
@@ -86,14 +91,15 @@ def main():
 		## Re-calculate camera matrix
 		retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera( objPointList, imgPointList, (640,480), None, None )
 
-		if options.savePath is not None:
-			newcameramtx, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
+		cameraMatrix, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
 															distCoeffs,
 															(640,480), 
 															0,
 															(640,480))
+
+		if options.savePath is not None:
 			np.savez( options.savePath,
-						cameraMatrix = newcameramtx,
+						cameraMatrix = cameraMatrix,
 						distCoeffs = distCoeffs,
 						roi = roi )
 	###########################################################################
@@ -102,21 +108,27 @@ def main():
 	## Our initial guess.
 	initialGuess = np.array( [ 0.46,
 								0.0,
-								0.02,
-								0.03,
-								0.07,
-								0.02,
-								0.005,
+								# 0.02,
+								# 0.03,
+								# 0.07,
+								# 0.02,
+								# 0.005,
 								5.0 ] )
 
 	args = ( objPointList, imgPointList, pantiltPosList, cameraMatrix, distCoeffs )
 	method = "trust-constr"
 	jac = "2-point"
 	hess = BFGS()
-	bounds = [ (0.1,1.0), (-0.1	, 0.05), (0.005, 0.05), (0.005, 0.05), (0.035, 0.1), (0.0, 0.05),
-			(-0.02, 0.02 ), (-90, 90) ]
+	bounds = [ (0.1,1.0), 
+				(-0.1	, 0.05), 
+				# (0.005, 0.05), 
+				# (0.005, 0.05), 
+				# (0.035, 0.1), 
+				# (0.0, 0.05),
+				# (-0.02, 0.02 ), 
+				(-90, 90) ]
 
-	constr = LinearConstraint( np.eye(8), [i[0] for i in bounds], [i[1] for i in bounds] )
+	constr = LinearConstraint( np.eye(3), [i[0] for i in bounds], [i[1] for i in bounds] )
 
 	resultTrustConstr = minimize( lossFunction, initialGuess,
 						args = args,
@@ -137,6 +149,8 @@ def main():
 	print "Result Evo: ", resultEvo.x
 
 	finalConfig = resultEvo.x if resultEvo.fun < resultTrustConstr.fun else resultTrustConstr.x
+
+	finalConfig = list(finalConfig[:2]) + list(ORIGINAL_CONFIG[2:-1]) + list(finalConfig[2:]) 
 
 	setNewRobotConfiguration( *finalConfig )
 
