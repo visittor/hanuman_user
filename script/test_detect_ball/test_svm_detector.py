@@ -67,7 +67,7 @@ def getImageList( pathFrameStr ):
 	absImagePathList.sort()
 
 	#	bring abs path to this directory and add name of each image
-	absImagePathList = map( lambda imageName : absFramePathStr + '/' + imageName, absImagePathList )
+	absImagePathList = map( lambda imageName : os.path.join( absFramePathStr, imageName ), absImagePathList )
 
 	return absImagePathList
 
@@ -179,7 +179,7 @@ def extractFeatureHog( image ):
 def main():
 	
 	#	define usage of programing
-	programUsage = "python %prog arg [option] " + str( VERSIONNUMBER ) + ', Copyright (C) 2018 FIBO/KMUTT'
+	programUsage = "python %prog arg [option] [framePathStr] [modelPathStr] " + str( VERSIONNUMBER ) + ', Copyright (C) 2018 FIBO/KMUTT'
 
 	#	initial parser instance
 	parser = optparse.OptionParser( usage = programUsage, description=PROGRAM_DESCRIPTION )
@@ -275,7 +275,6 @@ def main():
 		#	extract feature all white feature
 		extractStatus =  predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
 		
-		
 		if extractStatus == True:
 		
 			#	predict all white feature, which the ball is ?
@@ -349,8 +348,8 @@ def main():
 			#	get best region
 			finalPosition = predictor.getBestRegion()
 		
-		if finalPosition is not None:
-			cv2.circle( visualizeImage, finalPosition, 10, ( 255, 0, 0 ), -1 )
+		if finalPosition is not None and len( finalPosition ) != 0:
+			cv2.circle( visualizeImage, tuple( finalPosition ), 10, ( 255, 0, 0 ), -1 )
 		
 		#print idxFrameInt
 		predictor.boundingBoxListObject.clearBoundingBoxList()
