@@ -20,6 +20,8 @@ import os
 from visionManager.visionModule import VisionModule, KinematicModule
 from newbie_hanuman.msg import visionMsg, postDictMsg
 
+from geometry_msgs.msg import Point32 
+
 from forwardkinematic import getMatrixForForwardKinematic, loadDimensionFromConfig
 
 from colorSegmentation import colorSegmentation, createColorDefFromDict
@@ -41,7 +43,8 @@ import time
 #	GLOBALS
 #
 
-MODEL_PATH = os.path.join( os.getenv( 'ROS_WS' ), 'src/hanuman_user/config/model/model_with_probability.pkl' )
+#MODEL_PATH = os.path.join( os.getenv( 'ROS_WS' ), 'src/hanuman_user/config/model/model_with_probability.pkl' )
+MODEL_PATH = os.path.join( os.getenv( 'ROS_WS' ), 'src/hanuman_user/config/model/real_model_with_prob.pkl' )
 
 ########################################################
 #
@@ -109,12 +112,12 @@ class ImageProcessing( VisionModule ):
 		imageHeight = img.shape[ 0 ]
 		
 		#	initial final position
-		bestPosition = list()
-		ballErrorList = list()
-		isDetectBall = False
+		bestPosition = Point32()
+		ballErrorList = Point32()
+		ballConfidence = 0.0
 
 		#	blur image and change to hsv format
-		blurImage = cv2.blur( img, ( 5, 5 ) )
+		blurImage = cv2.GaussianBlur( img, ( 5, 5 ), 0 )
 
 		#	segmentation and get marker
 		marker = colorSegmentation( blurImage, self.colorDefList )
@@ -144,9 +147,12 @@ class ImageProcessing( VisionModule ):
 			#	predict si wait a rai
 			self.predictor.predict()
 		
-			bestPosition = self.predictor.getBestRegion()
+			bestPositionList = self.predictor.getBestRegion()
 			
-			if len( bestPosition ) != 0:
+			if len( bestPositionList ) != 0:
+				
+				#	convert to point32
+				bestPosition = Point32( bestPositionList[ 0 ], bestPositionList[ 1 ], 0.0 )
 				
 				#	get bounding box object not only position
 				bestBounding = self.predictor.getBestBoundingBox()
@@ -156,33 +162,31 @@ class ImageProcessing( VisionModule ):
 				
 				#	calculate error
 				errorX, errorY = self.calculateError( imageWidth, imageHeight, centerX, centerY )
-				ballErrorList = [ errorX, errorY ]
+				ballErrorList = Point32( errorX, errorY, 0.0 )
 				
 				#	ball confidence
- 				isDetectBall = True
-				
-			else:
-				ballErrorList = list()
+ 				ballConfidence = 1.0
  
 		#	define vision message instance
 		msg = visionMsg()
 
 		#	assign to message
-		msg.ball = bestPosition
+		msg.object_name = [ 'ball' ]
+		msg.pos2D = [ bestPosition ]
 		msg.imgH = imageHeight
 		msg.imgW = imageWidth
-		msg.ball_error = ballErrorList
-		msg.ball_confidence = isDetectBall
+		msg.object_error = [ ballErrorList ]
+		msg.object_confidence = [ ballConfidence ]
 		msg.header.stamp = rospy.Time.now()
 
 		return msg
 
 	def visualizeFunction(self, img, msg):
 		"""For visualization by using cranial nerve monitor"""
-		if msg.ball_confidence == True:
-			cv2.circle( img, tuple( msg.ball ), 10, ( 255, 0, 0 ), -1 )
+		if msg.object_confidence[ 0 ] > 0.9:
+			cv2.circle( img, ( msg.pos2D[ 0 ].x, msg.pos2D[ 0 ].y ), 10, ( 255, 0, 0 ), -1 )
 
-		cv2.drawContours( img, [ self.contourVis ], -1, ( 255, 0, 0 ), 1 )
+		cv2.drawContours( img, [ self.contourVis ], -1, ( 2525, 0, 0 ), 1 )
 		#cv2.drawContours( img, [ self.contourVis2 ], -1, ( 0, 0, 255 ), 2 )
 		
 		pass
@@ -308,59 +312,97 @@ class Kinematic( KinematicModule ):
 
 	def kinematicCalculation( self, objMsg, joint ):
 		
-		#	Get ball error
-		ballError = objMsg.ball_error
-
+		#	get object name and passthrough
+		objectNameList = objMsg.object_name
+		
 		#	Get camera kinematics
 		# transformationMatrix = self.forwardKinematics( joint )
 		qPan = getJsPosFromName( joint, "pan" )
 		qTilt = getJsPosFromName( joint, "tilt" )
 		transformationMatrix = getMatrixForForwardKinematic( qPan, qTilt )
-
-		#	If not find the ball
-		if objMsg.ball_confidence == False or len( objMsg.ball ) == 0:
+		
+		#
+		#	convert for 'ball' only
+		#
+		
+		#	index 0 is 'ball'
+		#	Loop is gonna be alright
+		if objMsg.object_confidence[ 0 ] > 0.50:
 			
-			#	Set ball 3D Cartesion is None
-			ball3DCartesian = None		
+			
+			#	get 2D ball position
+			ballPosition = np.array( [ objMsg.pos2D[ 0 ].x, 
+						   objMsg.pos2D[ 0 ].y ], dtype = np.float64 )
+			ballPosition = ballPosition.reshape( -1, 2 )
 
-		else:
-			#	Calculate 3D coordinate respect to base frame
-			ballPosition = np.array( objMsg.ball, dtype = np.float64 ).reshape( -1, 2 )
-			ball3DCartesian = self.calculate3DCoor( ballPosition, HCamera = transformationMatrix )
-			ball3DCartesian = ball3DCartesian[ 0 ][ 1 ]
-
-		#	If ball 3D cartesion is None
-		if ball3DCartesian is not None:
-
-			#	Calculate polar coordinate change x, y -> r, theta
-			#ball2DPolar = cv2.cartToPolar( ball3DCartesian[ 0 ], ball3DCartesian[ 1 ] )
-			#ball2DPolar = np.array( [ ball2DPolar[ 0 ][ 0 ], ball2DPolar[ 0 ][ 0 ] ] )
+			
+			#	get ball in world coordinate
+			#	ball3DCartesian is returned in form [ ( 'projection', arrayOfPos ) ] 
+			ball3DCartesian = self.calculate3DCoor( ballPosition, 
+								HCamera = transformationMatrix )[ 0 ][ 1 ]
+			#	get polar coordinate
 			r = np.sqrt( ball3DCartesian[ 0 ] ** 2 + ball3DCartesian[ 1 ] ** 2 )
 			theta = np.arctan2( ball3DCartesian[ 1 ], ball3DCartesian[ 0 ] )
 			ball2DPolar = np.array( [ r, theta ] )
-
+			
+			#	compress to msg
+			ball3DCartesianMsg = Point32( ball3DCartesian[ 0 ], 
+					     	      ball3DCartesian[ 1 ], 
+						      ball3DCartesian[ 2 ] )
+			
+			ball2DPolarMsg = Point32( ball2DPolar[ 0 ],
+						  ball2DPolar[ 1 ],
+						  		 0 )			
 		else:
-
-			#	If can't calculate 3D return empty vector
-			ball3DCartesian = np.array( [  ] )
-			ball2DPolar = np.array( [  ] )
-
-		rospy.loginfo( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
-		rospy.logdebug( "\nPosition in Polar coordinate : {}\n".format( ball2DPolar ) )
-
-		#	Get 2D projection back to camera
+			
+			ball3DCartesianMsg = Point32()
+			ball2DPolarMsg = Point32()
+			
+		#	If not find the ball
+#		if objMsg.ball_confidence == False or len( objMsg.ball ) == 0:
+#			
+#			#	Set ball 3D Cartesion is None
+#			ball3DCartesian = None		
+#
+#		else:
+#			#	Calculate 3D coordinate respect to base frame
+#			ballPosition = np.array( objMsg.ball, dtype = np.float64 ).reshape( -1, 2 )
+#			ball3DCartesian = self.calculate3DCoor( ballPosition, HCamera = transformationMatrix )
+#			ball3DCartesian = ball3DCartesian[ 0 ][ 1 ]
+#
+#		#	If ball 3D cartesion is None
+#		if ball3DCartesian is not None:
+#
+#			#	Calculate polar coordinate change x, y -> r, theta
+#			#ball2DPolar = cv2.cartToPolar( ball3DCartesian[ 0 ], ball3DCartesian[ 1 ] )
+#			#ball2DPolar = np.array( [ ball2DPolar[ 0 ][ 0 ], ball2DPolar[ 0 ][ 0 ] ] )
+#			r = np.sqrt( ball3DCartesian[ 0 ] ** 2 + ball3DCartesian[ 1 ] ** 2 )
+#			theta = np.arctan2( ball3DCartesian[ 1 ], ball3DCartesian[ 0 ] )
+#			ball2DPolar = np.array( [ r, theta ] )
+#
+#		else:
+#
+#			#	If can't calculate 3D return empty vector
+#			ball3DCartesian = np.array( [  ] )
+#			ball2DPolar = np.array( [  ] )
+#
+#		rospy.loginfo( "\nPosition in 3D coordinate : {}\n".format( ball3DCartesian ) )
+#		rospy.logdebug( "\nPosition in Polar coordinate : {}\n".format( ball2DPolar ) )
+		
+	 	#	Get 2D projection back to camera
 		self.point2D1 = self.calculate2DCoor( self.points, "ground", HCamera= transformationMatrix )
 		self.point2D1 = np.array( self.point2D1 )
 
  		#	Publist positon dict message
 		msg = postDictMsg()
-		msg.ball_cart = ball3DCartesian.reshape( -1 )
-		msg.ball_polar = ball2DPolar.reshape( -1 )
-		msg.ball_img = objMsg.ball
+		msg.object_name = objectNameList
+		msg.pos3D_cart = [ ball3DCartesianMsg ]
+		msg.pos2D_polar = [ ball2DPolarMsg ]
+		msg.pos2D = objMsg.pos2D
 		msg.imgW = objMsg.imgW
 		msg.imgH = objMsg.imgH
-		msg.ball_error = ballError
-		msg.ball_confidence = objMsg.ball_confidence
+		msg.object_error = objMsg.object_error
+		msg.object_confidence = objMsg.object_confidence
 		msg.header.stamp = rospy.Time.now()
 
 		return msg
