@@ -56,6 +56,8 @@ objectsPoint3[:,1] += OFFSETY3
 
 objectsPoint3 = objectsPoint3[::-1]
 
+# print objectsPoint3
+
 # camera_prop = np.load( "/home/visittor/camMat.npz" )
 # cameraMatrix = camera_prop[ 'cameraMatrix' ]
 # distCoeffs = camera_prop[ 'distCoeffs' ]
@@ -85,7 +87,7 @@ class Kinematic(KinematicModule):
 		ret, corners = cv2.findChessboardCorners(gray, (9,6), None)
 
 		frameCopy = frame.copy()
-		corner2 = None
+		corners2 = None
 
 		if ret:
 			corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), self.criteria)

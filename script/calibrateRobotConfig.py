@@ -1,9 +1,11 @@
 import numpy as np
 import cv2
-from scipy.optimize import minimize, LinearConstraint, BFGS, differential_evolution
+from scipy.optimize import minimize, LinearConstraint, BFGS, differential_evolution,SR1
 import math
 
 import optparse
+
+import configobj
 
 from utility.HanumanForwardKinematic import *
 
@@ -11,13 +13,13 @@ from utility.transformationModule import getInverseHomoMat
 
 ORIGINAL_CONFIG = getRobotConfiguration( )
 
-def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeff ):
+def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeff, vis = False ):
 	'''
 	Loss function for minimizer. Project point in 3d coor to image plane then find
 	and distance between projected point with actual image point.
 	'''
 
-	robotConfig = list( robotConfig[:2] ) + list(ORIGINAL_CONFIG[2:-1]) + list( robotConfig[2:] )
+	# robotConfig = list( robotConfig[:2] ) + list(ORIGINAL_CONFIG[2:-1]) + list( robotConfig[2:] )
 
 	## Set robot dimension.
 	setNewRobotConfiguration( *robotConfig )
@@ -27,29 +29,53 @@ def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distC
 
 	## Loop for every points.
 	for objP, imgP, js in zip( objPointList, imgPointList, jsList ):
-	
+
 		## Get transformation matrix .
 		transformationMatrix = getMatrixForForwardKinematic( *js )
 		invTransformationMatrix = getInverseHomoMat( transformationMatrix )
 		
 		## Print this. To indicate that program is still running.
-		print 'HMat', transformationMatrix
+		# print 'HMat', transformationMatrix
 
 		## Get homogenouse point
 		homoObjP = np.vstack( (objP.T, np.ones( (objP.shape[0],) ) ) )
  
- 		## Project point to image plane.
+		## Project point to image plane.
 		predObjP_cam = np.matmul( invTransformationMatrix[:3,:], homoObjP )
 		predObjP_cam /= predObjP_cam[2]
 
 		predImgP = np.matmul( camMat, predObjP_cam )
 		predImgP = predImgP[:-1]
 
+		predImgP = predImgP.T
+
 		## Find error for each points.
-		error = np.linalg.norm( predImgP.T - imgP.reshape(-1,2), axis = 1 )
+		error = np.linalg.norm( predImgP - imgP.reshape(-1,2), axis = 1 )
 		error = np.sum( error ) / error.shape[0]
 		sumError += error
 
+		# print "pred image points : ", np.around(predImgP, decimals = 2)
+		# print "actual image points : ", np.around(imgP.reshape(-1,2), decimals = 2)
+		# print "-----------------------------"
+
+		if vis:
+			blank = np.zeros( (480, 640,3), dtype = np.uint8 )
+			for pred, act in zip(predImgP, imgP.reshape(-1,2)):
+				xPred, yPred = pred
+				xPred = int(xPred)
+				yPred = int(yPred)
+				cv2.circle( blank, (xPred, yPred), 3, (0,255,0), -1 )
+
+				xAct, yAct = act
+				xAct = int( xAct )
+				yAct = int( yAct )
+
+				cv2.line( blank, (xPred, yPred), (xAct, yAct), (255,255,255), 1 )
+				cv2.circle( blank, ( xAct, yAct), 3, (0,0,255), -1 )
+
+			cv2.imshow( "test", blank )
+			cv2.waitKey( 0 )
+	print sumError / len( objPointList )
 	## Find average error.
 	return sumError / len( objPointList )
 
@@ -91,7 +117,7 @@ def main():
 		## Re-calculate camera matrix
 		retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera( objPointList, imgPointList, (640,480), None, None )
 
-		cameraMatrix, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
+		newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
 															distCoeffs,
 															(640,480), 
 															0,
@@ -102,33 +128,59 @@ def main():
 						cameraMatrix = cameraMatrix,
 						distCoeffs = distCoeffs,
 						roi = roi )
+	if options.resultPath is not None:
+
+		camProp = { 'fx' : cameraMatrix[0,0], 'fy' : cameraMatrix[1,1],
+					'cx' : cameraMatrix[0,2], 'cy' : cameraMatrix[1,2] }
+
+		try:
+			config = configobj.ConfigObj( options.resultPath )
+		except Exception:
+			config = configobj.ConfigObj()
+			config.filename = options.resultPath
+
+		config['CameraParameters']['fx'] = cameraMatrix[0,0]
+		config['CameraParameters']['fy'] = cameraMatrix[1,1]
+		config['CameraParameters']['cx'] = cameraMatrix[0,2]
+		config['CameraParameters']['cy'] = cameraMatrix[1,2]
+
+		config.write( )
+
+	# cameraMatrix[0,0] = 625.44622803
+	# cameraMatrix[1,1] = 579.21398926
+	# cameraMatrix[0,2] = 330.76631757
+	# cameraMatrix[1,2] = 161.34627042
+
 	###########################################################################
 	## Minimizer Part
 
 	## Our initial guess.
 	initialGuess = np.array( [ 0.46,
 								0.0,
-								# 0.02,
-								# 0.03,
-								# 0.07,
-								# 0.02,
-								# 0.005,
+								0.02,
+								0.03,
+								0.07,
+								0.02,
+								0.005,
 								5.0 ] )
+	# objPointList = objPointList[ : len( objPointList )/2]
+	# imgPointList = imgPointList[ : len( imgPointList )/2]
+	# pantiltPosList = pantiltPosList[ : len( pantiltPosList )/2]
 
 	args = ( objPointList, imgPointList, pantiltPosList, cameraMatrix, distCoeffs )
 	method = "trust-constr"
-	jac = "2-point"
+	jac = "3-point"
 	hess = BFGS()
-	bounds = [ (0.1,1.0), 
-				(-0.1	, 0.05), 
-				# (0.005, 0.05), 
-				# (0.005, 0.05), 
-				# (0.035, 0.1), 
-				# (0.0, 0.05),
-				# (-0.02, 0.02 ), 
+	bounds = [ (0.2,1.0), 
+				(-0.1	, 0.5), 
+				(0.005, 0.5), 
+				(0.005, 0.5), 
+				(0.035, 0.5), 
+				(0.0, 0.5),
+				(-0.02, 0.02 ), 
 				(-90, 90) ]
 
-	constr = LinearConstraint( np.eye(3), [i[0] for i in bounds], [i[1] for i in bounds] )
+	constr = LinearConstraint( np.eye(8), [i[0] for i in bounds], [i[1] for i in bounds] )
 
 	resultTrustConstr = minimize( lossFunction, initialGuess,
 						args = args,
@@ -136,21 +188,26 @@ def main():
 						jac = jac,
 						hess = hess,
 						bounds = bounds,
-						constraints = constr )
+						constraints = constr
+						 )
 
-	resultEvo = differential_evolution(lossFunction, bounds, 
-									args = args, 
-									)
+	# resultEvo = differential_evolution(lossFunction, bounds, 
+	# 								args = args, 
+	# 								)
+
+	lossFunction( resultTrustConstr.x, *args, vis = True )
 
 	print "Loss Trust-constr: ", resultTrustConstr.fun
 	print "Result Trust-constr: ", resultTrustConstr.x
+	print cameraMatrix
 
-	print "Loss Evo: ", resultEvo.fun
-	print "Result Evo: ", resultEvo.x
+	# print "Loss Evo: ", resultEvo.fun
+	# print "Result Evo: ", resultEvo.x
 
-	finalConfig = resultEvo.x if resultEvo.fun < resultTrustConstr.fun else resultTrustConstr.x
+	# finalConfig = resultEvo.x if resultEvo.fun < resultTrustConstr.fun else resultTrustConstr.x
+	finalConfig = resultTrustConstr.x
 
-	finalConfig = list(finalConfig[:2]) + list(ORIGINAL_CONFIG[2:-1]) + list(finalConfig[2:]) 
+	# finalConfig = list(finalConfig[:2]) + list(ORIGINAL_CONFIG[2:-1]) + list(finalConfig[2:]) 
 
 	setNewRobotConfiguration( *finalConfig )
 

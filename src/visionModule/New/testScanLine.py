@@ -76,8 +76,8 @@ class Kinematic( KinematicModule ):
 	def __init__( self ):
 		super( Kinematic, self ).__init__(  )
 
-		config = configobj.ConfigObj( '/home/visittor/humanoid_data/robotConfig.ini' )
-		loadDimensionFromConfig( '/home/visittor/humanoid_data/robotConfig.ini' )
+		config = configobj.ConfigObj( '/home/visittor/humanoid_data/robotConfig_robot2.ini' )
+		loadDimensionFromConfig( '/home/visittor/humanoid_data/robotConfig_robot2.ini' )
 
 		# config = configobj.ConfigObj( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )
 		# loadDimensionFromConfig( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )

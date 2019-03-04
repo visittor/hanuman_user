@@ -142,9 +142,13 @@ class Kinematic(KinematicModule):
 		# 	except AttributeError as e:
 		# 		pass
 		for p in self.qcpoint_2d_1:
+			if p is None:
+				continue
 			cv2.circle( self.image, tuple( p.astype(int) ), 2, (0,0,255), -1 )
 
 		for p in self.qcpoint_2d_2:
+			if p is None:
+				continue
 			cv2.circle( self.image, tuple( p.astype(int) ), 2, (0,255,0), -1 )
 				
 		cv2.imshow( 'image', self.image )
