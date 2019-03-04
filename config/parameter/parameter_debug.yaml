@@ -1,0 +1,31 @@
+global_frequency: 10
+global_verbosity: debug
+motor_cortex:
+  comport: /dev/ttyACM0
+
+spinalcord:
+  head_baurdrate: 115200
+  head_comport: /dev/ttyUSB0
+  pan_motor_serie: mx28
+  tilt_motor_serie: mx28
+
+vision_manager:
+  cameraID: 1
+  cranial_nerve_ii_frquency: 10
+
+brain: {
+  brain_module_path: /home/neverholiday/work/ros_ws/src/hanuman_user/src/Brain/gotoball_fsmbrainstate.py
+  }
+
+robot_kinematic: {
+  intrinsicCameraPath: /home/neverholiday/work/ros_ws/src/hanuman_user/config/camera_matrix/camMat.npz,
+  robotDimension: /home/neverholiday/work/ros_ws/src/hanuman_user/script/robotDimension.ini
+}
+
+# brain: {
+#   brain_module_path: /home/neverholiday/work/ros_ws/src/newbie_hanuman/example/brainExample.py
+#   }
+
+
+# command
+#roslaunch newbie_hanuman neverholiday_debug.launch parameterPath:=/home/neverholiday/work/ros_ws/src/hanuman_user/config/parameter/parameter_debug.yaml

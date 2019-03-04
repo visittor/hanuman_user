@@ -28,11 +28,13 @@ import pickle
 import cv2
 import numpy as np
 
-from test_watershed import colorSegmentation, readConfig
+#from test_watershed import colorSegmentation, readConfig
 
 from scanLine2 import findBoundary
+from visionModule.Nasrun.hog_svm import HOG_SVM
+from colorSegmentation import createColorDefFromDict, colorSegmentation
 
-import time
+import configobj
 
 ########################################################
 #
@@ -65,7 +67,7 @@ def getImageList( pathFrameStr ):
 	absImagePathList.sort()
 
 	#	bring abs path to this directory and add name of each image
-	absImagePathList = map( lambda imageName : absFramePathStr + '/' + imageName, absImagePathList )
+	absImagePathList = map( lambda imageName : os.path.join( absFramePathStr, imageName ), absImagePathList )
 
 	return absImagePathList
 
@@ -75,6 +77,16 @@ def loadModel( modelPathStr ):
 		model = pickle.load( modelPickle )
 
 	return model
+
+def getColorListFromConfig( colorConfigPathStr ):
+	
+	#	initial configobj
+	colorConfig = configobj.ConfigObj( colorConfigPathStr )[ "ColorDefinitions" ]
+
+	#	get color list from object of color config
+	colorList = colorConfig.values()
+
+	return colorList
 
 def openingMorphologicalWithCircularMask( binaryImage ):
 
@@ -167,14 +179,14 @@ def extractFeatureHog( image ):
 def main():
 	
 	#	define usage of programing
-	programUsage = "python %prog arg [option] " + str( VERSIONNUMBER ) + ', Copyright (C) 2018 FIBO/KMUTT'
+	programUsage = "python %prog arg [option] [framePathStr] [modelPathStr] " + str( VERSIONNUMBER ) + ', Copyright (C) 2018 FIBO/KMUTT'
 
 	#	initial parser instance
 	parser = optparse.OptionParser( usage = programUsage, description=PROGRAM_DESCRIPTION )
 
 	#	add option of main script
-	# parser.add_option( "-o", "--myOption", dest = "myOption",
-	# 					help = "Specify option document here." )
+	parser.add_option( "--colorConfig", dest = "colorConfig", action = 'store', type = 'string',
+						help = "Specify color config.", default = '../../config/color_config/colordef_test.ini' )
 
 	#	add option
 	( options, args ) = parser.parse_args()
@@ -194,20 +206,36 @@ def main():
 	framePathStr = args[ 0 ]
 	modelPathStr = args[ 1 ]
 
+	colorConfigPathStr = options.colorConfig
+
 	#	get abs path
 	frameAbsPathStr = getImageList( framePathStr )
 
 	#	get config
-	colorDict = readConfig( 'color_2.ini' )
+	#colorDict = readConfig( 'color_2.ini' )
+	colorList = getColorListFromConfig( colorConfigPathStr )
+
+	#	create colordef msg
+	colorDef = createColorDefFromDict( colorList )
 
 	#	load image sequence
 	frameList = map( cv2.imread, frameAbsPathStr )
 
 	#	initial index frame
 	idxFrameInt = 0
+	
+	#	initial finalPosition of football
+	finalPosition = None
+	
+	#	ball confidence
+	ballConfidence = 0.70
 
 	#	get model
 	model = loadModel( modelPathStr )
+
+	#	initial hog/svm instance for classifier
+	#	FYI : float is confidence
+	predictor = HOG_SVM( modelPathStr, ballConfidence )
 
 	while True:
 
@@ -218,108 +246,122 @@ def main():
 		blurImage = cv2.blur( img, ( 5, 5 ) )
 
 		#	get marker
-		marker = colorSegmentation( blurImage, colorDict )
+		marker = colorSegmentation( blurImage, colorDef )
 
 		#	get only white object from marker
+		#	NOTE :
+		#		Change id of white marker, follow chattarin colordef template
+		#		ID White : 5, old : 8
+		#		ID Green : 2, old : 1
 		whiteImageObject = np.zeros( marker.shape )
-		whiteImageObject[ marker == 8 ] = 1
+		whiteImageObject[ marker == 5 ] = 1
  
 		#	get field boundary
-		fieldBoundary, fieldMask = findBoundary( marker, 1, flip = False )
-
-		fieldMask = fieldMask * 1
+		fieldBoundary, fieldMask = findBoundary( marker, 2, flip = False )
 		
 		#	get mask only ball
-		whiteObjectMask = fieldMask * whiteImageObject
+		whiteObjectMask = fieldMask * whiteImageObject 
 		whiteObjectMask *= 255
 
 		#	change back to uint8 (opencv support only uint8)
 		whiteObjectMask = whiteObjectMask.astype( np.uint8 )
 
 		#	get contours from white object
-		whiteContours = cv2.findContours( whiteObjectMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+		whiteContours = cv2.findContours( whiteObjectMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		#	copy image for visualize
 		visualizeImage = img.copy()
 
-		#	get bounding box list from cv2.boundingRect
-		boundingBoxList = map( cv2.boundingRect, whiteContours )
+		#	extract feature all white feature
+		extractStatus =  predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
+		
+		if extractStatus == True:
+		
+			#	predict all white feature, which the ball is ?
+			predictor.predict()
 
-		#	filter
-		filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
-		boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
+			# #	get bounding box list from cv2.boundingRect
+			# boundingBoxList = map( cv2.boundingRect, whiteContours )
 
-		#	filter again check rectangle
-		filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
-		boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
+			# #	filter
+			# filterFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= 10 and boundingBoxTuple[ 3 ] >= 10
+			# boundingBoxFilterdList = filter( filterFunction, boundingBoxList )
 
-		print len( boundingBoxRectList )
+			# #	filter again check rectangle
+			# filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= 20
+			# boundingBoxRectList = filter( filterNonRectFunction, boundingBoxFilterdList )
 
-		for boundingBox in boundingBoxRectList:
+			# print len( boundingBoxRectList )
 
-			# x = boundingBox[ 0 ]
-			# y = boundingBox[ 1 ]
-			# width = boundingBox[ 2 ]
-			# height = boundingBox[ 3 ]
+			# for boundingBox in boundingBoxRectList:
 
-			x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
+			# 	x1Actual, y1Actual, x2Actual, y2Actual = expandAreaBoundingBox( 10, boundingBox, img.shape[ 1 ], img.shape[ 0 ] )
 
-			# cv2.rectangle( visualizeImage, ( x, y ), 
-			# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
+			# 	# cv2.rectangle( visualizeImage, ( x, y ), 
+			# 	# 							   ( x + width, y + height ), ( 255, 0, 0 ), 2 )
 
-			cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
-										   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
+			# 	cv2.rectangle( visualizeImage, ( x1Actual, y1Actual ), 
+			# 								   ( x2Actual, y2Actual ), ( 0, 255, 255 ), 2 )
 
-			#	get roi
-			roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
-			
-			#	resize
-			roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
+			# 	#	get roi
+			# 	roiCandidateImage = img[ y1Actual : y2Actual, x1Actual : x2Actual ].copy()
 
-			#	extract feature
-			featureVector = extractFeatureHog( roiCandidateResizedImage ).T
-			
-			#	predict
-			predictClass = model.predict( featureVector )
+			# 	#	resize
+			# 	roiCandidateResizedImage = cv2.resize( roiCandidateImage, ( 40, 40 ) )
 
-			if predictClass[ 0 ] == 1:
-				cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
-										      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
-			
+			# 	#	extract feature
+			# 	featureVector = extractFeatureHog( roiCandidateResizedImage ).T
 
-		# for cnt in whiteContours:
+			# 	#	predict
+			# 	predictClass = model.predict( featureVector )
 
-		# 	#	get rotated rect
-		# 	boundingBox = cv2.boundingRect( cnt )
+			# 	if predictClass[ 0 ] == 1:
+			# 		cv2.circle( visualizeImage, ( boundingBox[ 0 ] + boundingBox[ 3 ] / 2, boundingBox[ 1 ] + boundingBox[ 3 ] / 2 ), 
+			# 								      boundingBox[ 3 ] , ( 0, 255, 0 ), 2 )
 
-		# 	#	get coordinate ROI
-		# 	x = boundingBox[ 0 ]
-		# 	y = boundingBox[ 1 ]
-		# 	width = boundingBox[ 2 ]
-		# 	height = boundingBox[ 3 ]
+			#
+			#	visualization zone
+			#
 
-		# 	if width <= 10 and height <= 10:
-		# 		continue
+			for boundingBoxObject in predictor.boundingBoxListObject.boundingBoxList:
 
-		# 	count += 1
+				# cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+				# 			   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
 
-		# 	cv2.rectangle( visualizeImage, ( x, y ), 
-		# 							       ( x + width, y + height ), ( 255, 0, 0 ), 2 )
-			
-		# 	cv2.imshow( "roi", visualizeImage[ y : y + height, x : x + width ] )
-			
-		# 	time.sleep( 0.001 )
-			
-		#
-		#	visualization zone
-		#
+				if boundingBoxObject.footballProbabilityScore > ballConfidence:
 
+					cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+							   boundingBoxObject.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
+					cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+				else:
+
+					cv2.rectangle( visualizeImage, boundingBoxObject.topLeftPositionTuple, 
+							   boundingBoxObject.bottomRightPositionTuple, ( 0, 0, 255 ), 2 )
+
+					cv2.circle( visualizeImage, boundingBoxObject.object2DPosTuple, 5, ( 0, 255, 0 ), -1 )
+
+				cv2.putText( visualizeImage, "{0:.4f}".format( boundingBoxObject.footballProbabilityScore ), 
+							boundingBoxObject.topLeftPositionTuple, cv2.FONT_HERSHEY_COMPLEX, 0.5, ( 0, 255, 0 ), 1, cv2.LINE_AA )
+
+			#	get best region
+			finalPosition = predictor.getBestRegion()
+		
+		if finalPosition is not None and len( finalPosition ) != 0:
+			cv2.circle( visualizeImage, tuple( finalPosition ), 10, ( 255, 0, 0 ), -1 )
+		
+		#print idxFrameInt
+		predictor.boundingBoxListObject.clearBoundingBoxList()
 		#	draw contours
-		cv2.drawContours( visualizeImage, [ fieldBoundary ], 0, ( 128, 0, 255 ), 3 )
+		cv2.drawContours( visualizeImage, [ fieldBoundary ], 0, ( 128, 0, 255 ), 1 )
 
 		#	show image
 		cv2.imshow( "show", visualizeImage )
 		cv2.imshow( "ball mask", whiteObjectMask )
+		
+		#	reset final position
+		finalPosition = None
 		
 		#	waitkey and break out of the loop
 		k = cv2.waitKey( 50 )

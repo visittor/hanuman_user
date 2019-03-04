@@ -1,0 +1,15 @@
+global_frequency: 10
+#	available verbositiy : [ debug, info, warn, error, fetal ]
+global_verbosity: warn
+motor_cortex:
+  comport: /dev/ttyACM0
+
+spinalcord:
+  head_baurdrate: 115200
+  head_comport: /dev/ttyUSB0
+  pan_motor_serie: mx28
+  tilt_motor_serie: mx28
+
+vision_manager:
+  cameraID: 0
+  cranial_nerve_ii_frquency: 10
