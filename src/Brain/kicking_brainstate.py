@@ -87,5 +87,90 @@ class KickInMind( FSMBrainState ):
 										omgZ = 0.0,
 										commandType = 0,
 										ignorable = False ) 
+										
+
+class KickTheBall( FSMBrainState ):
+	
+	
+	def __init__( self, nextState = None, previousState = None ):
+	
+		#	set name
+		super( KickTheBall, self ).__init__( "KickTheBall" )
+ 		
+		#	get next state
+		self.nextState = nextState
+		self.previousState = previousState
 		
- 
+		#	attribute for stored previous time
+		self.previousTime = None
+		
+		#	intial ball side
+		self.ballSIde = None
+	
+	def firstStep( self ):
+		
+		rospy.logdebug( "Enter to kicking state" )
+		
+		#	back to findball when lose the ball
+		if self.rosInterface.visionManager.ball_confidence == False :
+			
+			self.SignalChangeSubBrain( self.previousState )
+		
+		self.previousTime = time.time()
+		
+		#	get position from y-axis
+		yMagnitude = self.rosInterface.visionManager.ball_cart[ 1 ]
+		
+		#	set side to align
+		self.ballSide = 1 if yMagnitude > 0 else -1
+	
+		self.rosInterface.LocoCommand(	velX = 0.2,
+						velY = 0,
+						omgZ = 0,
+						commandType = 0,
+						ignorable = False )
+		
+	def step( self ):
+	
+		currentTime = time.time()
+		
+		rospy.logdebug( "time : {}".format( currentTime - self.previousTime ) )
+		
+		if currentTime - self.previousTime >= 3.0:
+			
+			if self.ballSide == 1:
+				
+				self.rosInterface.LocoCommand( command = "LeftKick",
+					      		       commandType = 1,
+				  	       		       ignorable = False )
+			
+			else:
+				self.rosInterface.LocoCommand( command = "RightKick",
+					      		       commandType = 1,
+				  	       		       ignorable = False )
+			
+			self.rosInterface.Pantilt( command = 3 )
+			
+			#	set pan tilt motor to initial position
+			self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+							position=[ 0, 0 ],
+							command=0 )
+							
+			print "HAHA"
+			
+			#	stop action
+			self.rosInterface.LocoCommand(	velX = 0.0,
+							velY = 0,
+							omgZ = 0,
+							commandType = 0,
+							ignorable = False )
+			
+			time.sleep( 2.5 )
+			
+			self.SignalChangeSubBrain( self.nextState )
+			
+					       
+					   		
+	
+		
+		

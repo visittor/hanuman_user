@@ -41,7 +41,7 @@ import time
 #	GLOBALS
 #
 
-MODEL_PATH = "/home/neverholiday/work/ros_ws/src/hanuman_user/config/model/second_model.pkl"
+MODEL_PATH = os.path.join( os.getenv( 'ROS_WS' ), 'src/hanuman_user/config/model/model_with_probability.pkl' )
 
 ########################################################
 #
@@ -85,7 +85,8 @@ class ImageProcessing( VisionModule ):
 			raise TypeError( 'Required robot config.' )
 		
 		#	get model object
-		self.predictor = HOG_SVM( MODEL_PATH )
+		#	positive threshold is 0.70
+		self.predictor = HOG_SVM( MODEL_PATH, 0.70 )
 
 		#	get color definition from color config ( get only values )
 		colorConfigList = configobj.ConfigObj( robotConfigPathStr )[ "ColorDefinitions" ]
@@ -106,6 +107,11 @@ class ImageProcessing( VisionModule ):
 		#	get image property
 		imageWidth = img.shape[ 1 ]
 		imageHeight = img.shape[ 0 ]
+		
+		#	initial final position
+		bestPosition = list()
+		ballErrorList = list()
+		isDetectBall = False
 
 		#	blur image and change to hsv format
 		blurImage = cv2.blur( img, ( 5, 5 ) )
@@ -130,41 +136,39 @@ class ImageProcessing( VisionModule ):
 		whiteContours = cv2.findContours( whiteObjectInField, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 		
 		#	extract feature and predict it
-		self.predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
-		self.predictor.predict()
-
-		#	check white contours
-		if len( self.predictor.boundingBoxListObject.boundingBoxList ) != 0:
-			
-			#	choose best region that should be a ball
-			self.predictor.chooseBestRegion()
-
-			#	get ball position
-			ballPositionList = list( self.predictor.boundingBoxListObject.previousBoundingBox.object2DPosTuple )
-			
-			print ballPositionList
-
-			#	calculate error
-			errorX, errorY = self.calculateError( imageWidth, imageHeight, 
-										          ballPositionList[ 0 ], ballPositionList[ 1 ] )
-			ballErrorList = [ errorX, errorY ]
-
-			#	assign logic to brain
-			isDetectBall = True
+		extractStatus = self.predictor.extractFeature( img, whiteContours, objectPointLocation = 'bottom' )
 		
-		else:
-
-			#	send empty list and set false
-			ballPositionList = list()
-			ballErrorList = list()
-			isDetectBall = False
-
-
+		#	check extract status
+		if extractStatus == True:
+			
+			#	predict si wait a rai
+			self.predictor.predict()
+		
+			bestPosition = self.predictor.getBestRegion()
+			
+			if len( bestPosition ) != 0:
+				
+				#	get bounding box object not only position
+				bestBounding = self.predictor.getBestBoundingBox()
+				
+				#	get another point of object
+				centerX, centerY = bestBounding.calculateObjectPoint( 'center' )
+				
+				#	calculate error
+				errorX, errorY = self.calculateError( imageWidth, imageHeight, centerX, centerY )
+				ballErrorList = [ errorX, errorY ]
+				
+				#	ball confidence
+ 				isDetectBall = True
+				
+			else:
+				ballErrorList = list()
+ 
 		#	define vision message instance
 		msg = visionMsg()
 
 		#	assign to message
-		msg.ball = ballPositionList
+		msg.ball = bestPosition
 		msg.imgH = imageHeight
 		msg.imgW = imageWidth
 		msg.ball_error = ballErrorList
@@ -180,6 +184,9 @@ class ImageProcessing( VisionModule ):
 
 		cv2.drawContours( img, [ self.contourVis ], -1, ( 255, 0, 0 ), 1 )
 		#cv2.drawContours( img, [ self.contourVis2 ], -1, ( 0, 0, 255 ), 2 )
+		
+		pass
+		
 class Kinematic( KinematicModule ):
 	
 	def __init__( self ):
@@ -200,10 +207,8 @@ class Kinematic( KinematicModule ):
 
 		#	create intrinsic matrix 3x3
 		intrinsicMatrix = np.array( [ [ fx,  0,  cx ],
-									  [  0, fy,  cy ],
-									  [  0,  0,   1 ] ] )
-
-		print intrinsicMatrix
+					      [  0, fy,  cy ],
+			       		      [  0,  0,   1 ] ] )
 
 		#	Set camera matrix
 		self.set_IntrinsicCameraMatrix( intrinsicMatrix )
@@ -313,7 +318,7 @@ class Kinematic( KinematicModule ):
 		transformationMatrix = getMatrixForForwardKinematic( qPan, qTilt )
 
 		#	If not find the ball
-		if objMsg.ball_confidence == False:
+		if objMsg.ball_confidence == False or len( objMsg.ball ) == 0:
 			
 			#	Set ball 3D Cartesion is None
 			ball3DCartesian = None		
@@ -363,19 +368,20 @@ class Kinematic( KinematicModule ):
 	#	Just visualize !
 	#	TODO : Clean and refactor later
 	def loop(self):
-		blank = np.zeros((480,640,3), dtype=np.uint8)
-		if self.point2D1 is not None:
-			for i in self.pattern:
-				point1 = self.point2D1[i[0]]
-				point2 = self.point2D1[i[1]]
-				# print point1, point2
-				ret, pt1, pt2 = self.clipLine(point1, point2, blank.shape)
-				if ret:
-					# print "Draw"
-					cv2.line(blank, pt1, pt2, (255,0,0), 4)
-		
-		cv2.imshow("img", blank)
-		cv2.waitKey(1)
+#		blank = np.zeros((480,640,3), dtype=np.uint8)
+#		if self.point2D1 is not None:
+#			for i in self.pattern:
+#				point1 = self.point2D1[i[0]]
+#				point2 = self.point2D1[i[1]]
+#				# print point1, point2
+#				ret, pt1, pt2 = self.clipLine(point1, point2, blank.shape)
+#				if ret:
+#					# print "Draw"
+#					cv2.line(blank, pt1, pt2, (255,0,0), 4)
+#		
+#		cv2.imshow("img", blank)
+#		cv2.waitKey(1)
+		pass
 
 	def end( self ):
 		cv2.destroyAllWindows()

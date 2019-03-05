@@ -52,14 +52,17 @@ from basicmove_brainstate import StandStill
 
 class FollowBall( FSMBrainState ):
 
-	def __init__( self, nextState = None, previousState = None ):
+	def __init__( self, kickingState = None, trackingState = None, alignState = None  ):
 		super( FollowBall, self ).__init__( 'FollowBall' )
 
 		#	Set previous state
-		self.previousState = previousState
+		self.trackingState = trackingState
 
 		#	Set next state
-		self.nextState = nextState
+		self.kickingState = kickingState
+		
+		#	Set align state
+		self.alignState = alignState
 
 		#   define instance of basic move brain state
 		moveForward = ForwardToBall()
@@ -79,6 +82,18 @@ class FollowBall( FSMBrainState ):
 		#	set time to look at the ball
 		self.loopLookAtBall = 0.5
 		self.previousTime = 0.0
+		
+		#	initial flag to set side to align
+		#	Right side is 1
+		#	LeftSide is -1
+		self.ballSide = None
+		self.yMagnitude = None
+		
+		#	get distant of the ball
+		self.xMagnitude = None
+		
+		#	theta of the ball w.r.t robot
+		self.thetaBallWrtRobot = None
 
 	def firstStep( self ):
 
@@ -88,16 +103,29 @@ class FollowBall( FSMBrainState ):
 		self.previousTime = 0.0
 
 		if self.rosInterface.visionManager.ball_confidence == False:
-			self.SignalChangeSubBrain( self.nextState )
-
+			self.SignalChangeSubBrain( self.trackingState )
+		
+		#	get position from y-axis
+		self.yMagnitude = self.rosInterface.visionManager.ball_cart[ 1 ]
+		
+		#	set side to align
+		self.ballSide = 1 if self.yMagnitude > 0 else -1
+		
+		
 	def step( self ):
 
 		#	initial current step time
 		currentStepTime = time.time()
 
 		if self.rosInterface.visionManager.ball_confidence == False:
-			self.ChangeSubBrain( "StandStill" )
-			self.SignalChangeSubBrain( self.previousState )
+			self.SignalChangeSubBrain( self.trackingState )
+		
+		#	get position from y-axis
+		self.yMagnitude = self.rosInterface.visionManager.ball_cart[ 1 ]
+		self.xMagnitude = self.rosInterface.visionManager.ball_cart[ 0 ]
+		
+		#	get theta of ball wrt robot
+		self.thetaBallWrtRobot = self.rosInterface.visionManager.ball_polar[ 1 ]
 		
 		#	look at the ball
 		if currentStepTime - self.previousTime >= self.loopLookAtBall:
@@ -108,41 +136,53 @@ class FollowBall( FSMBrainState ):
 			#	save time
 			self.previousTime = currentStepTime
 		
-		print self.rosInterface.visionManager.ball_confidence
-		#	get theta error from vision manger
-		ballPolarArray = self.rosInterface.visionManager.ball_polar
-		distanceBallToRobot = ballPolarArray[ 0 ]
-		thetaBallRefToRobot = ballPolarArray[ 1 ]
-
-		rospy.logdebug( "theta of the ball wrt. robot is {}".format( thetaBallRefToRobot ) )
-		rospy.logdebug( "distance from robot to the ball is {}".format( distanceBallToRobot ) )
-
-		#	check orientation of robot and the ball
-		#	if angle of the ball wrt. robot more than 5, activate lococommand to turn it
-		if abs( thetaBallRefToRobot ) >= np.deg2rad( 5 ):
+		rospy.logdebug( "X distance : {}".format( self.xMagnitude ) )
+		rospy.logdebug( "Y distance : {}".format( self.yMagnitude ) )
+		rospy.logdebug( "theta of robot wrt : {}".format( self.thetaBallWrtRobot ) )
+		
+		
+		#	change state when robot is outside theta threshold
+		if abs( self.thetaBallWrtRobot ) >= np.deg2rad( 15 ):
+			self.SignalChangeSubBrain( self.alignState )
+		
+		#	Probably zig-zag ?
+		
+		#	check distant on y-axis
+#		if abs( self.yMagnitude ) > 0.5:
+#			
+#			self.rosInterface.LocoCommand(	velX = 0.2,
+#							velY = self.ballSide * 0.2,
+#							omgZ = 0,
+#							commandType = 0,
+#							ignorable = False )
+#		
+#		elif abs( self.yMagnitude ) < 0.2:
+#			
+#			self.rosInterface.LocoCommand(	velX = 0.2,
+#							velY = -1 * self.ballSide * 0.2,
+#							omgZ = 0,
+#							commandType = 0,
+#							ignorable = False )
+		
+		self.rosInterface.LocoCommand(	velX = 0.2,
+						velY = 0,
+						omgZ = 0,
+						commandType = 0,
+						ignorable = False )
+		
+		#	arrival at desire position			
+		if self.xMagnitude <= 0.25:
+		
+			#	STOPPP
+			self.rosInterface.LocoCommand(	velX = 0,
+							velY = 0,
+							omgZ = 0,
+							commandType = 0,
+							ignorable = False )
 			
-			rospy.loginfo( "Robot is turn around" )
-
-			#	get direction for rotate
-			sign = thetaBallRefToRobot / abs( thetaBallRefToRobot )
-
-			#	minus : turn left, positive : turn right
-			if sign == 1:
-				self.ChangeSubBrain( "TurnLeftToBall" )
-			else:
-				self.ChangeSubBrain( "TurnRightToBall" )
-					
-		else:
-			
-			rospy.loginfo( "Robot's position have aligned wrt the ball!!!!" )
-			rospy.loginfo( "Robot is going straight to the ball!!!" )
-
-			self.ChangeSubBrain( "ForwardToBall" )
-
-		if distanceBallToRobot <= 0.2:
-
-			rospy.loginfo( "Stop!! for keeping distance between robot and the ball" )
-
-			#	call next state
-			self.SignalChangeSubBrain( self.nextState )
+			self.SignalChangeSubBrain( self.kickingState )				
+		
+							
+							
+		
 

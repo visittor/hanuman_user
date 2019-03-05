@@ -53,7 +53,7 @@ class BoundingBoxDataStruct( object ):
 		self.object2DPosTuple = self.calculateObjectPoint( positionObject )
 
 		#	initial other attribrute
-		self.footballProbabilityScore = 0
+		self.footballProbabilityScore = 0.0
 		self.isFootball = False
 		self.distanceFromPreviousPosition = 0.0
 		self.featureVector = None
@@ -122,15 +122,12 @@ class BoundingBoxList( object ):
 
 	def calculateDistanceFromPreviousBoundingBox( self ):
 		
-		if len( self.boundingBoxList ) == 0:
-			return
-
 		#	if previous ball is None, ranking true from svm to top order and terminate this function
 		if self.previousBoundingBox is None:
 
-			self.boundingBoxList = sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.isFootball )
+			self.boundingBoxList = sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.footballProbabilityScore )
 
-			return
+			return False
 
 		#	loop and put score to ball confidence
 		for boundingBox in self.boundingBoxList:
@@ -146,6 +143,23 @@ class BoundingBoxList( object ):
 			#	push the distance to object
 			boundingBox.distanceFromPreviousPosition = distance
 		
+		return True
+	
+	def getPreviousBoundingBox( self ):
+		
+		"""
+			Get previous bounding box
+		"""
+		
+		return self.previousBoundingBox
+	
+	def setPreviousBoundingBox( self, boundingBoxRect ):
+		
+		"""
+			Set previous bounding box
+		"""
+		
+		self.previousBoundingBox = boundingBoxRect
 
 	def clearBoundingBoxList( self ):
 

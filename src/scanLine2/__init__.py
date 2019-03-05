@@ -54,7 +54,7 @@ def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1
 	mask = mask if mask is not None else np.ones( colorMap.shape[:2] )
 
 	marker = colorMap * mask
-	marker[ marker == -1 ] = 1
+	marker[ marker == 255 ] = color2
 	marker[ np.logical_and( marker!=color1, marker!=color2 ) ] = np.max( marker ) + 100
 
 	if doFlip:

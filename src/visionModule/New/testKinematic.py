@@ -1,9 +1,8 @@
 from visionManager.visionModule import KinematicModule, VisionModule
-from newbie_hanuman.msg import HanumanStatusMsg
 
 from std_msgs.msg import Empty
 
-from forwardkinematic import *
+from utility.HanumanForwardKinematic import *
 
 from utility.imageToMessage import cvtImageMessageToCVImage
 
@@ -28,7 +27,7 @@ class Kinematic(KinematicModule):
 		# intrinMat[1,1] = 480
 		# intrinMat[0,2] = 320
 		# intrinMat[1,2] = 240
-		camera_prop = np.load( "/home/visittor/camMat.npz" )
+		camera_prop = np.load( "/home/visittor/humanoid_data/camMat.npz" )
 		self.cameraMatrix = camera_prop[ 'cameraMatrix' ]
 		self.distCoeffs = camera_prop[ 'distCoeffs' ]
 		roi = camera_prop[ 'roi' ]
@@ -50,13 +49,13 @@ class Kinematic(KinematicModule):
 
 		# self.qcpoint[:,0] += self.offsetX
 		# self.qcpoint[:,1] += self.offsetY
-		objectsPoint1 = np.zeros( (8*6, 3) )
-		objectsPoint1[:,:2] = np.mgrid[:6,:8].transpose( 1,2,0 ).reshape(-1,2)[::-1]
+		objectsPoint1 = np.zeros( (9*6, 3) )
+		objectsPoint1[:,:2] = np.mgrid[:6,:9].transpose( 1,2,0 ).reshape(-1,2)[::-1]
 
-		OFFSETX1 = 0.3
-		OFFSETY1 = -0.025 * 3.5
-		SCALEX1 = 0.0245
-		SCALEY1 = 0.0245
+		OFFSETX1 = 0.385
+		OFFSETY1 = -0.065
+		SCALEX1 = 0.021
+		SCALEY1 = 0.021
 
 		objectsPoint1[:,0] *= SCALEX1
 		objectsPoint1[:,1] *= SCALEY1
@@ -64,13 +63,13 @@ class Kinematic(KinematicModule):
 		objectsPoint1[:,0] += OFFSETX1
 		objectsPoint1[:,1] += OFFSETY1
 
-		objectsPoint2 = np.zeros( (8*6, 3) )
-		objectsPoint2[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)[::-1]
+		objectsPoint2 = np.zeros( (9*6, 3) )
+		objectsPoint2[:,:2] = np.mgrid[:9,:6].transpose( 2,1,0 ).reshape(-1,2)[::-1]
 
-		OFFSETX2 = 0.085
-		OFFSETY2 = -0.16
-		SCALEX2 = 0.0245
-		SCALEY2 = -0.0245
+		OFFSETX2 = 0.102
+		OFFSETY2 = -0.1725
+		SCALEX2 = 0.021
+		SCALEY2 = -0.021
 
 		objectsPoint2[:,0] *= SCALEX2
 		objectsPoint2[:,1] *= SCALEY2
@@ -78,20 +77,22 @@ class Kinematic(KinematicModule):
 		objectsPoint2[:,0] += OFFSETX2
 		objectsPoint2[:,1] += OFFSETY2
 
-		objectsPoint3 = np.zeros( (8*6, 3) )
-		objectsPoint3[:,:2] = np.mgrid[:8,:6].transpose( 2,1,0 ).reshape(-1,2)
+		objectsPoint3 = np.zeros( (9*6, 3) )
+		objectsPoint3[:,:2] = np.mgrid[:9,:6].transpose( 2,1,0 ).reshape(-1,2)
 		objectsPoint3[:,1:2] = objectsPoint3[::-1,1:2]
 
-		OFFSETX3 = 0.0585
-		OFFSETY3 = 0.16
-		SCALEX3 = 0.0245
-		SCALEY3 = 0.0245
+		OFFSETX3 = 0.1015 
+		OFFSETY3 = 0.158
+		SCALEX3 = 0.021
+		SCALEY3 = 0.021
 
 		objectsPoint3[:,0] *= SCALEX3
 		objectsPoint3[:,1] *= SCALEY3
 
 		objectsPoint3[:,0] += OFFSETX3
 		objectsPoint3[:,1] += OFFSETY3
+
+		objectsPoint3 = objectsPoint3[::-1]
 
 		self.qcpoint = np.vstack( (objectsPoint1, objectsPoint2, objectsPoint3) )
 
@@ -119,7 +120,7 @@ class Kinematic(KinematicModule):
 		self.qcpoint_2d_1 = self.calculate2DCoor( self.qcpoint, "ground",
 												HCamera = H )
 
-		setNewRobotConfiguration( *ORIGINAL_DIMENSION )
+		loadDimensionFromConfig( '/home/visittor/humanoid_data/robotConfig.ini' )
 
 		H = getMatrixForForwardKinematic( *js.position )
 
@@ -141,9 +142,13 @@ class Kinematic(KinematicModule):
 		# 	except AttributeError as e:
 		# 		pass
 		for p in self.qcpoint_2d_1:
+			if p is None:
+				continue
 			cv2.circle( self.image, tuple( p.astype(int) ), 2, (0,0,255), -1 )
 
 		for p in self.qcpoint_2d_2:
+			if p is None:
+				continue
 			cv2.circle( self.image, tuple( p.astype(int) ), 2, (0,255,0), -1 )
 				
 		cv2.imshow( 'image', self.image )
