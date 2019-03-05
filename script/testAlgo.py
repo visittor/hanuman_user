@@ -111,7 +111,7 @@ while True:
 	hsv = cv2.GaussianBlur( hsv, ( 5, 5 ), 0 )
 
 	colorMap = colorSegmentation( hsv, colorDefList )[:, :, 0]
-	colorMap_watershed = waterShed( hsv, colorMap.copy() )
+	colorMap_watershed = waterShed( hsv, colorMap.copy() ).astype( np.uint8 )
 	fieldContour, fieldMask = findBoundary( colorMap_watershed, 1 )
 	pointClound = findChangeOfColor( colorMap_watershed, 8, 1, mask=fieldMask, step = 40 )
 
@@ -126,7 +126,7 @@ while True:
 			cv2.circle(img,(x,y), 4, (0,0,0), -1)
 			cv2.circle(img,(x,y), 3, (0,0,255), -1)
 
-	cv2.imshow( 'colorMap', renderedColorMap )
+	cv2.imshow( 'colorMap', colorMap_watershed )
 	cv2.imshow( 'colorMap_watershed', renderedColorMap_watershed )
 	cv2.imshow( 'originalImg', img )
 	k = cv2.waitKey( 1 )
