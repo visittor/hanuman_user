@@ -51,17 +51,27 @@ def findBoundary( colorMap, colorID, flip = False ):
 
 def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1, doFlip = False ):
 	
+	assert axis == 0 or axis == 1, "Only `axis` can only be 0 or 1."
+
 	mask = mask if mask is not None else np.ones( colorMap.shape[:2] )
 
 	marker = colorMap * mask
-	marker[ marker == 255 ] = color2
+	# marker[ marker == 255 ] = color2
 	marker[ np.logical_and( marker!=color1, marker!=color2 ) ] = np.max( marker ) + 100
 
 	if doFlip:
 		marker = np.flip(marker, axis = axis)
 
-	diffMark = np.diff( marker, axis = axis )
+	sli = tuple( slice(0,None,1) if i != axis else slice(0,None,2) for i in range(2) ) 
+
+	diffMark = np.diff( marker[sli], axis = axis )
 	yEdge, xEdge = np.where( diffMark == color1 - color2 )
+
+	if axis == 0:
+		yEdge *= 2
+
+	else:
+		xEdge *= 2
 
 	pointClound = []
 	for i in range( 0, colorMap.shape[ (axis+1) % 2 ], step ):
