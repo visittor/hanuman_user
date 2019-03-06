@@ -48,6 +48,76 @@ def findBoundary( colorMap, colorID, flip = False ):
 	cv2.drawContours( mask, [ contour ], 0, 1, -1 )
 
 	return contour, mask
+	
+def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
+	'''	find m, c, x0, xf of field bounndary 
+		args:
+			contourPoint : contour point from field boundary
+		return:
+			propertyLineList : list of tuple which contain m, c, x0, xf
+	'''
+	
+	#	reshape contour point
+	contourPoint = contourPoint.reshape( -1, 2 )
+	
+	#	get x, y array
+	x = contourPoint[ :, 0 ].reshape( -1, 1 )
+	y = contourPoint[ :, 1 ]
+	
+	#	initial inlier mask and outlier mask
+	inlierMask = np.full( y.size, False )
+	outlierMask = np.full( y.size, True )
+	
+	#	initial list of line property
+	propertyLineList = list()
+	
+	#	initial remain of point x and y
+	xRemain = x[ outlierMask ]
+	yRemain = y[ outlierMask ]
+	
+	for i in xrange( 2 ):
+		
+		#	initial regressor instance
+		regressor = linear_model.RANSACRegressor( residual_threshold = 3.0 )
+	
+		#	fit equation
+		regressor.fit( xRemain, yRemain )
+		
+		#	get inlier and outlier mask
+		inlierMask = regressor.inlier_mask_
+		outlierMask = np.logical_not( inlierMask )
+		
+		#	get initial position and final position
+		x0 = xRemain[ inlierMask ][ 0 ]
+		xf = xRemain[ inlierMask ][ -1 ]
+	
+		y0 = regressor.predict( x0.reshape( -1, 1 ) )
+		yf = regressor.predict( xf.reshape( -1, 1 ) )
+		
+		#	get outlier from mask
+		xRemain = xRemain[ outlierMask ]
+		yRemain = yRemain[ outlierMask ]
+		
+		#	calculate m, c
+		try:
+			#	m = ( yf - y0 ) / ( xf - x0 )
+			#	c = m*x0 - y0
+			m = ( yf.reshape( -1 ) - y0.reshape( -1 ) ) / ( xf.reshape( -1 ) - x0.reshape( -1 ) )
+			c = y0.reshape( -1 ) - ( m.reshape( -1 ) * x0.reshape( -1 ) )
+		
+			#	list format ( m, c, x0, xf )
+			propertyLineList.append( ( m[ 0 ], c[ 0 ], x0[ 0 ], xf[ 0 ] ) )
+		
+#			print "m : {}".format( m )
+#			print "c : {}".format( c ) 
+		
+		except ZeroDivisionError:
+			continue
+		
+		if len( yRemain ) < outlierThreshold:
+			break
+			
+	return propertyLineList
 
 def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1, doFlip = False ):
 	
