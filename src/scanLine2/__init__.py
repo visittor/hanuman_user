@@ -88,8 +88,10 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 		outlierMask = np.logical_not( inlierMask )
 		
 		#	get initial position and final position
-		x0 = xRemain[ inlierMask ][ 0 ]
-		xf = xRemain[ inlierMask ][ -1 ]
+		# x0 = xRemain[ inlierMask ][ 0 ]
+		# xf = xRemain[ inlierMask ][ -1 ]
+		x0 = np.array( [xRemain[ inlierMask ].min()] )
+		xf = np.array( [xRemain[ inlierMask ].max()] )
 	
 		y0 = regressor.predict( x0.reshape( -1, 1 ) )
 		yf = regressor.predict( xf.reshape( -1, 1 ) )
@@ -106,7 +108,7 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 			c = y0.reshape( -1 ) - ( m.reshape( -1 ) * x0.reshape( -1 ) )
 		
 			#	list format ( m, c, x0, xf )
-			propertyLineList.append( ( m[ 0 ], c[ 0 ], x0[ 0 ], xf[ 0 ] ) )
+			propertyLineList.append( [ m[ 0 ], c[ 0 ], x0[ 0 ], xf[ 0 ] ] )
 		
 #			print "m : {}".format( m )
 #			print "c : {}".format( c ) 
@@ -116,8 +118,30 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 		
 		if len( yRemain ) < outlierThreshold:
 			break
-			
-	return propertyLineList
+
+	x0 = contourPoint[0,0]
+	xf = contourPoint[-1,0]
+
+	if len( propertyLineList ) == 1:
+		return [ ( propertyLineList[0][0], propertyLineList[0][1], x0, xf ) ]
+
+
+	## y1 = m1x1 + c1
+	## y1 = m2x1 + c2
+
+	m1, c1, x0_1, xf_1 = propertyLineList[0][:]
+	m2, c2, x0_2, xf_2 = propertyLineList[1][:]
+
+	if m1 == m2:
+		return [ ( m1, c1, x0, xf ) ]
+
+	intersec_x = ( c1 - c2 ) / ( m2 - m1 )
+
+	if x0_1 < x0_2:
+		return [ (m1, c1, x0, intersec_x ), (m2, c2, intersec_x, xf) ]
+
+	else:
+		return [ (m2, c2, x0, intersec_x), (m1, c1, intersec_x, xf) ]
 
 def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1, doFlip = False ):
 	
