@@ -137,6 +137,9 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 
 	intersec_x = ( c1 - c2 ) / ( m2 - m1 )
 
+	if intersec_x < 0 or intersec_x > xf:
+		return [ ( m1, c1, x0 ,xf ) ]
+
 	if x0_1 < x0_2:
 		return [ (m1, c1, x0, intersec_x ), (m2, c2, intersec_x, xf) ]
 
