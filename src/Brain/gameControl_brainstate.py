@@ -27,6 +27,8 @@ import numpy as np
 import time
 import rospy
 
+from walk_around_fsmbrainstate import WalkAround
+
 ########################################################
 #
 #	GLOBALS
@@ -57,6 +59,10 @@ class InitialState( FSMBrainState ):
 
 		print( "Entering initial state" )
 		print( "Sit down" )
+		
+		#	terminate pantilt planner
+		self.rosInterface.Pantilt( command=3 )
+		
 	def step( self ):
 		# do command in this state
 		print( "Waiting for ready signal" )
@@ -89,6 +95,12 @@ class SetState( FSMBrainState ):
 
 		print( "Entering set state" )
 		print( "Stop walking" )
+		
+		self.rosInterface.LocoCommand(	velX = 0.0,
+ 						velY = 0.0,
+ 						omgZ = 0.0,
+ 						commandType = 0,
+ 						ignorable = False )
 
 	def step( self ):
 		# do command in this state
@@ -100,10 +112,14 @@ class PlayState( FSMBrainState ):
 
 		#	set name
 		super( PlayState, self ).__init__( "PlayState" )
+		
+		#	instan
 
 	def firstStep( self ):
 
 		print( "Entering play state" )
+		
+		
 
 	def step( self ):
 		# do command in this state

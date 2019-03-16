@@ -23,6 +23,7 @@ from brain.HanumanRosInterface import HanumanRosInterface
 from newbie_hanuman.msg import postDictMsg
 
 import numpy as np
+import math
 
 import time
 import rospy
@@ -31,6 +32,10 @@ import rospy
 #
 #	GLOBALS
 #
+
+DefaultLoopTimeToLookAtObject = 1.5
+DefaultObject = 'ball'
+DefaultPantiltPattern = 'basic_pattern'
 
 ########################################################
 #
@@ -48,22 +53,23 @@ import rospy
 #
 
 class TrackingBall( FSMBrainState ):
-	
-	#	state name
-	FIND_BALL = 0
-	LOOK_AT_BALL = 1
+
 
 	def __init__( self, nextState = None ):
 
 		super( TrackingBall, self ).__init__( 'TrackingBall' )
 		self.nextState = nextState
-
-		self.currentState = None
-
-		self.loopTimeLookAtBall = 0.5
-
+		
+		self.loopTimeLookAtBall = 1.5
+		
 		#	initial num frame for check it's the ball
 		self.numFrame = 0
+		
+		#	initial object
+		self.objectIndex = None
+		
+		#	time stamp
+		self.stampTime = 0
 		
 	def firstStep( self ):
 		'''
@@ -72,42 +78,58 @@ class TrackingBall( FSMBrainState ):
 
 		rospy.loginfo( "Enter tracking ball state" )
 
-		#	set first state : find ball
-		self.currentState = self.FIND_BALL
-
-		self.previousCommandTime = None
-		self.rosInterface.Pantilt(	pattern="basic_pattern",
-									command=1 )
+		#	re-initial num frame for check it's the ball
+		self.numFrame = 0
+		
+		while len( self.rosInterface.visionManager.object_name ) == 0: 
+			pass
+		
+		#	get index object
+		self.objectIndex = self.rosInterface.visionManager.object_name.index( DefaultObject )
+		
+		#	stamp time before enter step		
+		self.stampTime = time.time()
 
 	def step( self ):
 		
+		#	get current time
 		currentStepTime = time.time()
-
-		#if timeStamp - self.initTime >= 3:
-		if self.rosInterface.visionManager.ball_confidence == True and self.currentState == self.FIND_BALL:
+		
+		#	time remain 
+		timeRemain = currentStepTime - self.stampTime
+		
+		if timeRemain >= self.loopTimeLookAtBall:
 			
-			rospy.loginfo( "Detect the ball!!!!" )
-
-			self.rosInterface.Pantilt( command = 3 )
-			
-			self.currentState = self.LOOK_AT_BALL
-
-			self.previousCommandTime = currentStepTime
-
-			self.SignalChangeSubBrain( self.nextState )
-
-		if self.currentState == self.LOOK_AT_BALL and currentStepTime - self.previousCommandTime >= self.loopTimeLookAtBall:
-            
-            #   terminate current scan
-			self.rosInterface.Pantilt( command = 2 )
-			self.previousCommandTime = currentStepTime
-
-            #   continue to find the ball
-			if self.rosInterface.visionManager.ball_confidence == False:
+			if self.rosInterface.visionManager.object_confidence[ self.objectIndex ] >= 0.5:
 				
-				self.rosInterface.Pantilt(	pattern="basic_pattern",
-											command=1 )
+				#	STARE!!!
+				self.rosInterface.Pantilt( command = 2, pattern = DefaultObject )
 				
-				self.currentState = self.FIND_BALL
+				#	get theta ref to ball
+				thetaWrtRobotDegree = self.rosInterface.visionManager.pos2D_polar[ self.objectIndex ].y
+				
+				#	get sign
+				sign = abs( thetaWrtRobotDegree ) / thetaWrtRobotDegree
+				
+				self.rosInterface.LocoCommand(	velX = 0.0,
+								velY = 0.0,
+								omgZ = sign * 0.3,
+								commandType = 0,
+								ignorable = False )
+				
+				if abs( thetaWrtRobotDegree ) <= math.radians( 10 ):
+					self.SignalChangeSubBrain( self.nextState )
+				
+			else:
+				#	terminate pantilt
+				self.rosInterface.Pantilt( command = 3 )
+				self.rosInterface.Pantilt( command = 1, command = DefaultPantiltPattern )
+				
+				#	stop
+				self.rosInterface.LocoCommand(	velX = 0.0,
+								velY = 0.0,
+								omgZ = 0.0,
+								commandType = 0,
+								ignorable = False )	
 
-
+			self.stampTime = time.time()

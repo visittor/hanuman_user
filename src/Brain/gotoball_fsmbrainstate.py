@@ -68,18 +68,13 @@ class MainBrain( FSMBrainState ):
 
 trackingBall = TrackingBall( nextState = "RotateToTheBall" )
 
-rotate = RotateToTheBall( nextState = "FollowBall", previousState = "TrackingBall" )
-#rotate = RotateToTheBall( nextState = None, previousState = "TrackingBall" )
-
 followBall = FollowBall( kickingState = "KickTheBall", 
-			 trackingState = "TrackingBall", 
-			 alignState = "RotateToTheBall"  )
+			 trackingState = "TrackingBall" )
 
-kickXSO = KickTheBall( previousState = "FollowBall", nextState = "TrackingBall" )   
+kickXSO = KickTheBall( nextState = "TrackingBall" )   
 
 main_brain = MainBrain( "main_brain" )
 main_brain.addSubBrain( trackingBall )
-main_brain.addSubBrain( rotate )
 main_brain.addSubBrain( followBall )
 main_brain.addSubBrain( kickXSO )
 main_brain.setFirstSubBrain( "TrackingBall" )
