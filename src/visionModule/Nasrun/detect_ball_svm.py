@@ -409,7 +409,7 @@ class Kinematic( KinematicModule ):
 								  ball2DPolar[ 1 ],
 						  				 0 )			
 				except Exception as e:
-					rospy.logwarning( e )
+					rospy.logwarn( e )
 					ball3DCartesianMsg = Point32()
 					ball2DPolarMsg = Point32()	
 			else:
