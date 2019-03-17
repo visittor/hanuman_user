@@ -20,7 +20,7 @@ import os
 from brain.brainState import FSMBrainState
 from brain.HanumanRosInterface import HanumanRosInterface
 
-from findball_brainstate import TrackingBall
+from findball_brainstate import TrackingBall, FindBall
 from gotoball_brainstate import FollowBall
 from kicking_brainstate import KickTheBall
 from rotatetotheball_brainstate import RotateToTheBall
@@ -66,7 +66,8 @@ class MainBrain( FSMBrainState ):
 		time.sleep(1)
 
 
-trackingBall = TrackingBall( nextState = "RotateToTheBall" )
+findBall = FindBall( nextState = "TrackingBall" )
+trackingBall = TrackingBall( previousState = "FindBall", nextState = "FollowBall" )
 
 followBall = FollowBall( kickingState = "KickTheBall", 
 			 trackingState = "TrackingBall" )
@@ -74,7 +75,8 @@ followBall = FollowBall( kickingState = "KickTheBall",
 kickXSO = KickTheBall( nextState = "TrackingBall" )   
 
 main_brain = MainBrain( "main_brain" )
+main_brain.addSubBrain( findBall )
 main_brain.addSubBrain( trackingBall )
 main_brain.addSubBrain( followBall )
 main_brain.addSubBrain( kickXSO )
-main_brain.setFirstSubBrain( "TrackingBall" )
+main_brain.setFirstSubBrain( "FindBall" )

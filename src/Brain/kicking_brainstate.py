@@ -34,6 +34,8 @@ import rospy
 
 DefaultObject = 'ball'
 
+DefaultDistanceToKicking = 0.10
+
 ########################################################
 #
 #	EXCEPTION DEFINITIONS
@@ -69,33 +71,53 @@ class KickTheBall( FSMBrainState ):
 
 		rospy.loginfo( "Enter kick the ball state" )
 	
-		self.objectIndex = self.rosInterface.visionManager.object_name[ DefaultObject ]
+		self.objectIndex = self.rosInterface.visionManager.object_name.index( DefaultObject )
 
 		if self.rosInterface.visionManager.object_confidence[ self.objectIndex ] < 0.5:
-			self.SignalChangeSubBrain( self.trackingState )
+			self.SignalChangeSubBrain( self.nextState )
 				
 	def step( self ):
 		
 		
 		#	check side
 		#	get position from y-axis
-		yMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].x
-		xMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].y
+		yMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].y
+		xMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].x
+		
+		if xMagnitude <= DefaultDistanceToKicking:
+			#	select kick
+			if yMagnitude > 0:
+				self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
+			else:
+				self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
+			
+			#	delay after kick wait for behaviour while robot kick
+			time.sleep( 3 )
+		
+			self.SignalChangeSubBrain( self.nextState )
+			
 		
 		#	one step
-		self.rosInterface.LocoCommand(	velX = 0.5,
+		self.rosInterface.LocoCommand(	velX = 0.2,
+						velY = 0.0,
+						omgZ = 0.0,
+						command = 'OneStepWalk' )
+		
+		time.sleep( 5 )
+		
+		self.rosInterface.LocoCommand(	velX = 0.0,
 						velY = 0.0,
 						omgZ = 0.0,
 						command = 'OneStepWalk' )
 		
 		#	select kick
 		if yMagnitude > 0:
-			self.rosInterface.LocoCommand( command = "LeftKick" )
+			self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
 		else:
-			self.rosInterface.LocoCommand( command = "RightKick" )
+			self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
 			
 		#	delay after kick wait for behaviour while robot kick
-		time.sleep( 3 ):
+		time.sleep( 3 )
 		
 		self.SignalChangeSubBrain( self.nextState )
 					   		

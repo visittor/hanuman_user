@@ -36,7 +36,9 @@ DefaultDistanceToKickingState = 0.25 #m
 DefaultAngleToTrackingState = 15 #degree
 DefaultObject = 'ball'
 
-ErrorFootballAndCenterDistance = 50 #pixels 
+ErrorFootballAndCenterDistance = 0.6 #0-1 floating point distance 
+
+DefaultLoopTimeToLookAtObject = 1.0
 
 ########################################################
 #
@@ -67,14 +69,19 @@ class FollowBall( FSMBrainState ):
 		#	initial object
 		self.objectIndex = None
 		
+		#	time stamp
+		self.stampTime = 0
+		
 	def firstStep( self ):
 
 		rospy.loginfo( "Enter follow ball state" )
 
-		self.objectIndex = self.rosInterface.visionManager.object_name[ DefaultObject ]
+		self.objectIndex = self.rosInterface.visionManager.object_name.index( DefaultObject )
 
 		if self.rosInterface.visionManager.object_confidence[ self.objectIndex ] < 0.5:
 			self.SignalChangeSubBrain( self.trackingState )
+			
+		self.stampTime = time.time()
 			
 		
 	def step( self ):
@@ -83,20 +90,20 @@ class FollowBall( FSMBrainState ):
 		currentStepTime = time.time()
 
 		#	get position from y-axis
-		yMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].x
-		xMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].y
+		yMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].y
+		xMagnitude = self.rosInterface.visionManager.pos3D_cart[ self.objectIndex ].x
 		
 		#	get theta of ball wrt robot
 		thetaBallWrtRobot = self.rosInterface.visionManager.pos2D_polar[ self.objectIndex ].y
 		
 		
-		rospy.logdebug( "X distance : {}".format( self.xMagnitude ) )
-		rospy.logdebug( "Y distance : {}".format( self.yMagnitude ) )
-		rospy.logdebug( "theta of robot wrt : {}".format( self.thetaBallWrtRobot ) )
+		rospy.logdebug( "X distance : {}".format( xMagnitude ) )
+		rospy.logdebug( "Y distance : {}".format( yMagnitude ) )
+		rospy.logdebug( "theta of robot wrt : {}".format( thetaBallWrtRobot ) )
 		
 		
 		#	change state when robot is outside theta threshold
-		if abs( self.thetaBallWrtRobot ) >= np.deg2rad( DefaultAngleToTrackingState ):
+		if abs( thetaBallWrtRobot ) >= np.deg2rad( DefaultAngleToTrackingState ):
 			self.SignalChangeSubBrain( self.trackingState )
 		
 		#	go forward to football
@@ -110,13 +117,17 @@ class FollowBall( FSMBrainState ):
 		errorX = self.rosInterface.visionManager.object_error[ self.objectIndex ].x
 		errorY = self.rosInterface.visionManager.object_error[ self.objectIndex ].y
 		
-		#	calculate error from center camera
-		errorEuclidianDistanceBallOnImage = np.sqrt( np.power( errorX, 2 ) + np.power( errorY, 2 ) ) 
+		#	calculate error from center camera#
+#		errorEuclidianDistanceBallOnImage = np.sqrt( np.power( errorX, 2 ) + np.power( errorY, 2 ) )
+#		
+#		rospy.logdebug( "error from center of the camera : {}".format( errorEuclidianDistanceBallOnImage ) )
 		
-		if errorEuclidianDistanceBallOnImage  < ErrorFootballAndCenterDistance:
+#		if errorEuclidianDistanceBallOnImage  > ErrorFootballAndCenterDistance:
+		timeRemain = currentStepTime - self.stampTime
+		if timeRemain >= DefaultLoopTimeToLookAtObject:
 			self.rosInterface.Pantilt( command = 2, pattern = DefaultObject )
-		
-		
+			self.stampTime = time.time()
+			
 		#	arrival at desire position			
 		if xMagnitude <= DefaultDistanceToKickingState:
 		
