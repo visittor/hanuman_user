@@ -98,17 +98,12 @@ class KickTheBall( FSMBrainState ):
 			
 		
 		#	one step
-		self.rosInterface.LocoCommand(	velX = 0.2,
+		self.rosInterface.LocoCommand(	velX = 0.8,
 						velY = 0.0,
 						omgZ = 0.0,
 						command = 'OneStepWalk' )
 		
 		time.sleep( 5 )
-		
-		self.rosInterface.LocoCommand(	velX = 0.0,
-						velY = 0.0,
-						omgZ = 0.0,
-						command = 'OneStepWalk' )
 		
 		#	select kick
 		if yMagnitude > 0:

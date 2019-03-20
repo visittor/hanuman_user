@@ -175,7 +175,7 @@ class TrackingBall( FSMBrainState ):
 
 					self.rosInterface.LocoCommand(	velX = 0.0,
 									velY = 0.0,
-									omgZ = sign * 0.15,
+									omgZ = sign * 0.5,
 									commandType = 0,
 									ignorable = False )
 									
