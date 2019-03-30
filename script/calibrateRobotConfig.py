@@ -13,7 +13,7 @@ from utility.transformationModule import getInverseHomoMat
 
 ORIGINAL_CONFIG = getRobotConfiguration( )
 
-def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeff, vis = False ):
+def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distCoeffs, vis = False ):
 	'''
 	Loss function for minimizer. Project point in 3d coor to image plane then find
 	and distance between projected point with actual image point.
@@ -26,6 +26,12 @@ def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distC
 
 	## Error
 	sumError = 0
+
+	k1 = distCoeffs[0]
+	k2 = distCoeffs[1]
+	k3 = distCoeffs[4] if len( distCoeffs ) >- 5 else 0.0
+	p1 = distCoeffs[2]
+	p2 = distCoeffs[3]
 
 	## Loop for every points.
 	for objP, imgP, js in zip( objPointList, imgPointList, jsList ):
@@ -43,6 +49,11 @@ def lossFunction( robotConfig, objPointList, imgPointList, jsList, camMat, distC
 		## Project point to image plane.
 		predObjP_cam = np.matmul( invTransformationMatrix[:3,:], homoObjP )
 		predObjP_cam /= predObjP_cam[2]
+
+		# r = predObjP_cam[0,:]**2 + predObjP_cam[1,:]**2
+
+		# predObjP_cam[0,:] = predObjP_cam[0,:]*(1+(k1*r**2)+(k2*r**4)+(k3*r**6)) + 2*p1*predObjP_cam[0,:]*predObjP_cam[1,:] + p2*(r**2 + 2*predObjP_cam[0,:]**2)
+		# predObjP_cam[1,:] = predObjP_cam[1,:]*(1+(k1*r**2)+(k2*r**4)+(k3*r**6)) + 2*p2*predObjP_cam[0,:]*predObjP_cam[1,:] + p1*(r**2 + 2*predObjP_cam[1,:]**2)
 
 		predImgP = np.matmul( camMat, predObjP_cam )
 		predImgP = predImgP[:-1]
@@ -117,11 +128,13 @@ def main():
 		## Re-calculate camera matrix
 		retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera( objPointList, imgPointList, (640,480), None, None )
 
-		newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
-															distCoeffs,
-															(640,480), 
-															0,
-															(640,480))
+		# newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix( cameraMatrix,
+		# 													distCoeffs,
+		# 													(640,480), 
+		# 													0,
+		# 													(640,480))
+
+		distCoeffs = distCoeffs[0]
 
 		if options.savePath is not None:
 			np.savez( options.savePath,
@@ -138,11 +151,16 @@ def main():
 		except Exception:
 			config = configobj.ConfigObj()
 			config.filename = options.resultPath
-
+		print distCoeffs
 		config['CameraParameters']['fx'] = cameraMatrix[0,0]
 		config['CameraParameters']['fy'] = cameraMatrix[1,1]
 		config['CameraParameters']['cx'] = cameraMatrix[0,2]
 		config['CameraParameters']['cy'] = cameraMatrix[1,2]
+		config['CameraParameters']['k1'] = distCoeffs[ 0 ]
+		config['CameraParameters']['k2'] = distCoeffs[ 1 ]
+		config['CameraParameters']['k3'] = distCoeffs[ 4 ] if len( distCoeffs ) >= 5 else 0.0
+		config['CameraParameters']['p1'] = distCoeffs[ 2 ]
+		config['CameraParameters']['p2'] = distCoeffs[ 3 ]
 
 		config.write( )
 
