@@ -31,8 +31,6 @@ import rospy
 from findball_brainstate import FindBall
 from alignball_brainstate import RotateToTheBall
 from followball_brainstate import FollowBall
-from slidecurve_brainstate import SlideCurve
-from kicking_brainstate import KickTheBall
 
 ########################################################
 #
@@ -54,29 +52,29 @@ from kicking_brainstate import KickTheBall
 #	CLASS DEFINITIONS
 #
 
-class GotoballAndKick( FSMBrainState ):
+class GotoBall( FSMBrainState ):
 	
 	def __init__( self ):
 		
-		super( GotoballAndKick, self ).__init__( "GotoballAndKick" )
+		super( GotoBall, self ).__init__( "GotoBall" )
 		
+		#	Add sub brain
 		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
 		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "SlideCurve", findBallState = "FindBall" ) )
-		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
-		self.addSubBrain( KickTheBall( nextState = "None" ) )
 		
+		#	Set first sub brain
 		self.setFirstSubBrain( "FindBall" )
 		
 	def end( self ):
 		
 		#	terminate pantilt
-		self.rosInterFace.Pantilt( command = 3 )
+		self.rosInterface.Pantilt( command = 3 )
 			
 		#	stop
 		self.rosInterface.LocoCommand( velX = 0.0,
-					       velY = 0.0,
-					       omgZ = 0.0,
-					       commandType = 0,
-					       ignorable = False )
-main_brain = GotoballAndKick()
+					     			   velY = 0.0,
+					      			   omgZ = 0.0,
+					       			   commandType = 0,
+					       			   ignorable = False )
+main_brain = GotoBall()

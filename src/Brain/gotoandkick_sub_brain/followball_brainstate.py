@@ -72,7 +72,7 @@ class FollowBall( FSMBrainState ):
 	def step( self ):
 		
 		#	Get current vision msg
-		visionMsg = self.rosInterFace.visionManager
+		visionMsg = self.rosInterface.visionManager
 		
 		#	Get index
 		idxBallObj = visionMsg.object_name.index( 'ball' )
@@ -87,7 +87,7 @@ class FollowBall( FSMBrainState ):
 			thetaWrtBall = visionMsg.pos2D_polar[ idxBallObj ].y
 			
 			
-			if thetaWrtBall > abs( math.radians( 10 ) ):
+			if abs( thetaWrtBall ) > math.radians( 12 ):
 				
 				#	it should switch to first state to find the ball
 				self.stopRobotBehavior()
@@ -103,10 +103,10 @@ class FollowBall( FSMBrainState ):
 				self.setGlobalVariable( 'direction', direction )	
 			
 				self.rosInterface.LocoCommand( velX = 0.2,
-							       velY = 0.0,
-							       omgZ = 0.0,
-							       commandType = 0,
-							       ignorable = False )
+							       			   velY = 0.15,
+							       			   omgZ = 0.0,
+							       			   commandType = 0,
+							       			   ignorable = False )
 			else:
 			
 				self.stopRobotBehavior()
@@ -123,11 +123,11 @@ class FollowBall( FSMBrainState ):
 	def stopRobotBehavior( self ):
 		
 		#	terminate pantilt
-		self.rosInterFace.Pantilt( command = 3 )
+		self.rosInterface.Pantilt( command = 3 )
 			
 		#	stop
 		self.rosInterface.LocoCommand( velX = 0.0,
-					       velY = 0.0,
-					       omgZ = 0.0,
-					       commandType = 0,
-					       ignorable = False )		
+					       			   velY = 0.0,
+					       			   omgZ = 0.0,
+					       			   commandType = 0,
+					       			   ignorable = False )		

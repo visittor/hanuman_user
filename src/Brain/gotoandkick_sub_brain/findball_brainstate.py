@@ -61,22 +61,25 @@ class FindBall( FSMBrainState ):
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 		
 		#	Call pattern
-		self.rosInterFace.LocoCommand( command = 1, pattern = 'basic_pattern' )
+		self.rosInterface.Pantilt( command = 1, pattern = 'basic_pattern' )
+		
+		while len( self.rosInterface.visionManager.object_name ) == 0: 
+			pass
 		
 	def step( self ):
 		
 		#	Get current vision msg
-		visionMsg = self.rosInterFace.visionManager
+		visionMsg = self.rosInterface.visionManager
 		
 		#	Get index
 		idxBallObj = visionMsg.object_name.index( 'ball' )
 		
 		if visionMsg.object_confidence[ idxBallObj ] >= 0.5:
 			
-			self.rosInterFace.Pantilt( command = 3 )
+			self.rosInterface.Pantilt( command = 3 )
 			
-			self.rosInterFace.Pantilt( command = 2, pattern = 'ball' )
+			self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 			
 			self.SignalChangeSubBrain( self.nextState )
 						
-main_ball = FindBall()
+#main_brain = FindBall()
