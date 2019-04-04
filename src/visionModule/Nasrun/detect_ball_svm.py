@@ -25,7 +25,7 @@ from geometry_msgs.msg import Point32
 from forwardkinematic import getMatrixForForwardKinematic, loadDimensionFromConfig
 
 from colorSegmentation import colorSegmentation, createColorDefFromDict
-from scanLine2 import findBoundary
+from scanLine2 import findBoundary, findLinearEqOfFieldBoundary
 
 from hog_svm import HOG_SVM
 
@@ -124,15 +124,63 @@ class ImageProcessing( VisionModule ):
 
 		#	get field boundery, green color ID is 2
 		fieldContour, fieldMask = findBoundary( marker, 2, flip = False )
+		fieldContourMiddle = fieldContour[ 1:-1 ].copy()
 		
-		self.contourVis = fieldContour
+		#
+		#	create new mask from ransac
+		#
+		
+		#	get ransac result
+		linePropertyAttribute = findLinearEqOfFieldBoundary( fieldContourMiddle )
+		
+		#	create list of poit
+		pointList = list()
+		
+		for lineCoeff in linePropertyAttribute:
+			
+			#	get linear coefficient
+			x0 = lineCoeff[ 2 ]
+			xf = lineCoeff[ 3 ]
+			m = lineCoeff[ 0 ]
+			c = lineCoeff[ 1 ]
+			
+			#	calculate y from x
+			x = np.arange( x0, xf, dtype = np.int64 )
+			y = np.int64( m * x ) + int( c )
+			
+			contour = np.vstack( ( x, y ) ).transpose()
+			countour = contour.reshape( -1, 1, 2 )
+			
+			pointList.append( countour )
+		
+		if len( pointList ) > 1:
+			contour = np.vstack( pointList )
+#			print pointList[ 0 ].shape
+#			print pointList[ 1 ].shape
+#			print contour.shape
+		else:
+			contour = pointList[ 0 ]
+		
+		firstPoint = np.array( [ [ [ 0, img.shape[ 0 ] - 1 ] ] ] )
+		lastPoint = np.array( [ [ [ img.shape[ 1 ] - 1, img.shape[ 0 ] - 1 ] ] ] )
+		contour = np.concatenate( ( firstPoint, contour, lastPoint ) ) 
 
+		self.contourVis = contour
+		
+		newFieldMask = np.zeros( marker.shape, dtype = np.uint8 )
+		cv2.drawContours( newFieldMask, [ contour ], 0, 1, -1 )
+		
+		#
+		#	find white contour in mask
+		#
+		
 		#	get white object from marker color of white ID is 5
 		whiteObject = np.zeros( marker.shape, dtype = np.uint8 )
 		whiteObject[ marker == 5 ] = 1
 
 		#	get white object only the field
-		whiteObjectInField = whiteObject * fieldMask.astype( np.uint8 )
+		#whiteObjectInField = whiteObject * fieldMask.astype( np.uint8 )
+		whiteObjectInField = whiteObject * newFieldMask
 		whiteObjectInField *= 255
 
 		#	find contour from white object in field
@@ -186,7 +234,7 @@ class ImageProcessing( VisionModule ):
 		if msg.object_confidence[ 0 ] > 0.9:
 			cv2.circle( img, ( msg.pos2D[ 0 ].x, msg.pos2D[ 0 ].y ), 10, ( 255, 0, 0 ), -1 )
 
-		cv2.drawContours( img, [ self.contourVis ], -1, ( 2525, 0, 0 ), 1 )
+		cv2.drawContours( img, [ self.contourVis ], 0, ( 255, 0, 0 ), 1 )
 		#cv2.drawContours( img, [ self.contourVis2 ], -1, ( 0, 0, 255 ), 2 )
 		
 		pass
@@ -321,42 +369,53 @@ class Kinematic( KinematicModule ):
 		qTilt = getJsPosFromName( joint, "tilt" )
 		transformationMatrix = getMatrixForForwardKinematic( qPan, qTilt )
 		
+		#	initial list
+		ball3DCartesianList = list()
+		ball2DPolarMsg = list()
+		
 		#
 		#	convert for 'ball' only
 		#
 		
-		#	index 0 is 'ball'
-		#	Loop is gonna be alright
-		if objMsg.object_confidence[ 0 ] > 0.50:
+		#	loop every object to calculate 3D position
+		for objIndex in range( len( objMsg.object_name ) ):
 			
-			
-			#	get 2D ball position
-			ballPosition = np.array( [ objMsg.pos2D[ 0 ].x, 
-						   objMsg.pos2D[ 0 ].y ], dtype = np.float64 )
-			ballPosition = ballPosition.reshape( -1, 2 )
+			if objMsg.object_confidence[ objIndex ] > 0.50:
 
-			
-			#	get ball in world coordinate
-			#	ball3DCartesian is returned in form [ ( 'projection', arrayOfPos ) ] 
-			ball3DCartesian = self.calculate3DCoor( ballPosition, 
-								HCamera = transformationMatrix )[ 0 ][ 1 ]
-			#	get polar coordinate
-			r = np.sqrt( ball3DCartesian[ 0 ] ** 2 + ball3DCartesian[ 1 ] ** 2 )
-			theta = np.arctan2( ball3DCartesian[ 1 ], ball3DCartesian[ 0 ] )
-			ball2DPolar = np.array( [ r, theta ] )
-			
-			#	compress to msg
-			ball3DCartesianMsg = Point32( ball3DCartesian[ 0 ], 
-					     	      ball3DCartesian[ 1 ], 
-						      ball3DCartesian[ 2 ] )
-			
-			ball2DPolarMsg = Point32( ball2DPolar[ 0 ],
-						  ball2DPolar[ 1 ],
-						  		 0 )			
-		else:
-			
-			ball3DCartesianMsg = Point32()
-			ball2DPolarMsg = Point32()
+
+				#	get 2D ball position
+				ballPosition = np.array( [ objMsg.pos2D[ objIndex ].x, 
+							   objMsg.pos2D[ objIndex ].y ], dtype = np.float64 )
+				ballPosition = ballPosition.reshape( -1, 2 )
+
+
+				#	get ball in world coordinate
+				#	ball3DCartesian is returned in form [ ( 'projection', arrayOfPos ) ] 
+				ball3DCartesian = self.calculate3DCoor( ballPosition, 
+									HCamera = transformationMatrix )[ 0 ][ 1 ]
+				#	get polar coordinate
+				#	handle error when 3D coordinate is cannot calculate 3D position
+				try:
+					r = np.sqrt( ball3DCartesian[ 0 ] ** 2 + ball3DCartesian[ 1 ] ** 2 )
+					theta = np.arctan2( ball3DCartesian[ 1 ], ball3DCartesian[ 0 ] )
+					ball2DPolar = np.array( [ r, theta ] )
+
+					#	compress to msg
+					ball3DCartesianMsg = Point32( ball3DCartesian[ 0 ], 
+					     			      ball3DCartesian[ 1 ], 
+								      ball3DCartesian[ 2 ] )
+
+					ball2DPolarMsg = Point32( ball2DPolar[ 0 ],
+								  ball2DPolar[ 1 ],
+						  				 0 )			
+				except Exception as e:
+					rospy.logwarn( e )
+					ball3DCartesianMsg = Point32()
+					ball2DPolarMsg = Point32()	
+			else:
+
+				ball3DCartesianMsg = Point32()
+				ball2DPolarMsg = Point32()
 			
 		#	If not find the ball
 #		if objMsg.ball_confidence == False or len( objMsg.ball ) == 0:

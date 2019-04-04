@@ -27,6 +27,8 @@ import numpy as np
 import time
 import rospy
 
+from walk_around_fsmbrainstate import WalkAround
+
 ########################################################
 #
 #	GLOBALS
@@ -55,11 +57,18 @@ class InitialState( FSMBrainState ):
 
 	def firstStep( self ):
 
-		print( "Entering initial state" )
-		print( "Sit down" )
+		rospy.logdebug( "Entering initial state" )
+		rospy.logdebug( "Sit down" )
+		
+		#	terminate pantilt planner
+		self.rosInterface.Pantilt( command=3 )
+		
+		#	command to sit
+		self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
+		
 	def step( self ):
 		# do command in this state
-		print( "Waiting for ready signal" )
+		rospy.logdebug( "Waiting for ready signal" )
 		
 class ReadyState( FSMBrainState ):
 
@@ -70,12 +79,14 @@ class ReadyState( FSMBrainState ):
 
 	def firstStep( self ):
 
-		print( "Entering ready state" )
-		print( "Stand up" )
+		rospy.logdebug( "Entering ready state" )
+		rospy.logdebug( "Stand up" )
+		
+		self.rosInterface.LocoCommand( command = 'sitToStand' )
 
 	def step( self ):
 		# do command in this state
-		print( "Go to own half of the field" )
+		rospy.logdebug( "Go to own half of the field" )
 
 
 class SetState( FSMBrainState ):
@@ -83,16 +94,22 @@ class SetState( FSMBrainState ):
 	def __init__( self ):
 
 		#	set name
-		super( SetState, self ).__init__( "SetState" )
+		super( SetState, self ).__init__( "SetState", commandType = 1 )
 
 	def firstStep( self ):
 
-		print( "Entering set state" )
-		print( "Stop walking" )
+		rospy.logdebug( "Entering set state" )
+		rospy.logdebug( "Stop walking" )
+		
+		self.rosInterface.LocoCommand(	velX = 0.0,
+ 						velY = 0.0,
+ 						omgZ = 0.0,
+ 						commandType = 0,
+ 						ignorable = False )
 
 	def step( self ):
 		# do command in this state
-		print( "Waiting for play signal" )
+		rospy.logdebug( "Waiting for play signal" )
 
 class PlayState( FSMBrainState ):
 
@@ -100,14 +117,24 @@ class PlayState( FSMBrainState ):
 
 		#	set name
 		super( PlayState, self ).__init__( "PlayState" )
+		
+		#	instance of walkaround]
+		self.walkAround = WalkAround()
+		
+		#	add subbrain
+		self.addSubBrain( self.walkAround )
+		self.setFirstSubBrain( "WalkAround" )
 
 	def firstStep( self ):
 
-		print( "Entering play state" )
+		rospy.logdebug( "Entering play state" )
+		
+		
+		
 
 	def step( self ):
 		# do command in this state
-		print( "Play game!" )
+		rospy.logdebug( "Play game!" )
 
 class FinishState( FSMBrainState ):
 
@@ -118,8 +145,17 @@ class FinishState( FSMBrainState ):
 
 	def firstStep( self ):
 
-		print( "Entering finish state" )
-		print( "Stop walking" )
+		rospy.logdebug( "Entering finish state" )
+		rospy.logdebug( "Stop walking" )
+		
+		self.rosInterface.LocoCommand(	velX = 0.0,
+ 						velY = 0.0,
+ 						omgZ = 0.0,
+ 						commandType = 0,
+ 						ignorable = False )
+						
+		self.rosInterface.Pantilt( command=3 )
+		
 	def step( self ):
 		# do command in this state
-		print( "Finish game" )
+		rospy.logdebug( "Finish game" )
