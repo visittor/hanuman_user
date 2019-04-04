@@ -121,8 +121,11 @@ class Kinematic(KinematicModule):
 			print "Capture board 3", len( self.__imgpoints )
 
 		elif k == ord( 's' ):
-			print "Save ..."
-			np.savez( "/home/visittor/chessboard.npz",
+			fn = '/tmp/chessboard.npz'
+
+			print "Save ... to {}".format( fn )
+
+			np.savez( fn,
 					imagePoints = self.__imgpoints,
 					objectPoints = self.__objpoints,
 					pantilt = self.__panTiltPoses )

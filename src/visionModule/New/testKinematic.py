@@ -32,6 +32,11 @@ class Kinematic(KinematicModule):
 		self.distCoeffs = camera_prop[ 'distCoeffs' ]
 		roi = camera_prop[ 'roi' ]
 
+		config = configobj.ConfigObj( '/tmp/test.ini' )
+		self.cameraMatrix[0,0] = config['CameraParameters']['fx']
+		self.cameraMatrix[0,2] = config['CameraParameters']['cx']
+		self.cameraMatrix[1,1] = config['CameraParameters']['fy']
+		self.cameraMatrix[1,2] = config['CameraParameters']['cy']
 
 		self.set_IntrinsicCameraMatrix(self.cameraMatrix)
 
@@ -120,7 +125,8 @@ class Kinematic(KinematicModule):
 		self.qcpoint_2d_1 = self.calculate2DCoor( self.qcpoint, "ground",
 												HCamera = H )
 
-		loadDimensionFromConfig( '/home/visittor/humanoid_data/robotConfig.ini' )
+		# loadDimensionFromConfig( '/home/visittor/humanoid_data/robotConfig.ini' )
+		loadDimensionFromConfig( '/tmp/test.ini')
 
 		H = getMatrixForForwardKinematic( *js.position )
 
