@@ -85,13 +85,13 @@ class RotateToTheBall( FSMBrainState ):
 			
 			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1
-			print thetaWrtRobotRad
+			
 			#	Check angle if not exceed 10 degrees
 			if abs( thetaWrtRobotRad ) > math.radians( 10 ):
 			
 				self.rosInterface.LocoCommand(	velX = 0.0,
 												velY = 0.0,
-												omgZ = direction * 0.2,
+												omgZ = direction * 0.4,
 												commandType = 0,
 												ignorable = False )
 			else:

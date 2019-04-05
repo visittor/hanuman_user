@@ -94,11 +94,9 @@ class FollowBall( FSMBrainState ):
 			if abs( thetaWrtBall ) > math.radians( 12 ):
 				
 				#	it should switch to first state to find the ball
-				self.stopRobotBehavior()
 
 				self.SignalChangeSubBrain( self.previousState )
-				
-			
+
 			if distanceWrtBall >= 0.20:
 				
 				#	Get side to kick in kicking brain state
@@ -106,14 +104,15 @@ class FollowBall( FSMBrainState ):
 				
 				self.setGlobalVariable( 'direction', direction )	
 			
-				self.rosInterface.LocoCommand( velX = 0.4,
-							       			   velY = 0.0,
+				self.rosInterface.LocoCommand( velX = 0.3,
+							       			   velY = 0.15,
 							       			   omgZ = 0.0,
 							       			   commandType = 0,
 							       			   ignorable = False )
 			else:
-			
+	
 				self.stopRobotBehavior()
+
 				self.SignalChangeSubBrain( self.nextState )
 				
 			
