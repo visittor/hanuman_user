@@ -68,6 +68,10 @@ class FollowBall( FSMBrainState ):
 		
 		#	re-initial num frame that not detect ball
 		self.numFrameNotDetectBall = 0
+
+		self.rosInterface.Pantilt( command = 3 )
+			
+		self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 		
 	def step( self ):
 		
@@ -95,15 +99,15 @@ class FollowBall( FSMBrainState ):
 				self.SignalChangeSubBrain( self.previousState )
 				
 			
-			if distanceWrtBall >= 0.30:
+			if distanceWrtBall >= 0.20:
 				
 				#	Get side to kick in kicking brain state
 				direction = 1 if sideDistanceWrtBall > 0 else -1
 				
 				self.setGlobalVariable( 'direction', direction )	
 			
-				self.rosInterface.LocoCommand( velX = 0.2,
-							       			   velY = 0.15,
+				self.rosInterface.LocoCommand( velX = 0.4,
+							       			   velY = 0.0,
 							       			   omgZ = 0.0,
 							       			   commandType = 0,
 							       			   ignorable = False )

@@ -67,10 +67,10 @@ class FindBall( FSMBrainState ):
 			pass
 		
 	def step( self ):
-		
+
 		#	Get current vision msg
 		visionMsg = self.rosInterface.visionManager
-		
+
 		#	Get index
 		idxBallObj = visionMsg.object_name.index( 'ball' )
 		
@@ -79,7 +79,7 @@ class FindBall( FSMBrainState ):
 			self.rosInterface.Pantilt( command = 3 )
 			
 			self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
-			
+						
 			self.SignalChangeSubBrain( self.nextState )
 						
 #main_brain = FindBall()

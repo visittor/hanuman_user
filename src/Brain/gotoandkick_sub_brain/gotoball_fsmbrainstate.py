@@ -61,7 +61,7 @@ class GotoBall( FSMBrainState ):
 		#	Add sub brain
 		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "SlideCurve", findBallState = "FindBall" ) )
+		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "None", findBallState = "FindBall" ) )
 		
 		#	Set first sub brain
 		self.setFirstSubBrain( "FindBall" )
