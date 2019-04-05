@@ -27,7 +27,7 @@ from forwardkinematic import getMatrixForForwardKinematic, loadDimensionFromConf
 from colorSegmentation import colorSegmentation, createColorDefFromDict
 from scanLine2 import findBoundary, findLinearEqOfFieldBoundary
 
-from hog_svm import HOG_SVM
+from imageProcessingModule.hog_svm import HOG_SVM
 
 import rospy
 
