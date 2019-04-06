@@ -31,12 +31,12 @@ def findCircle( points, *args, **kwargs ):
 
 def visualize( point3D, circle = None, width = 1000 ):
 
-	field = np.zeros( (width, width, 3), dtype = np.uint8 )
-	field[:,:,1] = 255
+	field_layer1 = np.zeros( (width, width, 3), dtype = np.uint8 )
+	field_layer1[:,:,1] = 255
 
 	for ii in range( 0, width, 100 ):
-		cv2.line( field, (ii, 0), (ii, width), (0,0,0), 1 )
-		cv2.line( field, (0, ii), (width, ii), (0,0,0), 1 )
+		cv2.line( field_layer1, (ii, 0), (ii, width), (0,0,0), 1 )
+		cv2.line( field_layer1, (0, ii), (width, ii), (0,0,0), 1 )
 
 	pt1 = ( width / 2, 550 )
 	pt2 = ( (width / 2)-15, width )
@@ -53,7 +53,9 @@ def visualize( point3D, circle = None, width = 1000 ):
 		y = (width / 2) - y
 		x = width - x
 
-		cv2.circle( field, (y,x), 3, (0,0,255), -1 )
+		cv2.circle( field_layer1, (y,x), 3, (0,0,255), -1 )
+
+	field_layer2 = field_layer1.copy()
 
 	if circle is not None:
 		x, y, r = circle
@@ -69,7 +71,9 @@ def visualize( point3D, circle = None, width = 1000 ):
 			y = (width/2) - y
 			x = width - x
 
-			cv2.circle( field, (y,x), r, (255,0,0), 3 )
+			cv2.circle( field_layer2, (y,x), r, (255,0,0), 3 )
+
+	field = cv2.addWeighted(field_layer1, 0.7, field_layer2, 0.3, 0)
 
 	return field
 
@@ -100,7 +104,7 @@ def main( ):
 
 	frame_indx = 0
 
-	imgWidth = 1000
+	imgWidth = 700
 
 	is_stop = 0
 
