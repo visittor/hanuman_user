@@ -139,23 +139,6 @@ class Kinematic( KinematicModule ):
 
 	def findCircle_ransac( self, point3D ):
 
-		def is_data_valid( random_data ):
-
-			distMat = cdist( random_data, random_data )
-			distAvg = (np.sum( distMat )/2) / len( random_data )
-
-			if distAvg < 0.2:
-				return False
-
-			return True
-
-		def is_model_valid(model, *random_data):
-			x, y, r = model.params
-
-			if r > 2.0:
-				return False
-
-			return True
 
 		model, inliers = measure.ransac(point3D, measure.CircleModel,
                                 min_samples=3, residual_threshold=0.05,
