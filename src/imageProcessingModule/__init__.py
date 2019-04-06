@@ -3,7 +3,7 @@ import numpy as np
 from scipy import spatial
 
 
-def findGoal( ransacContours, marker ):
+def findGoal( ransacContours, marker, goalColorID = 2 ):
     
     #	
     #	two line scan
@@ -37,7 +37,7 @@ def findGoal( ransacContours, marker ):
 #				print "		current marker : {}".format( currentMarker )
 #				print "		previous marker : {}".format( previousMarker )	
             
-            if marker[ point[ 0 ][ 1 ], point[ 0 ][ 0 ] ] == 2:
+            if marker[ point[ 0 ][ 1 ], point[ 0 ][ 0 ] ] == goalColorID:
                 #isChange = True
                 changeList1.append( point )
         
@@ -58,7 +58,7 @@ def findGoal( ransacContours, marker ):
 #				print "		current marker : {}".format( currentMarker )
 #				print "		previous marker : {}".format( previousMarker )
             
-            if marker[ point[ 0 ][ 1 ], point[ 0 ][ 0 ] ] == 2:
+            if marker[ point[ 0 ][ 1 ], point[ 0 ][ 0 ] ] == goalColorID:
                 #isChange = True
                 changeList2.append( point )
         
@@ -72,14 +72,11 @@ def findGoal( ransacContours, marker ):
     if len( changeArray1 ) != 0 and len( changeArray2 ) != 0:
     
         distanceMatrix = spatial.distance.cdist( changeArray1, changeArray2 ) 
-        minIdxAxis_0 = np.argmin( distanceMatrix, axis = 0 )
-        minIdxAxis_1 = np.argmin( distanceMatrix, axis = 1 )
+        minIdxAxis = np.argmin( distanceMatrix, axis = 1 )
 
         goalPointList = list()
         
-        #print minIdxAxis_0, minIdxAxis_1
-        
-        for i, j in enumerate( minIdxAxis_1 ):
+        for i, j in enumerate( minIdxAxis ):
             if distanceMatrix[ i, j ] < 5.5:
                 x1, y1 = changeList1[ i ][ 0 ][ 0 ], changeList1[ i ][ 0 ][ 1 ]
                 x2, y2 = changeList2[ j ][ 0 ][ 0 ], changeList2[ j ][ 0 ][ 1 ]
