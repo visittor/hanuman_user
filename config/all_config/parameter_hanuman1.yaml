@@ -1,8 +1,6 @@
 global_frequency: 10
 #	available verbositiy : [ debug, info, warn, error, fetal ]
 global_verbosity: warn
-motor_cortex:
-  comport: /dev/ttyACM0
 
 spinalcord:
   head_baurdrate: 115200
@@ -13,3 +11,26 @@ spinalcord:
 vision_manager:
   cameraID: 0
   cranial_nerve_ii_frquency: 10
+  
+
+motor_cortex:
+
+  comport: /dev/ttyACM0
+  
+  XWorldTranMax : 0.188
+  XWorldTranMin : -0.204
+  
+  YWorldTranMax : 0.055
+  YWorldTranMin : -0.1
+  
+  ZWorldAnglMax : 0.607
+  ZWorldAnglMin : -0.547
+  
+  XRegisTranMax : 160
+  XRegisTranMin : 87
+  
+  YRegisTranMax : 157
+  YRegisTranMin : 97
+  
+  ZRegisAnglMax : 147
+  ZRegisAnglMin : 107

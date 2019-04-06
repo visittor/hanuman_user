@@ -145,6 +145,50 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 
 	else:
 		return [ (m2, c2, x0, intersec_x), (m1, c1, intersec_x, xf) ]
+		
+def findNewLineFromRansac( contourPoints, imageWidth, imageHeight ):
+	'''	findNewLineFromRansac function
+	'''
+	
+	#	cut origin and final point
+	fieldContourMiddlePoints = contourPoints[ 1:-1 ].copy()
+		
+	#	get ransac result
+	linearCoefficiant = findLinearEqOfFieldBoundary( fieldContourMiddlePoints )  
+
+	#	create list
+	pointList = list()
+
+	for lineCoeff in linearCoefficiant:
+
+		#	get linear coeff
+		x0 = lineCoeff[ 2 ]
+		xf = lineCoeff[ 3 ]
+		m = lineCoeff[ 0 ]
+		c = lineCoeff[ 1 ]
+
+		#	calculate y from x
+		x = np.arange( x0, xf, dtype = np.int64 )
+		y = np.int64( m * x ) + int( c ) 
+		
+		y = np.clip( y, 0, 479 )
+		
+		contour = np.vstack( ( x, y ) ).transpose()
+		contour = contour.reshape( -1, 1, 2 )
+
+		pointList.append( contour )
+
+	if len( pointList ) > 1:
+		ransacContour = np.vstack( pointList )
+	else:
+		ransacContour = pointList[ 0 ]
+
+	#	concat first and last point
+	firstPoint = np.array( [ [ [ 0, imageHeight - 1 ] ] ] )
+	lastPoint = np.array( [ [ [ imageWidth - 1, imageHeight - 1 ] ] ] )
+	ransacContour = np.concatenate( ( firstPoint, ransacContour, lastPoint ) )
+	
+	return ransacContour
 
 def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1, doFlip = False ):
 	

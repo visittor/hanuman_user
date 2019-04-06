@@ -27,7 +27,7 @@ from forwardkinematic import getMatrixForForwardKinematic, loadDimensionFromConf
 from colorSegmentation import colorSegmentation, createColorDefFromDict
 from scanLine2 import findBoundary, findLinearEqOfFieldBoundary
 
-from hog_svm import HOG_SVM
+from imageProcessingModule.hog_svm import HOG_SVM
 
 import rospy
 
@@ -97,6 +97,9 @@ class ImageProcessing( VisionModule ):
 
 		#	create color definition for using segmentation 
 		self.colorDefList = createColorDefFromDict( colorConfigList )
+		
+		self.contourVis1 = None
+		self.contourVis2 = None
 
 	def calculateError( self, imageWidth, imageHeight, centerX, centerY ):
 
@@ -164,8 +167,9 @@ class ImageProcessing( VisionModule ):
 		firstPoint = np.array( [ [ [ 0, img.shape[ 0 ] - 1 ] ] ] )
 		lastPoint = np.array( [ [ [ img.shape[ 1 ] - 1, img.shape[ 0 ] - 1 ] ] ] )
 		contour = np.concatenate( ( firstPoint, contour, lastPoint ) ) 
-
-		self.contourVis = contour
+		
+		self.contourVis1 = fieldContour
+		self.contourVis2 = contour
 		
 		newFieldMask = np.zeros( marker.shape, dtype = np.uint8 )
 		cv2.drawContours( newFieldMask, [ contour ], 0, 1, -1 )
@@ -233,11 +237,11 @@ class ImageProcessing( VisionModule ):
 		"""For visualization by using cranial nerve monitor"""
 		if msg.object_confidence[ 0 ] > 0.9:
 			cv2.circle( img, ( msg.pos2D[ 0 ].x, msg.pos2D[ 0 ].y ), 10, ( 255, 0, 0 ), -1 )
-
-		cv2.drawContours( img, [ self.contourVis ], 0, ( 255, 0, 0 ), 1 )
-		#cv2.drawContours( img, [ self.contourVis2 ], -1, ( 0, 0, 255 ), 2 )
 		
-		pass
+		cv2.drawContours( img, [ self.contourVis1 ], 0, (   0, 0, 255 ), 1 )
+		cv2.drawContours( img, [ self.contourVis2 ], 0, ( 255, 0, 0 ), 1 )
+		#cv2.drawContours( img, [ self.contourVis2 ], -1, ( 0, 0, 255 ), 2 )
+	
 		
 class Kinematic( KinematicModule ):
 	
@@ -362,7 +366,7 @@ class Kinematic( KinematicModule ):
 		
 		#	get object name and passthrough
 		objectNameList = objMsg.object_name
-		
+
 		#	Get camera kinematics
 		# transformationMatrix = self.forwardKinematics( joint )
 		qPan = getJsPosFromName( joint, "pan" )
@@ -371,7 +375,7 @@ class Kinematic( KinematicModule ):
 		
 		#	initial list
 		ball3DCartesianList = list()
-		ball2DPolarMsg = list()
+		ball2DPolarList = list()
 		
 		#
 		#	convert for 'ball' only
@@ -416,6 +420,9 @@ class Kinematic( KinematicModule ):
 
 				ball3DCartesianMsg = Point32()
 				ball2DPolarMsg = Point32()
+				
+			ball3DCartesianList.append( ball3DCartesianMsg )
+			ball2DPolarList.append( ball2DPolarMsg )
 			
 		#	If not find the ball
 #		if objMsg.ball_confidence == False or len( objMsg.ball ) == 0:
@@ -455,8 +462,8 @@ class Kinematic( KinematicModule ):
  		#	Publist positon dict message
 		msg = postDictMsg()
 		msg.object_name = objectNameList
-		msg.pos3D_cart = [ ball3DCartesianMsg ]
-		msg.pos2D_polar = [ ball2DPolarMsg ]
+		msg.pos3D_cart = ball3DCartesianList
+		msg.pos2D_polar = ball2DPolarList
 		msg.pos2D = objMsg.pos2D
 		msg.imgW = objMsg.imgW
 		msg.imgH = objMsg.imgH
@@ -487,7 +494,4 @@ class Kinematic( KinematicModule ):
 	def end( self ):
 		cv2.destroyAllWindows()
 
-#	create instance
-vision_module = ImageProcessing()
-kinematic_module = Kinematic()
 
