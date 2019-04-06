@@ -142,8 +142,8 @@ class Kinematic( KinematicModule ):
 
 		model, inliers = measure.ransac(point3D, measure.CircleModel,
                                 min_samples=3, residual_threshold=0.05,
-                                max_trials=500, is_model_valid = is_model_valid,
-                                is_data_valid = is_data_valid)
+                                max_trials=500, is_model_valid = None,
+                                is_data_valid = None)
 
 		if model is None:
 			return
