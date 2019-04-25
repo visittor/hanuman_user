@@ -20,7 +20,7 @@ motor_cortex:
   XWorldTranMax : 0.188
   XWorldTranMin : -0.204
   
-  YWorldTranMax : 0.055
+  YWorldTranMax : 0.1
   YWorldTranMin : -0.1
   
   ZWorldAnglMax : 0.607
