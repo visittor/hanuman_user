@@ -380,23 +380,22 @@ class ImageProcessing( VisionModule ):
 		msg.object_confidence = [ ballConfidence ]
 		msg.header.stamp = rospy.Time.now()
 		
-		for idx, g in enumerate( goal ):
-			if g is None:
-				continue
-			msg.object_name.append( 'goal_{}'.format( idx ) )
-			x, y = g[ 0 ], g[ 1 ]
-			x -= 3
-			while y < 480 and marker[ y, x ] != 2:
-				y += 1
+		if goal is not None:
+			for idx, g in enumerate( goal ):
+				msg.object_name.append( 'goal_{}'.format( idx ) )
+				x, y = g[ 0 ], g[ 1 ]
+				x -= 3
+				while y < 480 and marker[ y, x ] != 2:
+					y += 1
+					
 				
-			
-			msg.pos2D.append( Point32( x = float( x ), y = float( y ), z = 0 ) )
-			
-			#	calculate error
-			errorX, errorY = self.calculateError( imageWidth, imageHeight, g[ 0 ], g[ 1 ] )
-			msg.object_error.append( Point32( x = errorX, y = errorY, z = 0 ) )
-			
-			msg.object_confidence.append( 1.0 )
+				msg.pos2D.append( Point32( x = float( x ), y = float( y ), z = 0 ) )
+				
+				#	calculate error
+				errorX, errorY = self.calculateError( imageWidth, imageHeight, g[ 0 ], g[ 1 ] )
+				msg.object_error.append( Point32( x = errorX, y = errorY, z = 0 ) )
+				
+				msg.object_confidence.append( 1.0 )
 			
 		#	append intersect point
 		msg.object_name.append( 'intersect_point' )
