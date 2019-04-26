@@ -250,6 +250,9 @@ class ImageProcessing( VisionModule ):
 
 				#	Append to image list
 				imageROIList.append( imgROI )
+			
+			print x, y, w, h
+			print len( imageROIList )
 
 			#	Change position to numpy array
 			positonMatrix = np.array( positionList )
@@ -264,35 +267,35 @@ class ImageProcessing( VisionModule ):
 			
 			# print filteredPosition
 
-		#	old approach !!!
-		pointGoalList = findGoal( ransacContours, marker )
+			#	old approach !!!
+			pointGoalList = findGoal( ransacContours, marker )
 
-		#	Create other score vector
-		pointPolygonScoreVector = np.zeros( probabilityScoreVector.shape, dtype=float )		
-		
-		if pointGoalList is not None:
-			self.pointGoalList = pointGoalList
+			#	Create other score vector
+			pointPolygonScoreVector = np.zeros( probabilityScoreVector.shape, dtype=float )		
+			
+			if pointGoalList is not None:
+				self.pointGoalList = pointGoalList
 
-			#	Loop point first
-			for p in pointGoalList:
-				
-				#		Loop each bounding rectangle
-				for idx, cnt in enumerate( self.boundingBoxList ):
-
-					#	Get width and height of rectangle contours
-					width = cnt[ 2, 0, 0 ] - cnt[ 1, 0, 0 ]
-					height = cnt[ 0, 0, 1 ] - cnt[ 1, 0, 1 ]
-	
-					#	If there have any point that inside rectangle
-					score = cv2.pointPolygonTest( cnt, p, True )
-					if score > 0:
+				#	Loop point first
+				for p in pointGoalList:
 					
-						#	Calculate normalize score (0-1) and plus score to that bounding box
-						score /= ( min( width, height ) / 2.0 )
-						pointPolygonScoreVector[ idx ] += score
+					#		Loop each bounding rectangle
+					for idx, cnt in enumerate( self.boundingBoxList ):
 
-		print "Score from model of each candidate : {}".format( probabilityScoreVector )
-		print "Score from check point : {}".format( pointPolygonScoreVector )
+						#	Get width and height of rectangle contours
+						width = cnt[ 2, 0, 0 ] - cnt[ 1, 0, 0 ]
+						height = cnt[ 0, 0, 1 ] - cnt[ 1, 0, 1 ]
+		
+						#	If there have any point that inside rectangle
+						score = cv2.pointPolygonTest( cnt, p, True )
+						if score > 0:
+						
+							#	Calculate normalize score (0-1) and plus score to that bounding box
+							score /= ( min( width, height ) / 2.0 )
+							pointPolygonScoreVector[ idx ] += score
+
+			print "Score from model of each candidate : {}".format( probabilityScoreVector )
+			print "Score from check point : {}".format( pointPolygonScoreVector )
 
 		#	Initial msg
 		msg = visionMsg()
