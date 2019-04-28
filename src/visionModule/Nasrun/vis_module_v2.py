@@ -13,6 +13,7 @@ import sys
 import os
 
 import pickle
+import operator
 
 ########################################################
 #
@@ -94,6 +95,8 @@ def expandBoundingBox( topLeft, bottomRight, imageWidth, imageHeight, expandSize
 	newBottomRight_X = min( imageWidth, bottomRight_X + expandSize )
 	newBottomRight_Y = min( imageHeight, bottomRight_Y + expandSize )
 
+	
+
 	return newTopLeft_X, newTopLeft_Y, newBottomRight_X, newBottomRight_Y
 
 def generateFourpoints( topLeft, width, height ):
@@ -168,6 +171,8 @@ class ImageProcessing( VisionModule ):
 		#	Position list -> convert to numpy after that
 		positionList = list()
 
+		scoreDict = dict()
+
 		#   Get property of image
 		imageHeight = img.shape[ 0 ]
 		imageWidth = img.shape[ 1 ]
@@ -204,17 +209,35 @@ class ImageProcessing( VisionModule ):
 		
 		#   Find contour of white object in field
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
-		if len( whiteObjectContours ) != 0:
+		
+		
+		#	NOTE: All of this, I will do again if this idea is work 
+		#	Loop over rectangle
+			#	Get bounding rect x, y, w, h
+			#	Filtered size that doesn't make sense
+			#	Get new four point
+			#	Expand bounding box from fourpoints
+			#	Cut roi from the four points and store
+			#	Append to imageList
+
+		#	Hog predict roi of image list
+		#	Get score vector
+
+		#	Find goal with old approach
+		#	Create score from result's old approach
+
+		#	Calculate score
+		#	Find mean between two score
+		#	Ranking
+
+		if len( whiteObjectContours ) != 0: 
 			for cnt in whiteObjectContours:
 				
 				#	Get bounding box (x,y,width,height)
 				x, y, w, h = cv2.boundingRect( cnt )
 
-				if w < 10 or h < 10:
+				if w < 10 or h < 10 and h > w:
 					continue
-
-				# if w > 100 or h > 100:
-				# 	continue
 
 				#	append to position list
 				centerX = x + w / 2
@@ -250,55 +273,84 @@ class ImageProcessing( VisionModule ):
 
 				#	Append to image list
 				imageROIList.append( imgROI )
-			
-			print x, y, w, h
-			print len( imageROIList )
 
-			#	Change position to numpy array
-			positonMatrix = np.array( positionList )
+			if len( imageROIList ) != 0:
 
-			#	Get feature matrix dim = (nSample, nFeatureVectors)
-			featureMatrix = self.hog.extract( imageROIList )
+				#	Get feature matrix dim = (nSample, nFeatureVectors)
+				featureMatrix = self.hog.extract( imageROIList )
 
-			#	Get probability score of each sample
-			probabilityScoreVector = self.model.predict_proba( featureMatrix )[ :, 1 ]
+				#	Get probability score of each sample
+				probabilityScoreVector = self.model.predict_proba( featureMatrix )[ :, 1 ]
 
-			#	Find score higher than threshold
-			
-			# print filteredPosition
+				#	old approach !!!
+				pointGoalList = findGoal( ransacContours, marker )
 
-			#	old approach !!!
-			pointGoalList = findGoal( ransacContours, marker )
+				#	Create other score vector
+				pointPolygonScoreVector = np.zeros( probabilityScoreVector.shape, dtype=float )		
+				
+				if pointGoalList is not None:
+					self.pointGoalList = pointGoalList
 
-			#	Create other score vector
-			pointPolygonScoreVector = np.zeros( probabilityScoreVector.shape, dtype=float )		
-			
-			if pointGoalList is not None:
-				self.pointGoalList = pointGoalList
-
-				#	Loop point first
-				for p in pointGoalList:
-					
-					#		Loop each bounding rectangle
-					for idx, cnt in enumerate( self.boundingBoxList ):
-
-						#	Get width and height of rectangle contours
-						width = cnt[ 2, 0, 0 ] - cnt[ 1, 0, 0 ]
-						height = cnt[ 0, 0, 1 ] - cnt[ 1, 0, 1 ]
-		
-						#	If there have any point that inside rectangle
-						score = cv2.pointPolygonTest( cnt, p, True )
-						if score > 0:
+					#	Loop point first
+					for p in pointGoalList:
 						
-							#	Calculate normalize score (0-1) and plus score to that bounding box
-							score /= ( min( width, height ) / 2.0 )
-							pointPolygonScoreVector[ idx ] += score
+						#		Loop each bounding rectangle
+						for idx, cnt in enumerate( self.boundingBoxList ):
 
-			print "Score from model of each candidate : {}".format( probabilityScoreVector )
-			print "Score from check point : {}".format( pointPolygonScoreVector )
+							#	Get width and height of rectangle contours
+							width = cnt[ 2, 0, 0 ] - cnt[ 1, 0, 0 ]
+							height = cnt[ 0, 0, 1 ] - cnt[ 1, 0, 1 ]
+			
+							#	If there have any point that inside rectangle
+							score = cv2.pointPolygonTest( cnt, p, True )
+							if score > 0:
+							
+								#	Calculate normalize score (0-1) and plus score to that bounding box
+								score /= ( min( width, height ) / 2.0 )
+								pointPolygonScoreVector[ idx ] += score
+
+				# print "Score from model of each candidate : {}".format( probabilityScoreVector )
+				# print "Score from check point : {}".format( pointPolygonScoreVector )
+
+				#	find mean of score
+				# meanScoreVector = probabilityScoreVector + pointPolygonScoreVector / 2
+				for idx, pos in enumerate( positionList ):
+					scoreDict[ pos ] = ( 0.8 * probabilityScoreVector[ idx ] ) + ( 0.2 * pointPolygonScoreVector[ idx ] )
+				
+				#	ranking score
+				rankScore = sorted( scoreDict.items(), key=operator.itemgetter( 1 ), reverse=True )
+
+				nameList = list()
+				pos2DList = list()
+				errorList = list()
+				confidenceList = list()
+
+				# print rankScore 
+
+				if rankScore[0][1] > 0.5:
+					for i in xrange( len( rankScore ) ):
+
+						nameList.append( 'goal_{}'.format( i+1 ) )
+						pos2DList.append( Point32( rankScore[ i ][ 0 ][ 0 ], rankScore[ i ][ 0 ][ 1 ], 0.0 ) )
+						errorX, errorY = self.calculateError( imageWidth, imageHeight, 
+															rankScore[ i ][ 0 ][ 0 ], rankScore[ i ][ 0 ][ 1 ] )
+						errorList.append( Point32( errorX, errorY, 0.0 ) )
+						confidenceList.append( rankScore[ i ][ 1 ] )
+
+					
+					msg = self.createVisionMsg( nameList, pos2DList, errorList, confidenceList, imageWidth, imageHeight )
+				else:
+					msg = self.createVisionMsg( list(), list(), list(), list(), imageWidth, imageHeight )	
+			else:
+				msg = self.createVisionMsg( list(), list(), list(), list(), imageWidth, imageHeight )
+
+		else:
+
+			msg = self.createVisionMsg( list(), list(), list(), list(), imageWidth, imageHeight )
+
 
 		#	Initial msg
-		msg = visionMsg()
+		# msg = visionMsg()
 		# msg.header.stamp = rospy.Time.now()
 		# msg.object_name = list()
 		# msg.pos2D = list()
@@ -330,10 +382,43 @@ class ImageProcessing( VisionModule ):
 		for colorDict in self.colorConfig.colorDefList:
 			img[ img[:,:,1] == colorDict.ID ] = eval(colorDict.RenderColor_RGB)
 
+		for point, conf in zip( msg.pos2D, msg.object_confidence ):
+			
+			if conf > 0.2:
+
+				x = point.x
+				y = point.y
+
+				cv2.circle( img, ( x, y ), 5, ( 0, 0, 255 ), -1 )
+		
+
 		for cnt in self.boundingBoxList:
 
 			cv2.drawContours( img, [ cnt ], 0, ( 255, 0, 0 ), 2, cv2.LINE_AA )
 
-		for p in self.pointGoalList:
+		# for p in self.pointGoalList:
 
-			cv2.circle( img, p, 5, ( 0, 0, 255 ), -1 )
+		# 	cv2.circle( img, p, 5, ( 0, 0, 255 ), -1 )
+
+	def createVisionMsg( self, objectNameList, pos2DList, objectErrorList, objectConfidenceList, imgWidth, imgHeight ):
+		'''	createVisionMsg function
+		'''
+		msg = visionMsg()
+		msg.header.stamp = rospy.Time.now()
+		msg.object_name = objectNameList
+		msg.pos2D = pos2DList
+		msg.object_error = objectErrorList
+		msg.object_confidence = objectConfidenceList
+		msg.imgH = imgHeight
+		msg.imgW = imgWidth
+
+		return msg
+
+	def calculateError( self, imageWidth, imageHeight, centerX, centerY ):
+		'''	calculateError function
+		'''
+
+		errorX = ( centerX - imageWidth / 2. ) / ( imageWidth / 2. )
+		errorY = ( centerY - imageHeight / 2. ) / ( imageHeight / 2. )
+
+		return errorX, errorY
