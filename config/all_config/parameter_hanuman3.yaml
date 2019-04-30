@@ -1,0 +1,36 @@
+global_frequency: 10
+#	available verbositiy : [ debug, info, warn, error, fetal ]
+global_verbosity: warn
+
+spinalcord:
+  head_baurdrate: 115200
+  head_comport: /dev/ttyUSB0
+  pan_motor_serie: ax12a
+  tilt_motor_serie: ax12a
+
+vision_manager:
+  cameraID: 0
+  cranial_nerve_ii_frquency: 10
+  
+
+motor_cortex:
+
+  comport: /dev/ttyACM0
+  
+  XWorldTranMax : 0.171
+  XWorldTranMin : -0.133
+  
+  YWorldTranMax : 0.077
+  YWorldTranMin : -0.085
+  
+  ZWorldAnglMax : 0.528
+  ZWorldAnglMin : -0.576
+  
+  XRegisTranMax : 160
+  XRegisTranMin : 87
+  
+  YRegisTranMax : 157
+  YRegisTranMin : 97
+  
+  ZRegisAnglMax : 147
+  ZRegisAnglMin : 107
