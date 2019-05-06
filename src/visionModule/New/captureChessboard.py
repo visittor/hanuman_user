@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 import binascii
+import math
 
 objectsPoint1 = np.zeros( (9*6, 3) )
 objectsPoint1[:,:2] = np.mgrid[:6,:9].transpose( 1,2,0 ).reshape(-1,2)[::-1]
@@ -76,8 +77,15 @@ class Kinematic(KinematicModule):
 		self.__objpoints = []
 		self.__imgpoints = []
 		self.__panTiltPoses = []
+		self.__rpy = []
 
-	def kinematicCalculation(self, objMsg, js, rconfig=None):
+		self.subscribeMotorCortex = True
+
+	def kinematicCalculation(self, objMsg, js, cortexMsg, rconfig=None):
+
+		pitch = math.radians(cortexMsg.pitch) if cortexMsg is not None else 0.0
+		roll = math.radians(cortexMsg.roll)	if cortexMsg is not None else 0.0
+
 		frame = cvtImageMessageToCVImage( objMsg )
 
 		# frame = cv2.undistort( frame, cameraMatrix, distCoeffs )
@@ -104,6 +112,7 @@ class Kinematic(KinematicModule):
 			self.__imgpoints.append( corners2 )
 			self.__objpoints.append( objectsPoint1 )
 			self.__panTiltPoses.append( panTiltPos )
+			self.__rpy.append( np.array( [ roll, pitch ] ) )
 			print "Capture board 1", len( self.__imgpoints )
 
 		elif k == ord( '2' ) and corners2 is not None:
@@ -111,6 +120,7 @@ class Kinematic(KinematicModule):
 			self.__imgpoints.append( corners2 )
 			self.__objpoints.append( objectsPoint2 )
 			self.__panTiltPoses.append( panTiltPos )
+			self.__rpy.append( np.array( [ roll, pitch ] ) )
 			print "Capture board 2", len( self.__imgpoints )
 
 		elif k == ord( '3' ) and corners2 is not None:
@@ -118,6 +128,7 @@ class Kinematic(KinematicModule):
 			self.__imgpoints.append( corners2 )
 			self.__objpoints.append( objectsPoint3 )
 			self.__panTiltPoses.append( panTiltPos )
+			self.__rpy.append( np.array( [ roll, pitch ] ) )
 			print "Capture board 3", len( self.__imgpoints )
 
 		elif k == ord( 's' ):
@@ -128,7 +139,8 @@ class Kinematic(KinematicModule):
 			np.savez( fn,
 					imagePoints = self.__imgpoints,
 					objectPoints = self.__objpoints,
-					pantilt = self.__panTiltPoses )
+					pantilt = self.__panTiltPoses,
+					rpy = self.__rpy )
 
 		return Empty()
 
