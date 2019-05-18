@@ -3,6 +3,7 @@ import numpy as np
 import time
 import sys
 import math
+import math
 
 from sklearn import linear_model
 
@@ -76,10 +77,10 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 	xRemain = x[ outlierMask ]
 	yRemain = y[ outlierMask ]
 	
+	#	initial regressor instance
+	regressor = linear_model.RANSACRegressor( residual_threshold = 2.0 )
+
 	for i in xrange( 2 ):
-		
-		#	initial regressor instance
-		regressor = linear_model.RANSACRegressor( residual_threshold = 3.0 )
 	
 		#	fit equation
 		regressor.fit( xRemain, yRemain )
@@ -133,7 +134,10 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 	m1, c1, x0_1, xf_1 = propertyLineList[0][:]
 	m2, c2, x0_2, xf_2 = propertyLineList[1][:]
 
-	if m1 == m2:
+	angle1 = math.atan2( m1, 1 )
+	angle2 = math.atan2( m2, 1 )
+
+	if m1 == m2 or math.fabs( angle2 - angle1 ) < math.radians( 5 ) :
 		return [ ( m1, c1, x0, xf ) ]
 
 	intersec_x = ( c1 - c2 ) / ( m2 - m1 )
