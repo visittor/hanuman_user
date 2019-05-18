@@ -31,6 +31,7 @@ import rospy
 from findball_brainstate import FindBall
 from alignball_brainstate import RotateToTheBall
 from followball_brainstate import FollowBall
+from kicking_brainstate import KickTheBall
 
 ########################################################
 #
@@ -61,20 +62,10 @@ class GotoBall( FSMBrainState ):
 		#	Add sub brain
 		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "None", findBallState = "FindBall" ) )
-		
+		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "KickTheBall", findBallState = "FindBall" ) )
+		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
+
 		#	Set first sub brain
 		self.setFirstSubBrain( "FindBall" )
-		
-	def end( self ):
-		
-		#	terminate pantilt
-		self.rosInterface.Pantilt( command = 3 )
-			
-		#	stop
-		self.rosInterface.LocoCommand( velX = 0.0,
-					     			   velY = 0.0,
-					      			   omgZ = 0.0,
-					       			   commandType = 0,
-					       			   ignorable = False )
+
 main_brain = GotoBall()

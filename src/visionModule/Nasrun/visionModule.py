@@ -10,7 +10,9 @@
 #	VISION AND KINEMATIC MODULE 
 #
 
-from detect_ball_watershed import ImageProcessing
+# from detect_ball_watershed import ImageProcessing
+from detect_ball_svm import ImageProcessing
+# from vis_module_v2 import ImageProcessing
 from detect_ball_svm import Kinematic
 
 
