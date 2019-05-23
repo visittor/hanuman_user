@@ -17,14 +17,14 @@ motor_cortex:
 
   comport: /dev/ttyACM0
   
-  XWorldTranMax : 0.188
-  XWorldTranMin : -0.204
+  XWorldTranMax : 0.143
+  XWorldTranMin : -0.136
   
-  YWorldTranMax : 0.1
-  YWorldTranMin : -0.1
+  YWorldTranMax : 0.080
+  YWorldTranMin : -0.096
   
-  ZWorldAnglMax : 0.607
-  ZWorldAnglMin : -0.547
+  ZWorldAnglMax : 0.524
+  ZWorldAnglMin : -0.501
   
   XRegisTranMax : 160
   XRegisTranMin : 87

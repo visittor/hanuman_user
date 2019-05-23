@@ -7,6 +7,8 @@ spinalcord:
   head_comport: /dev/ttyUSB0
   pan_motor_serie: ax12a
   tilt_motor_serie: ax12a
+  pantilt_scan_velocity : 10
+
 
 vision_manager:
   cameraID: 0

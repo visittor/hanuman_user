@@ -38,6 +38,8 @@ from kicking_brainstate import KickTheBall
 #	GLOBALS
 #
 
+DefaultInitialPreviousDistance = 0.50
+
 ########################################################
 #
 #	EXCEPTION DEFINITIONS
@@ -67,5 +69,8 @@ class GotoBall( FSMBrainState ):
 
 		#	Set first sub brain
 		self.setFirstSubBrain( "FindBall" )
+		
+		#	Set previous distance for decision when finding the ball
+		self.setGlobalVariable( "previousDistance", DefaultInitialPreviousDistance )
 
 main_brain = GotoBall()

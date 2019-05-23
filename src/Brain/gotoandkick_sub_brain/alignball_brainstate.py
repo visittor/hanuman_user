@@ -58,7 +58,18 @@ class RotateToTheBall( FSMBrainState ):
 		self.previousState = previousState
 
 		self.numFrameNotDetectBall = None
-		
+
+		self.omegaZ = None
+		self.smallTheta = None
+	
+	def initialize( self ):
+
+		#	Get omega_z from config
+		self.omegaZ = float( self.config[ 'VelocityParameter' ][ 'OmegaZWhenRotateToBall' ] )
+
+		#	Get theta to change state
+		self.smallTheta = float( self.config[ 'ChangeStateParameter' ][ 'SmallDegreeToAlignTheBall' ] )
+
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
@@ -82,16 +93,20 @@ class RotateToTheBall( FSMBrainState ):
 			
 			#	Get polar coordinate
 			thetaWrtRobotRad = visionMsg.pos2D_polar[ idxBallObj ].y
+
+			#	Get distance and store in previousDistance as global variable
+			distanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].x
+			self.setGlobalVariable( 'previousDistance', distanceWrtBall )
 			
 			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1
 			
 			#	Check angle if not exceed 10 degrees
-			if abs( thetaWrtRobotRad ) > math.radians( 10 ):
+			if abs( thetaWrtRobotRad ) > math.radians( self.smallTheta ):
 			
 				self.rosInterface.LocoCommand(	velX = 0.0,
 												velY = 0.0,
-												omgZ = direction * 0.4,
+												omgZ = direction * self.omegaZ,
 												commandType = 0,
 												ignorable = False )
 			else:

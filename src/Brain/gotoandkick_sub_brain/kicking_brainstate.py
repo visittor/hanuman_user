@@ -61,31 +61,56 @@ class KickTheBall( FSMBrainState ):
 		#	get next state
 		self.nextState = nextState
 		
-		self.previousTime = None
-			
+		self.previousTime = previousState
+
+		self.velX = None
+		self.waitTime = None
+
+	def initialize( self ):
+
+		#	Get time and velocity x
+		self.velX = float( self.config[ 'VelocityParameter' ][ 'VelocityXWhenStepToKick' ] )
+		self.waitTime = float( self.config[ 'VelocityParameter' ][ 'WaitingTimeAfterStep' ] )
+
+
 	def firstStep( self ):
 
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 		
-		self.rosInterface.LocoCommand( velX = 0.4,
-						velY = 0.0,
-						omgZ = 0.0,
-						command = 'oneStepWalk' )
+		self.rosInterface.LocoCommand( velX = self.velX ,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   command = 'OneStepWalk',
+									   commandType = 0 )
 		
+		time.sleep( 1.0 )
+
 		self.previousTime  = time.time()
 	
 	
 	def step( self ):
 		
 		currentTime = time.time()
+
+		rospy.loginfo( "Time to kick : {}".format( currentTime - self.previousTime ) )
 		
-		if currentTime - self.previousTime > 3:
+		if currentTime - self.previousTime > self.waitTime:
 			
 			#	Get side to kick
 			direction = self.getGlobalVariable( 'direction' )
+			#direction = 1
 			
 			if direction > 0:
 				self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
 			else:
 				self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
+
+			time.sleep( 3 )
+			self.rosInterface.LocoCommand( velX = 0.0,
+									   	   velY = 0.0,
+									   	   omgZ = 0.0,
+									   	   commandType = 0 )
+
+			self.SignalChangeSubBrain( self.nextState ) 
 		
+# main_brain = KickTheBall()

@@ -61,7 +61,24 @@ class FollowBall( FSMBrainState ):
 		self.findBallState = findBallState
 		
 		self.numFrameNotDetectBall = None
+
+		self.velX = None
+		self.velY = None
+		self.smallTheta = None
+		self.distanceToKick = None
+
+	def initialize( self ):
 		
+		#	Get velocity of x and y
+		self.velX = float( self.config[ 'VelocityParameter' ][ 'VelocityXWhenFollowTheBall' ] )
+		self.velY = float( self.config[ 'VelocityParameter' ][ 'VelocityYWhenFollowTheBall' ] )
+		
+		#	Get theta to change state
+		self.smallTheta = float( self.config[ 'ChangeStateParameter' ][ 'SmallDegreeToAlignTheBall' ] )
+
+		#	Get neares distance before kick
+		self.distanceToKick = float( self.config[ 'ChangeStateParameter' ][ 'NearestDistanceFootballWrtRobot' ] )
+
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )	
@@ -87,31 +104,38 @@ class FollowBall( FSMBrainState ):
 			#	get distance and angle
 			distanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].x
 			sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].y
-			
+
 			thetaWrtBall = visionMsg.pos2D_polar[ idxBallObj ].y
-			
-			
-			if abs( thetaWrtBall ) > math.radians( 12 ):
+
+			#	Store in global variable
+			self.setGlobalVariable( 'previousDistance', distanceWrtBall )
+
+			if abs( thetaWrtBall ) > math.radians( self.smallTheta ):
 				
 				#	it should switch to first state to find the ball
 
 				self.SignalChangeSubBrain( self.previousState )
 
-			if distanceWrtBall >= 0.20:
+			if distanceWrtBall >= self.distanceToKick:
 				
 				#	Get side to kick in kicking brain state
 				direction = 1 if sideDistanceWrtBall > 0 else -1
 				
 				self.setGlobalVariable( 'direction', direction )	
 			
-				self.rosInterface.LocoCommand( velX = 0.3,
-							       			   velY = 0.15,
+				self.rosInterface.LocoCommand( velX = self.velX,
+							       			   velY = self.velY,
 							       			   omgZ = 0.0,
 							       			   commandType = 0,
 							       			   ignorable = False )
 			else:
 	
 				self.stopRobotBehavior()
+
+				rospy.loginfo( "Finish" )
+				rospy.loginfo( "	Angle after stop before kick : {} degrees".format( math.degrees( thetaWrtBall ) ) )
+				rospy.loginfo( "	Distance after stop before kick : {} m".format( distanceWrtBall ) )
+				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
 
 				self.SignalChangeSubBrain( self.nextState )
 				

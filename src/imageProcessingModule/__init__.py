@@ -3,6 +3,11 @@ import numpy as np
 from scipy import spatial
 
 
+YOffsetContour_10Pixel = 10
+YOffsetContour_15Pixel = 15
+
+DistanceThreshold = 8.0
+
 def findGoal( ransacContours, marker ):
     ''' findGoal function
     '''
@@ -12,8 +17,8 @@ def findGoal( ransacContours, marker ):
     ransacContours2 = ransacContours.copy()
     
     #	offset
-    ransacContours1[ :, :, 1 ] = ransacContours1[ :, :, 1 ] + 10
-    ransacContours2[ :, :, 1 ] = ransacContours2[ :, :, 1 ] + 15
+    ransacContours1[ :, :, 1 ] = ransacContours1[ :, :, 1 ] + YOffsetContour_10Pixel
+    ransacContours2[ :, :, 1 ] = ransacContours2[ :, :, 1 ] + YOffsetContour_15Pixel
     
     #	initial previous point
     previousPoint1 = ransacContours1[ 1 ]
@@ -73,7 +78,7 @@ def findGoal( ransacContours, marker ):
         #print minIdxAxis_0, minIdxAxis_1
         
         for i, j in enumerate( minIdxAxis_1 ):
-            if distanceMatrix[ i, j ] < 8.0:
+            if distanceMatrix[ i, j ] < DistanceThreshold:
                 x1, y1 = changeList1[ i ][ 0 ][ 0 ], changeList1[ i ][ 0 ][ 1 ]
                 x2, y2 = changeList2[ j ][ 0 ][ 0 ], changeList2[ j ][ 0 ][ 1 ]
 
@@ -83,3 +88,14 @@ def findGoal( ransacContours, marker ):
 
     else:
         return None	
+
+
+def findGoal2( imageROIList, ransacContours, marker ):
+    ''' findGoal2 function
+    '''
+    pass
+
+def findObstacle( obstacleContour ):
+    ''' findObstacle function
+    '''
+    pass
