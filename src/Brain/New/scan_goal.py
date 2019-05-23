@@ -22,6 +22,11 @@ class Stop( FSMBrainState ):
 
 	def firstStep( self ):
 		rospy.loginfo( "Wait for {} second(s)".format( self._time ) )
+
+		self.rosInterface.Pantilt(	name=['pan', 'tilt'], position=[0.0, 0.0],
+									command = 0
+								)
+
 		self._startTime = time.time( )
 
 	def step( self ):
@@ -39,6 +44,8 @@ class ScanGoal( FSMBrainState ):
 		self._time = time
 		self._startTime = 0
 		self._nextSubbrain = nextSubrain
+
+		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
 	def findShootDirection( self, objectDict ):
 
@@ -81,6 +88,7 @@ class ScanGoal( FSMBrainState ):
 
 		if direction is not None:
 			rospy.loginfo( 'Found Shoot Direction {}.'.format( math.degrees(direction) ) )
+			self.setGlobalVariable( 'curveSlideAngle', direction )
 			self.SignalChangeSubBrain( self._nextSubbrain )
 
 		elif time.time( ) - self._startTime > self._time:
