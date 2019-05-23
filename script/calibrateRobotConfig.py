@@ -24,6 +24,9 @@ def lossFunction_chessboard( robotConfig, data, camMat, distCoeffs, vis = False 
 	objPointList = data[ 'objPointList' ].copy()
 	imgPointList = data[ 'imgPointList' ].copy()
 	jsList = data[ 'jsList' ].copy()
+	rpy = data[ 'rpy' ].copy()
+
+	q = np.hstack( (jsList, rpy) )
 
 	## Set robot dimension.
 	setNewRobotConfiguration( *robotConfig )
@@ -38,10 +41,10 @@ def lossFunction_chessboard( robotConfig, data, camMat, distCoeffs, vis = False 
 	p2 = distCoeffs[3]
 	i = 0
 	## Loop for every points.
-	for objP, imgP, js in zip( objPointList, imgPointList, jsList ):
+	for objP, imgP, js in zip( objPointList, imgPointList, q ):
 
 		## Get transformation matrix .
-		transformationMatrix = getMatrixForForwardKinematic( *js )
+		transformationMatrix = getMatrixForForwardKinematic( *js[:2] )
 		invTransformationMatrix = getInverseHomoMat( transformationMatrix )
 		
 		imgP = imgP.reshape( -1, 2 )
@@ -70,92 +73,13 @@ def lossFunction_chessboard( robotConfig, data, camMat, distCoeffs, vis = False 
 
 				cv2.line( blank, (xPred, yPred), (xAct, yAct), (255,255,255), 1 )
 				cv2.circle( blank, ( xAct, yAct), 3, (0,0,255), -1 )
-
+			print i
+			i += 1
 			cv2.imshow( "test", blank )
 			cv2.waitKey( 0 )
 	print "Loss Chessboard: ", sumError / len( objPointList )
 	## Find average error.
 	return sumError / len( objPointList )
-
-def lossFunction_line( robotConfig, data, camMat, distCoeffs, vis = False ):
-	
-	# assert A != 0 or B != 0
-
-	imgPointList = data[ 'imgPointList' ]
-	jsList = data[ 'jsList' ]
-
-	setNewRobotConfiguration( *robotConfig )
-
-	sumError = 0
-
-	for imgP, js, coef in zip( imgPointList, jsList, data[ 'lineCoef' ] ):
-
-		A, B, C = coef
-
-		transformationMatrix = getMatrixForForwardKinematic( *js )
-		invTransformationMatrix = getInverseHomoMat( transformationMatrix )
-
-		imgP = imgP.reshape( -1, 2 )
-		predObjP = Project2Dto3D( imgP, invTransformationMatrix, camMat )
-
-		dist2Line = np.absolute( A*predObjP[:,0] + B*predObjP[:,1] + C ) / math.sqrt( A**2 + B**2 )
-		# print dist2Line
-		# print sum( dist2Line ) / len( dist2Line )
-		# dist2Line = np.sum( dist2Line ) / len( dist2Line )
-		dist2Line = max( dist2Line )
-
-		sumError += dist2Line
-
-		if vis:
-			blank = np.zeros( (1000, 1000, 3), dtype = np.uint8 )
-
-			if A == 0:
-				x1, x2 = 0, 1000
-				y1 = y2 = 100 * int(-C / B) + 500
-
-			elif B == 0:
-				x1 = x2 = 100 * int( -C / A ) + 500
-				y1, y2 = 0, 1000
-
-			else:
-				x1 = 0
-				y1 = 100 * int( -( A*x1 + C ) / B ) + 500
-
-				x2 = 1000
-				y2 = 100 * int( -( A*x2 + C ) / B ) + 500
-
-			cv2.line( blank, (x1, y1), (x2, y2), (0,0,255), 1 )
-
-			for pred in predObjP:
-
-				x, y = pred[:2]
-				x = int( 100 * x ) + 500
-				y = int( 100 * y ) + 500
-
-				cv2.circle( blank, (x, y), 3, (0,255,0), -1 )
-
-			cv2.imshow( 'test', blank )
-			cv2.waitKey( 0 )
-
-	print "Loss Line: ", sumError / len( imgPointList )
-
-	return sumError / len( imgPointList )
-
-def lossFunction( robotConfig, dataChessboard, dataLine, camMat, distCoeffs, vis = False ):
-
-	if dataChessboard is not None:
-		loss_chessboard = lossFunction_chessboard( robotConfig, dataChessboard, camMat, distCoeffs, vis = vis )
-	else:
-		loss_chessboard = 0
-
-	if dataLine is not None:
-		loss_line = lossFunction_line( robotConfig, dataLine, camMat, distCoeffs, vis = vis )
-	else:
-		loss_line = 0
-
-	print "Loss: ", loss_chessboard + loss_line
-	print "\n"
-	return loss_chessboard + loss_line
 
 def main():
 	parser = optparse.OptionParser()
@@ -189,12 +113,7 @@ def main():
 	imgPointList_chessboard = np.array( data[ 'imagePoints' ] )
 
 	pantiltPosList_chessboard = np.array( data[ 'pantilt' ] )
-
-	data = np.load( options.path_line )
-
-	imgPointList_line = [np.vstack( pList )  for pList in data[ 'imagePoints' ]]
-	pantiltPosList_line = np.array( data[ 'pantilt' ] )
-	lineCoef = np.array( data[ 'lineCoef' ] )
+	rpy_chessboard = np.array( data['rpy'] )
 
 	if options.camMatPath is not None:
 		## Load camera matrix.
@@ -250,15 +169,12 @@ def main():
 		print x
 		dataChessboard = { 	'objPointList' : objPointList_chessboard,
 						'imgPointList' : imgPointList_chessboard,
-						'jsList' : pantiltPosList_chessboard }
+						'jsList' : pantiltPosList_chessboard,
+						'rpy': rpy_chessboard }
 
-		dataLine = { 	'imgPointList' : imgPointList_line,
-						'jsList' : pantiltPosList_line,
-						'lineCoef' : lineCoef }
+		args = ( dataChessboard, cameraMatrix, distCoeffs )
 
-		args = ( dataChessboard, dataLine, cameraMatrix, distCoeffs )
-
-		lossFunction( x, *args, vis = True )
+		lossFunction_chessboard( x, *args, vis = True )
 
 		return 
 
@@ -277,38 +193,37 @@ def main():
 								0.03,
 								0.07,
 								0.02,
-								0.005,
+								0.0,
+								0.0,
 								5.0,
-								0.0 ] )
+								5.0,] )
 	# objPointList = objPointList[ : len( objPointList )/2]
 	# imgPointList = imgPointList[ : len( imgPointList )/2]
 	# pantiltPosList = pantiltPosList[ : len( pantiltPosList )/2]
 
 	dataChessboard = { 	'objPointList' : objPointList_chessboard,
 						'imgPointList' : imgPointList_chessboard,
-						'jsList' : pantiltPosList_chessboard }
+						'jsList' : pantiltPosList_chessboard,
+						'rpy' : rpy_chessboard }
 
-	dataLine = { 	'imgPointList' : imgPointList_line,
-					'jsList' : pantiltPosList_line,
-					'lineCoef' : lineCoef }
-
-	args = ( dataChessboard, None, cameraMatrix, distCoeffs )
+	args = ( dataChessboard, cameraMatrix, distCoeffs )
 	method = "trust-constr"
 	jac = "3-point"
 	hess = BFGS()
-	bounds = [ (0.2,0.6), 
+	bounds = [  (0.2,0.6), 
 				(-0.1	, 0.5), 
 				(0.005, 0.05), 
 				(0.005, 0.05), 
 				(0.035, 0.2), 
 				(0.0, 0.05),
-				(-0.02, 0.02 ), 
-				(-90, 90),
+				(-0.02, 0.02),
+				(-90,90),
+				(-90,90),
 				(-90, 90) ]
 
 	constr = LinearConstraint( np.eye(len(bounds)), [i[0] for i in bounds], [i[1] for i in bounds] )
 
-	resultTrustConstr = minimize( lossFunction, initialGuess,
+	resultTrustConstr = minimize( lossFunction_chessboard, initialGuess,
 						args = args,
 						method = method,
 						jac = jac,
@@ -320,9 +235,9 @@ def main():
 	# resultEvo = differential_evolution(lossFunction, bounds, 
 	# 								args = args, 
 	# 								)
-	args = ( dataChessboard, dataLine, cameraMatrix, distCoeffs )
+	args = ( dataChessboard, cameraMatrix, distCoeffs )
 	x = resultTrustConstr.x
-	lossFunction( x.copy(), *args, vis = True )
+	lossFunction_chessboard( x.copy(), *args, vis = True )
 
 	print "Loss Trust-constr: ", resultTrustConstr.fun
 	print "Result Trust-constr: ", resultTrustConstr.x

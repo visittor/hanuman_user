@@ -2,6 +2,8 @@ import cv2
 import numpy as np 
 import time
 import sys
+import math
+import math
 
 from sklearn import linear_model
 
@@ -75,10 +77,10 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 	xRemain = x[ outlierMask ]
 	yRemain = y[ outlierMask ]
 	
+	#	initial regressor instance
+	regressor = linear_model.RANSACRegressor( residual_threshold = 2.0 )
+
 	for i in xrange( 2 ):
-		
-		#	initial regressor instance
-		regressor = linear_model.RANSACRegressor( residual_threshold = 3.0 )
 	
 		#	fit equation
 		regressor.fit( xRemain, yRemain )
@@ -132,7 +134,10 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 	m1, c1, x0_1, xf_1 = propertyLineList[0][:]
 	m2, c2, x0_2, xf_2 = propertyLineList[1][:]
 
-	if m1 == m2:
+	angle1 = math.atan2( m1, 1 )
+	angle2 = math.atan2( m2, 1 )
+
+	if m1 == m2 or math.fabs( angle2 - angle1 ) < math.radians( 5 ) :
 		return [ ( m1, c1, x0, xf ) ]
 
 	intersec_x = ( c1 - c2 ) / ( m2 - m1 )
@@ -169,9 +174,9 @@ def findNewLineFromRansac( contourPoints, imageWidth, imageHeight ):
 
 		#	calculate y from x
 		x = np.arange( x0, xf, dtype = np.int64 )
-		y = np.int64( m * x ) + int( c ) 
+		y = np.int64( m * x  + c ) 
 		
-		y = np.clip( y, 0, 479 )
+		y = np.clip( y, 0, imageHeight - 5 )
 		
 		contour = np.vstack( ( x, y ) ).transpose()
 		contour = contour.reshape( -1, 1, 2 )
@@ -196,23 +201,60 @@ def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1
 
 	mask = mask if mask is not None else np.ones( colorMap.shape[:2] )
 
-	marker = colorMap * mask
-	# marker[ marker == 255 ] = color2
-	marker[ np.logical_and( marker!=color1, marker!=color2 ) ] = np.max( marker ) + 100
+	# marker = colorMap * mask
+	# # marker[ marker == 255 ] = color2
+	# marker[ np.logical_and( marker!=color1, marker!=color2 ) ] = np.max( marker ) + 100
 
-	if doFlip:
-		marker = np.flip(marker, axis = axis)
+	# if doFlip:
+	# 	marker = np.flip(marker, axis = axis)
 
-	sli = tuple( slice(0,None,1) if i != axis else slice(0,None,2) for i in range(2) ) 
+	# sli = tuple( slice(0,None,1) if i != axis else slice(0,None,2) for i in range(2) ) 
 
-	diffMark = np.diff( marker[sli], axis = axis )
-	yEdge, xEdge = np.where( diffMark == color1 - color2 )
+	# diffMark = np.absolute(np.diff( marker[sli], axis = axis ))
+	# # yEdge, xEdge = np.where( diffMark == math.fabs(color1 - color2) )
+	# yEdge, xEdge = np.where( diffMark > 0 )
+
+	# if axis == 0:
+	# 	yEdge *= 2
+
+	# else:
+	# 	xEdge *= 2
+
+	# pointClound = []
+	# for i in range( 0, colorMap.shape[ (axis+1) % 2 ], step ):
+	# 	yCoor = yEdge[ xEdge == i ].astype( int )
+	# 	yCoor = np.vstack( ( np.ones( yCoor.shape, dtype = int ) * i, yCoor ) ).transpose()
+
+	# 	pointClound.append( yCoor )
+
+	# return pointClound
+
+	marker = colorMap
+
+	maskColor1 = (marker == color1).astype( np.uint8 )
+	maskColor2 = (marker == color2).astype( np.uint8 )
+
+	# kernel = np.array( [[0,1,0],
+	# 					[1,1,1],
+	# 					[0,1,0]], dtype = np.uint8 )
+	kernel = np.ones( (3,3), dtype = np.uint8 )
+ 
+	maskColor1 = cv2.dilate( maskColor1, kernel, iterations = 1 )
+	maskColor2 = cv2.dilate( maskColor2, kernel, iterations = 1 )
+
+	sli = tuple( slice(0,None,step) if i != axis else slice(0,None,2) for i in range(2) )
+
+	intersec = cv2.bitwise_and( maskColor1[sli], maskColor2[sli], mask = mask[sli] )
+
+	yEdge, xEdge = np.where( intersec > 0 )
 
 	if axis == 0:
 		yEdge *= 2
+		xEdge *= step
 
 	else:
 		xEdge *= 2
+		yEdge *= step
 
 	pointClound = []
 	for i in range( 0, colorMap.shape[ (axis+1) % 2 ], step ):

@@ -6,7 +6,9 @@ from newbie_hanuman.msg import scanlinePointClound, localizationMsg
 from newbie_hanuman.msg import point2D
 
 from utility.HanumanForwardKinematic import *
-from scanLine2 import findBoundary, findChangeOfColor, findLinearEqOfFieldBoundary
+
+from scanLine2 import findBoundary, findChangeOfColor, findLinearEqOfFieldBoundary, findNewLineFromRansac
+from imageProcessingModule import findGoal
 
 from skimage import measure, feature
 from scipy.spatial.distance import cdist
@@ -63,9 +65,12 @@ class Vision( VisionModule ):
 
 		for p in fieldContour[1:-1:stepSize,0,:]:
 
-			if p[1] == 0:
+			if p[1] < 10:
 				continue
 			points.append( point2D( x = p[0], y = p[1] ) )
+
+		newFieldContour = findNewLineFromRansac( fieldContour, 640, 480 )
+		goalList = findGoal( newFieldContour, color_map, goalColorID = 5 )
 
 		landmarkName = []
 		landmarkPose = []
@@ -79,6 +84,15 @@ class Vision( VisionModule ):
 			landmarkPose.append( point2D( x = intersect_x, y = intersect_y ) )
 			landmarkConfidence.append( 0.85 )
 
+		for p in goalList:
+			if p is None:
+				break
+			x,y = p
+
+			landmarkName.append( 'goal' )
+			landmarkPose.append( point2D( x = x, y = y ) )
+			landmarkConfidence.append( 0.85 )
+
 		msg = localizationMsg( )
 		msg.pointClound.num_scanline = 8
 		msg.pointClound.min_range = 0
@@ -90,7 +104,7 @@ class Vision( VisionModule ):
 
 		msg.landmark.names = landmarkName
 		msg.landmark.pose = landmarkPose
-		mdg.landmark.confidences = landmarkConfidence
+		msg.landmark.confidences = landmarkConfidence
 
 		return msg
 
@@ -101,17 +115,34 @@ class Vision( VisionModule ):
 		for point in msg.pointClound.points:
 			x = int( point.x )
 			y = int( point.y )
-			cv2.circle(img,(x,y), 4, (0,0,0), -1)
-			cv2.circle(img,(x,y), 3, (0,0,255), -1)
+			# cv2.circle(img,(x,y), 4, (0,0,0), -1)
+			# cv2.circle(img,(x,y), 3, (0,0,255), -1)
+			img[ y, x ] = [0,0,0]
+
+		for n, p in zip( msg.landmark.names, msg.landmark.pose ):
+
+			x, y = int(p.x), int(p.y)
+
+			if n == 'goal':
+				color = (0, 255, 255)
+
+			elif n == 'field_corner':
+				color = (255, 0, 255)
+
+			else:
+				color = (0,0,0)
+
+			cv2.circle( img, (x,y), 2, (0,0,0), -1 )
+			cv2.circle( img, (x,y), 4, color, -1 )
 
 class Kinematic( KinematicModule ):
 
 	def __init__( self ):
 		super( Kinematic, self ).__init__(  )
 
-		config = configobj.ConfigObj( '/home/visittor/test.ini' )
-		loadDimensionFromConfig( '/home/visittor/test.ini' )
-
+		config = configobj.ConfigObj( '/home/visittor/humanoid_data/test_2.ini' )
+		loadDimensionFromConfig( '/home/visittor/humanoid_data/test_2.ini' )
+		print getRobotConfiguration( )
 		# config = configobj.ConfigObj( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )
 		# loadDimensionFromConfig( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )
 
@@ -134,8 +165,12 @@ class Kinematic( KinematicModule ):
 
 		self.points3D = []
 		self.points2D = []
+		self.landmarkName = []
+		self.landmarkPose3D = []
 
 		self.circle = None
+
+		self.subscribeMotorCortex = True
 
 	def findCircle_ransac( self, point3D ):
 
@@ -152,11 +187,12 @@ class Kinematic( KinematicModule ):
 		def is_model_valid(model, *random_data):
 			x, y, r = model.params
 
-			if r > 2.0:
+			if r > 0.9:
 				return False
 
 			return True
-
+		if len( point3D ) < 3:
+			return
 		model, inliers = measure.ransac(point3D, measure.CircleModel,
                                 min_samples=3, residual_threshold=0.05,
                                 max_trials=500, is_model_valid = is_model_valid,
@@ -167,11 +203,11 @@ class Kinematic( KinematicModule ):
 
 		x, y, r = model.params
 
-return x, y, r if np.sum(inliers) > 15 else None
+		return x, y, r if np.sum(inliers) > 15 and r is not None else None
 
 	def getDensityProbability( self, x, mean, sigma ):
 
-		prob = math.exp( -((x-mean)**2)/(2*sigma**2) ) / (math( sqrt(2*math.pi))*sigma)
+		prob = math.exp( -((x-mean)**2)/(2*sigma**2) ) / (math.sqrt(2*math.pi)*sigma)
 
 		return prob
 
@@ -181,12 +217,22 @@ return x, y, r if np.sum(inliers) > 15 else None
 
 		return prob / prob_perfect
 
-	def kinematicCalculation( self, objMsg, js, rconfig=None ):
+	def kinematicCalculation( self, objMsg, js, cortexMsg, rconfig=None ):
 		# print getRobotConfiguration()
 		self.points2D = [ [p.x, p.y] for p in objMsg.pointClound.points ]
-		# js.position[1] *= -1
-		# print js.position
-		H = getMatrixForForwardKinematic( *js.position )
+
+		pitch = math.radians(cortexMsg.pitch) if cortexMsg is not None else 0.0
+		roll = math.radians(cortexMsg.roll)	if cortexMsg is not None else 0.0
+		# print math.degrees(pitch), math.degrees(roll)
+		# roll = pitch = 0.0
+		tranvec = np.zeros( (3,1) )
+		rotvec = np.array( [roll, pitch, 0.0] )
+
+		HRotate = self.create_transformationMatrix(tranvec, rotvec, 
+													'rpy', order="tran-first")
+		
+		H = getMatrixForForwardKinematic( js.position[0], js.position[1], roll, pitch )
+		H = np.matmul( HRotate, H )
 
 		points3D = self.calculate3DCoor( self.points2D, HCamera = H )
 
@@ -217,11 +263,11 @@ return x, y, r if np.sum(inliers) > 15 else None
 			landmarkPose3D.append( point2D( x = x, y = y ) )
 			landmarkConfidence.append( objMsg.landmark.confidences[i] )
 
-		if self.circle is not None:
+		if self.circle is not None and self.circle[0] is not None and self.circle[1] is not None and self.circle[2] is not None:
 			landmarkName.append( 'circle' )
 			landmarkPose3D.append( point2D( x = self.circle[0], y = self.circle[1] ) )
 			landmarkConfidence.append( self.getDensityProbability_normalize( self.circle[2], 
-																			0.75, 0.25 ) )
+																			0.75, 0.5 ) )
 
 		pointCloundMSG = scanlinePointClound( )
 		pointCloundMSG.num_scanline = objMsg.pointClound.num_scanline
@@ -239,21 +285,25 @@ return x, y, r if np.sum(inliers) > 15 else None
 
 		msg.landmark.names = landmarkName
 		msg.landmark.pose = landmarkPose3D
+		msg.landmark.confidences = landmarkConfidence
 
 		# objMsg.points = points
 		## FOR VISUALIZATION
 		self.points3D = [ p[1] for p in points3D if p[0] is not None ]
+		self.landmarkName = landmarkName
+		self.landmarkPose3D = landmarkPose3D
 
 		return Empty(), msg
 
 	def loop( self ):
 
 		width = 700
+		pixPerMetre = 50.0
 
 		field = np.zeros( (width, width, 3), dtype = np.uint8 )
 		field[:,:,1] = 255
 
-		for ii in range( 0, width, 100 ):
+		for ii in range( 0, width, int( pixPerMetre )  ):
 			cv2.line( field, (ii, 0), (ii, width), (0,0,0), 1 )
 			cv2.line( field, (0, ii), (width, ii), (0,0,0), 1 )
 
@@ -267,8 +317,8 @@ return x, y, r if np.sum(inliers) > 15 else None
 		# print self.points3D
 		for x, y, z in self.points3D:
 
-			x = int( x * 100.0 )
-			y = int( y * 100.0 )
+			x = int( x * pixPerMetre )
+			y = int( y * pixPerMetre )
 			y = (width / 2) - y
 			x = width - x
 
@@ -281,6 +331,23 @@ return x, y, r if np.sum(inliers) > 15 else None
 			y = int(y)
 			cv2.circle( blank, (x,y), 3, (0,0,255), -1 )
 
+		for p, n in zip( self.landmarkPose3D, self.landmarkName ):
+
+			x, y = int( p.x * pixPerMetre ), int( p.y * pixPerMetre )
+			y = (width / 2) - y
+			x = width - x
+
+			if n == 'field_corner':
+				color = (255, 0, 255)
+			elif n == 'goal':
+				color = (0, 255, 255)
+			elif n == 'circle':
+				color = (255,255,0)
+			else:
+				color = (0,0,0)
+
+			cv2.circle( field, (y,x), 10, color, -1 )
+
 		if self.circle is not None:
 			x, y, r = self.circle
 
@@ -289,9 +356,9 @@ return x, y, r if np.sum(inliers) > 15 else None
 
 			else:
 
-				x = int(x*100.0)
-				y = int(y*100.0)
-				r = int(r*100.0)
+				x = int(x*pixPerMetre)
+				y = int(y*pixPerMetre)
+				r = int(r*pixPerMetre)
 				y = (width/2) - y
 				x = width - x
 
@@ -299,7 +366,11 @@ return x, y, r if np.sum(inliers) > 15 else None
 
 		cv2.imshow( "3D", field )
 		# cv2.imshow( "2D", blank)
-		cv2.waitKey( 1 )
+		k = cv2.waitKey( 1 )
+
+		if k == ord('s') and len( self.points3D ) > 0:
+			np.save( '/tmp/scanline.npy', self.points3D )
+			print 'save to /tmp/scanline.npy'
 
 	def end( self ):
 		cv2.destroyAllWindows( )			
