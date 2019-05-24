@@ -93,9 +93,6 @@ def findGoal( ransacContours, marker ):
 
 	else:
 		return []
-<<<<<<< HEAD
-    else:
-        return None	
 
 
 def findGoal2( imageROIList, ransacContours, marker ):
@@ -107,6 +104,3 @@ def findObstacle( obstacleContour ):
     ''' findObstacle function
     '''
     pass
-=======
-
->>>>>>> 2018/visittor
