@@ -12,13 +12,13 @@ import rospy
 
 class Stop( FSMBrainState ):
 
-	def __init__( self, nextSubrain = 'None', time = 5 ):
+	def __init__( self, nextSubbrain = 'None', time = 5 ):
 
 		super( Stop, self ).__init__( 'Stop' )
 
 		self._time = time
 		self._startTime = 0
-		self._nextSubbrain = nextSubrain
+		self._nextSubbrain = nextSubbrain
 
 	def firstStep( self ):
 		rospy.loginfo( "Wait for {} second(s)".format( self._time ) )
@@ -37,13 +37,13 @@ class Stop( FSMBrainState ):
 
 class ScanGoal( FSMBrainState ):
 
-	def __init__( self, time = 10, nextSubrain = 'None' ):
+	def __init__( self, time = 10, nextSubbrain = 'None' ):
 
 		super( ScanGoal, self ).__init__( 'ScanGoal' )
 
 		self._time = time
 		self._startTime = 0
-		self._nextSubbrain = nextSubrain
+		self._nextSubbrain = nextSubbrain
 
 		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
@@ -63,6 +63,22 @@ class ScanGoal( FSMBrainState ):
 					_, phi2 = obj.getPolarCoor( )
 					# print "CASE 1", math.degrees( phi1 ), math.degrees( phi2 )
 					return ( phi1 + phi2 ) / 2.0
+
+		if len( objectDict['goal'] ) == 1:
+			if len( objectDict['field_corner'] ) > 0:
+				goal = objectDict['goal'][0]
+
+				minDist = 6
+
+				for corner in objectDict['field_corner']:
+					dist = goal.distance(corner)
+
+					if dist < minDist:
+						_, phi1 = goal.getPolarCoor( )
+						_, phi2 = goal.getPolarCoor( )
+						return phi1 - ((( phi1 + phi2 ) / 2) - phi1)
+
+			return objectDict['goal'][0].getPolarCoor( )[1]
 
 	def firstStep( self ):
 
@@ -102,8 +118,8 @@ class ScanGoal( FSMBrainState ):
 
 main_brain = FSMBrainState( 'main' )
 print "EIEI"
-stop = Stop( nextSubrain = 'ScanGoal' )
-scan = ScanGoal( nextSubrain = 'Stop' )
+stop = Stop( nextSubbrain = 'ScanGoal' )
+scan = ScanGoal( nextSubbrain = 'Stop' )
 
 main_brain.addSubBrain( stop )
 main_brain.addSubBrain( scan )
