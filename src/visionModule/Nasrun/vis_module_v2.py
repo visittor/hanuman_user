@@ -15,6 +15,8 @@ import os
 import pickle
 import operator
 
+import time
+
 ########################################################
 #
 #	LOCAL IMPORTS
@@ -161,6 +163,8 @@ class ImageProcessing( VisionModule ):
 	def ImageProcessingFunction( self, img, header ):
 		''' ImageProcessingFunction function
 		'''
+
+		startTime = time.time()
 
 		#   Re-initialize
 		self.boundingBoxList = list()
@@ -373,6 +377,8 @@ class ImageProcessing( VisionModule ):
 		# msg.imgW = imageWidth
 		# msg.object_error = [ Point32() ]
 		# msg.object_confidence = [ 0.0 ]
+
+		rospy.loginfo( "Time usage : {}".format( time.time() - startTime ) )
 
 		return msg
 

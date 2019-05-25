@@ -199,7 +199,7 @@ def findNewLineFromRansac( contourPoints, imageWidth, imageHeight ):
 	lastPoint = np.array( [ [ [ imageWidth - 1, imageHeight - 1 ] ] ] )
 	ransacContour = np.concatenate( ( firstPoint, ransacContour, lastPoint ) )
 	
-	return ransacContour
+	return ransacContour, linearCoefficiant
 
 def findChangeOfColor( colorMap, color1, color2, mask = None, axis = 0, step = 1, doFlip = False ):
 	

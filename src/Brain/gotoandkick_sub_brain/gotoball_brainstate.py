@@ -33,10 +33,14 @@ from alignball_brainstate import RotateToTheBall
 from followball_brainstate import FollowBall
 from kicking_brainstate import KickTheBall
 
+from slidecurve_brainstate import SlideCurve
+
 ########################################################
 #
 #	GLOBALS
 #
+
+DefaultInitialPreviousDistance = 0.50
 
 ########################################################
 #
@@ -62,10 +66,14 @@ class GotoBall( FSMBrainState ):
 		#	Add sub brain
 		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "KickTheBall", findBallState = "FindBall" ) )
+		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "SlideCurve", findBallState = "FindBall" ) )
+		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
 		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
 
 		#	Set first sub brain
 		self.setFirstSubBrain( "FindBall" )
+		
+		# #	Set previous distance for decision when finding the ball
+		# self.setGlobalVariable( "previousDistance", DefaultInitialPreviousDistance )
 
 main_brain = GotoBall()

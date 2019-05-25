@@ -53,14 +53,12 @@ def loadModel( modelPathStr ):
 
 class HOG_SVM( object ):
 
-	def __init__( self, modelPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
  
 		#   get model for classifier
-		self.model = loadModel( modelPathStr )
-
-		#	set probability to true
-		print self.model.probability
+		self.footballModel = loadModel( modelBallPathStr )
+		self.goalModel = loadModel( modelGoalPathStr )
 
 		#	define hog descriptor instance
 		self.hogDescriptor = cv2.HOGDescriptor( winSize, blockSize, blockStride, cellSize, nBins )
@@ -85,11 +83,7 @@ class HOG_SVM( object ):
 		#	get bounding box from white contours first
 		self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
 
-		#	set flag to false when didn't get any bounding box
-		if len( self.boundingBoxListObject.boundingBoxList ) == 0:
-			
-			self.ableToExtraction = False
-			
+		if self.boundingBoxListObject.getNumberCandidate() == 0:
 			return False
 
 		#	compute feature vector
@@ -98,41 +92,39 @@ class HOG_SVM( object ):
 			#	compute!		
 			hogFeature = self.hogDescriptor.compute( boundingBox.roiImage )
 
+			#	HACK!!! : Get gray scale
+			imageGray = boundingBox.convertImageToGrayScale( )
+
+			hogGrayFeature = self.hogDescriptor.compute( imageGray )
+
 			#	get feature vector
 			boundingBox.featureVector = hogFeature.T
+			boundingBox.featureVectorGray = hogGrayFeature.T
 
-		#	set true when extract feature finish
-		self.ableToExtraction = True
-		
 		return True
 
 	def predict( self ):
-		
-		#	skip when bounding box not found
-		if not self.ableToExtraction:
-			self.isPredict = True
-			return
 
 		#	loop every bounding list
 		for boundingObject in self.boundingBoxListObject.boundingBoxList:
 
 			#	get feature of bounding box
 			hogFeature = boundingObject.featureVector
+			hogGrayFeature = boundingObject.featureVectorGray
 
-			#	predict by svm, [ 0, 1 ] is index which positive side
-			classificationScore = self.model.predict( hogFeature )
+			# #	predict by svm, [ 0, 1 ] is index which positive side
+			# classificationScore = self.model.predict( hogFeature )
 
 			#	get score in form probability
-			boundingObject.footballProbabilityScore =  self.model.predict_proba( hogFeature )[ 0, 1 ]
+			boundingObject.footballProbabilityScore =  self.footballModel.predict_proba( hogFeature )[ 0, 1 ]
+			boundingObject.goalProbabilityScore = self.goalModel.predict_proba( hogGrayFeature )[ 0, 1 ]
 
-			#	store the result to same object
-			if classificationScore[ 0 ] == 1:
-				boundingObject.isFootball = True
-			else:
-				boundingObject.isFootball = False
+			# #	store the result to same object
+			# if classificationScore[ 0 ] == 1:
+			# 	boundingObject.isFootball = True
+			# else:
+			# 	boundingObject.isFootball = False
 
-		#	set flag to true
-		self.isPredict = True
 
 	def getBestRegion( self ):
 		"""
@@ -141,11 +133,9 @@ class HOG_SVM( object ):
 			
 		"""
 
-		#	assert for trap, should call after HOG_SVM.predict()
-		assert( self.isPredict is True )
-
 		#	initial best position parameter
 		bestPosition = None
+		confidence = 0.0
 				
 		#	flag to check that at least, one bounding box is football
 		foundBall = False
@@ -155,8 +145,7 @@ class HOG_SVM( object ):
 
 		#	calculate
 		calculateStatus = self.boundingBoxListObject.calculateDistanceFromPreviousBoundingBox()
-		
-		
+
 		if calculateStatus == True:
 				
 			#	sort first by distance
@@ -180,6 +169,7 @@ class HOG_SVM( object ):
 					
 					#	get position
 					bestPosition = boundingBoxObj.object2DPosTuple
+					confidence = boundingBoxObj.footballProbabilityScore
 					
 					#	found ball is true
 					foundBall = True
@@ -188,26 +178,26 @@ class HOG_SVM( object ):
 					break
 					
 		else:
+
+			if self.boundingBoxListObject.boundingBoxList[ 0 ].footballProbabilityScore > self.positiveThreshold : 
 			
-			#	get best bounding box from sorted list by probability score
-			self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
-			
-			#	get position
-			bestPosition = self.bestBoundingBox.object2DPosTuple
-			
-			#	set previous bounding box
-			self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
-			
-			foundBall = True
+				#	get best bounding box from sorted list by probability score
+				self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
+				
+				#	get position
+				bestPosition = self.bestBoundingBox.object2DPosTuple
+				confidence = self.bestBoundingBox.footballProbabilityScore
+				
+				#	set previous bounding box
+				self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
+				
+				foundBall = True
 			
 		#	clear bounding box list
 		self.boundingBoxListObject.clearBoundingBoxList()
-
-		#	set back for next iteration
-		self.isPredict = False
 		
 		if foundBall == True:
-			return list( bestPosition )
+			return list( ( bestPosition, confidence ) )
 		else:
 			return list()
 			
@@ -218,6 +208,32 @@ class HOG_SVM( object ):
 		"""
 		
 		return self.bestBoundingBox	
-	
 
-	
+	def getGoal( self ):
+
+		sortBoundingBoxGoalList = self.boundingBoxListObject.sortGoalScore()
+		goalList = list()
+
+		for goalObj in sortBoundingBoxGoalList:
+			if goalObj.goalProbabilityScore > self.positiveThreshold:
+				centerGoal = goalObj.object2DPosTuple
+				confidence = goalObj.goalProbabilityScore
+				goalList.append( ( centerGoal, confidence ) )
+
+		return goalList
+			
+		
+	def printScore( self ):
+		
+		print "###################################"
+
+		#	loop every bounding list
+		for boundingObject in self.boundingBoxListObject.boundingBoxList:
+			
+			print "Candidate at {}".format( boundingObject.object2DPosTuple )
+
+			print "ball : {}".format(  boundingObject.footballProbabilityScore )			
+			print "goal : {}\n".format(  boundingObject.goalProbabilityScore )
+
+		print "###################################"
+

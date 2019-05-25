@@ -46,6 +46,7 @@ class BoundingBoxDataStruct( object ):
 
 		#	get basic property
 		self.roiImage = roiImage
+
 		self.topLeftPositionTuple = topLeftPositionTuple
 		self.bottomRightPositionTuple = bottomRightPositionTuple
 
@@ -54,9 +55,15 @@ class BoundingBoxDataStruct( object ):
 
 		#	initial other attribrute
 		self.footballProbabilityScore = 0.0
+		self.goalProbabilityScore = 0.0
+		self.pointPolygonScore = 0.0
+
 		self.isFootball = False
 		self.distanceFromPreviousPosition = 0.0
 		self.featureVector = None
+
+		#	Hack!!!
+		self.featureVectorGray = None
 
 	def calculateObjectPoint( self, positionObject ):
 		
@@ -82,6 +89,12 @@ class BoundingBoxDataStruct( object ):
 			pointsTuple = ( x, y )
 
 		return pointsTuple
+
+	def convertImageToGrayScale( self ):
+
+		imgGray = cv2.cvtColor( self.roiImage, cv2.COLOR_BGR2GRAY )
+
+		return imgGray
 
 
 class BoundingBoxList( object ):
@@ -125,7 +138,7 @@ class BoundingBoxList( object ):
 		#	if previous ball is None, ranking true from svm to top order and terminate this function
 		if self.previousBoundingBox is None:
 
-			self.boundingBoxList = sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.footballProbabilityScore )
+			self.boundingBoxList = sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.footballProbabilityScore, reverse=True )
 
 			return False
 
@@ -145,6 +158,12 @@ class BoundingBoxList( object ):
 		
 		return True
 	
+	def sortGoalScore( self ):
+
+		sortBoundingBoxGoalList = sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.goalProbabilityScore, reverse=True )
+
+		return sortBoundingBoxGoalList
+
 	def getPreviousBoundingBox( self ):
 		
 		"""
@@ -213,6 +232,10 @@ class BoundingBoxList( object ):
 		boundingBoxFilteredNonRectList = filter( filterNonRectFunction, boundingBoxFilteredSizeList )
 
 		return boundingBoxFilteredNonRectList
+
+	def getNumberCandidate( self ):
+
+		return len( self.boundingBoxList )
 
 
 

@@ -12,8 +12,6 @@
 import sys
 import os
 
-import random
-
 ########################################################
 #
 #	LOCAL IMPORTS
@@ -54,9 +52,9 @@ import rospy
 class SlideCurve( FSMBrainState ):
 
 	def __init__( self, nextState = "None" ):
-		
+
 		super( SlideCurve, self ).__init__( 'SlideCurve' )
-		
+
 		self.nextState = nextState
 		self.previousTime = None
 
@@ -64,7 +62,7 @@ class SlideCurve( FSMBrainState ):
 		self.velX = None
 		self.velY = None
 		self.omegaZ = None
-	
+
 	def initialize( self ):
 		#	Get config
 
@@ -76,53 +74,33 @@ class SlideCurve( FSMBrainState ):
 
 	def firstStep( self ):
 
-		#	Get direction from global variable
-		direction = self.getGlobalVariable( 'curveSlideAngle' )
-		
+		#	command to slide curve
+		#	TODO : Tune tomorrow
+		self.rosInterface.LocoCommand( velX = self.velX,
+										velY = -1 * self.velY,
+										omgZ = self.omegaZ,
+										commandType = 0,
+										ignorable = False )
 
-		if direction is not None:
 
-			if abs(  math.degrees( direction ) ) < 30:
-				self.SignalChangeSubBrain( self.nextState )
-
-			direction = 1 if direction > 0 else -1
-
-			#	command to slide curve
-			#	TODO : Tune tomorrow
-			self.rosInterface.LocoCommand( velX = self.velX,
-										   velY = -1 * direction * self.velY,
-										   omgZ = direction * self.omegaZ,
-										   commandType = 0,
-										   ignorable = False )
-
-		else:
-
-			dire = random.randint( 0, 1 )
-
-			direction = -1 if dire == 0 else 1
-			
-			self.rosInterface.LocoCommand( velX = self.velX,
-										   velY = -1*direction*self.velY,
-										   omgZ = direction*self.omegaZ,
-										   commandType = 0,
-										   ignorable = False )
-
-			
-		
 		#	get time step
+
 		self.previousTime = time.time()
-				
+
 	def step( self ):
-		
+
 		#	get current time on these step
 		currentTime = time.time()
-		
-		#	TODO : Maybe change to radius
-		if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
-			
-			self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
-									   	   ignorable =  False )
-			
-			self.SignalChangeSubBrain( self.nextState )
 
-# main_brain = SlideCurve()
+		#	TODO : Maybe change to radius
+		# if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
+
+		# 	self.rosInterface.LocoCommand( velX = 0.0,
+		# 								   velY = 0.0,
+		# 								   omgZ = 0.0,
+		# 								   commandType = 0,
+		# 								   ignorable = False )
+
+		# 	self.SignalChangeSubBrain( self.nextState )
+
+main_brain = SlideCurve()
