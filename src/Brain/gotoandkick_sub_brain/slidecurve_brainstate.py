@@ -82,11 +82,16 @@ class SlideCurve( FSMBrainState ):
 
 		if direction is not None:
 
+			if abs(  math.degrees( direction ) ) < 30:
+				self.SignalChangeSubBrain( self.nextState )
+
+			direction = 1 if direction > 0 else -1
+
 			#	command to slide curve
 			#	TODO : Tune tomorrow
 			self.rosInterface.LocoCommand( velX = self.velX,
-										   velY = direction * self.velY,
-										   omgZ = -1 * direction * self.omegaZ,
+										   velY = -1 * direction * self.velY,
+										   omgZ = direction * self.omegaZ,
 										   commandType = 0,
 										   ignorable = False )
 

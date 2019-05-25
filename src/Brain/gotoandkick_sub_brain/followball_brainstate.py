@@ -103,25 +103,25 @@ class FollowBall( FSMBrainState ):
 		#	Get index
 		idxBallObj = localPosDict.object_name.index( 'ball' )
 
-		idxBall = visionMsg.object_name.index( 'ball' )
+		# idxBall = visionMsg.object_name.index( 'ball' )
 
 		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
 
 		# rospy.loginfo( "Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
 		
 		#	Check confidence if model could detect ball
-		if localPosDict.object_confidence[ idxBallObj ] > 0.5:
+		if 'ball' in localPosDict.object_name:
 			
 			#	get distance and angle
-			distanceWrtBall = visionMsg.pos3D_cart[ idxBall ].x
-			sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBall ].y
+			# distanceWrtBall = visionMsg.pos3D_cart[ idxBall ].x
+			# sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBall ].y
 
 			thetaWrtBall = localPosDict.pos2D_polar[ idxBallObj ].y
 
 			localDistanceX = localPosDict.pos3D_cart[ idxBallObj ].x
 			localDistanceY = localPosDict.pos3D_cart[ idxBallObj ].y
 
-			rospy.loginfo( "distance localmap | current distance : {} | {}".format( localDistanceX, distanceWrtBall ) )
+			# rospy.loginfo( "distance localmap | current distance : {} | {}".format( localDistanceX, distanceWrtBall ) )
 
 			if currentTiltAngle >= math.radians( self.limitTiltAngle ):
 
@@ -140,7 +140,7 @@ class FollowBall( FSMBrainState ):
 			if localDistanceX >= self.distanceToKick:
 				
 				#	Get side to kick in kicking brain state
-				direction = 1 if sideDistanceWrtBall > 0 else -1
+				direction = 1 if localDistanceY > 0 else -1
 				
 				self.setGlobalVariable( 'direction', direction )	
 			
@@ -155,7 +155,7 @@ class FollowBall( FSMBrainState ):
 
 				rospy.loginfo( "Finish" )
 				rospy.loginfo( "	Angle after stop before kick : {} degrees".format( math.degrees( thetaWrtBall ) ) )
-				rospy.loginfo( "	Distance after stop before kick : {} m".format( distanceWrtBall ) )
+				rospy.loginfo( "	Distance after stop before kick : {} m".format( localDistanceX ) )
 				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
 
 				self.SignalChangeSubBrain( self.nextState )

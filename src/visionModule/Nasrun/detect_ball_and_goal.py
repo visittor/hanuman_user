@@ -126,16 +126,17 @@ class ImageProcessing( VisionModule ):
 
 			yIntersect = ( m * xIntersect ) + c
 			
+			
 			intersectPoint = Point32( x = xIntersect, y = yIntersect, z = 0.0 )
 			errorX, errorY = self.calculateError( imageWidth, imageHeight, xIntersect, yIntersect )
 			
 			errorIntersectPoint = Point32( x = errorX, y = errorY, z = 0.0 )
 			intersectPointConfidence = 1.0
 			
-		else:
-			intersectPoint = Point32()
-			errorIntersectPoint = Point32( )
-			intersectPointConfidence = 0.0
+			objNameList.append( 'field_corner' )
+			pos2DList.append( intersectPoint )
+			errorList.append( errorIntersectPoint )
+			confidenceList.append( intersectPointConfidence )
 
 		#   Create mask from new contour
 		newFieldMask = np.zeros( marker.shape, dtype=np.uint8 )
@@ -149,8 +150,6 @@ class ImageProcessing( VisionModule ):
 
 		canExtract = self.predictor.extractFeature( img, whiteObjectContours, objectPointLocation="bottom" )
 
-		objNameList.append( 'ball' )
-
 		if canExtract:
 
 			self.predictor.predict()
@@ -159,6 +158,8 @@ class ImageProcessing( VisionModule ):
 			bestPosition = tuple(self.predictor.getBestRegion())
 
 			if len( bestPosition ) != 0:
+
+				objNameList.append( 'ball' )
 
 				#	get bounding box object not only position
 				bestBounding = self.predictor.getBestBoundingBox()
@@ -174,12 +175,6 @@ class ImageProcessing( VisionModule ):
 
 				confidenceList.append( bestPosition[ 1 ] )
 
-			else:
-				
-				pos2DList.append( Point32() )
-				errorList.append( Point32() )
-				confidenceList.append( 0.0 )
-
 			for goal in goalList:
 
 				objNameList.append( 'goal' )
@@ -191,16 +186,6 @@ class ImageProcessing( VisionModule ):
 				errorList.append( Point32( errorX, errorY, 0.0 ) )
 
 				confidenceList.append( goal[ 1 ] )
-		else:
-
-			pos2DList.append( Point32() )
-			errorList.append( Point32() )
-			confidenceList.append( 0.0 )
-
-		objNameList.append( 'field_corner' )
-		pos2DList.append( intersectPoint )
-		errorList.append( errorIntersectPoint )
-		confidenceList.append( intersectPointConfidence )
 
 		msg = self.createVisionMsg( objNameList, pos2DList, errorList, confidenceList, imageWidth, imageHeight )
  
@@ -226,8 +211,9 @@ class ImageProcessing( VisionModule ):
 	def visualizeFunction(self, img, msg):
 		"""For visualization by using cranial nerve monitor"""
 
-		ballIdx = msg.object_name.index( 'ball' )
-		if msg.object_confidence[ ballIdx ] > 0.5:
+		
+		if 'ball' in msg.object_name:
+			ballIdx = msg.object_name.index( 'ball' )
 			x = msg.pos2D[ ballIdx ].x
 			y = msg.pos2D[ ballIdx ].y
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
@@ -242,8 +228,8 @@ class ImageProcessing( VisionModule ):
 					cv2.circle( img, ( x, y ), 5, ( 0, 0, 255 ), -1 )
 					cv2.putText( img, "goal", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 0, 0, 255 ), 2 )
 
-		cornerIdx = msg.object_name.index( 'field_corner' )
-		if msg.object_confidence[ cornerIdx ] > 0.5:
+		if 'field_corner' in msg.object_name:
+			cornerIdx = msg.object_name.index( 'field_corner' )
 			x = int(msg.pos2D[ cornerIdx ].x)
 			y = int(msg.pos2D[ cornerIdx ].y)
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )

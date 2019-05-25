@@ -37,13 +37,15 @@ class Stop( FSMBrainState ):
 
 class ScanGoal( FSMBrainState ):
 
-	def __init__( self, time = 10, nextSubbrain = 'None' ):
+	def __init__( self, time = 10, nextSubbrain = 'None', kickingState = "None" ):
 
 		super( ScanGoal, self ).__init__( 'ScanGoal' )
 
 		self._time = time
 		self._startTime = 0
 		self._nextSubbrain = nextSubbrain
+
+		self.kickingState = kickingState
 
 		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
@@ -75,7 +77,7 @@ class ScanGoal( FSMBrainState ):
 
 					if dist < minDist:
 						_, phi1 = goal.getPolarCoor( )
-						_, phi2 = goal.getPolarCoor( )
+						_, phi2 = corner.getPolarCoor( )
 						return phi1 - ((( phi1 + phi2 ) / 2) - phi1)
 
 			return objectDict['goal'][0].getPolarCoor( )[1]
@@ -109,18 +111,18 @@ class ScanGoal( FSMBrainState ):
 
 		elif time.time( ) - self._startTime > self._time:
 			rospy.loginfo( 'Not Found Shoot Direction.' )
-			self.SignalChangeSubBrain( self._nextSubbrain )
+			self.SignalChangeSubBrain( self.kickingState )
 
 	def leaveStateCallBack( self ):
 
 		self.rosInterface.Pantilt( command = 3 )
 
 
-main_brain = FSMBrainState( 'main' )
-print "EIEI"
-stop = Stop( nextSubbrain = 'ScanGoal' )
-scan = ScanGoal( nextSubbrain = 'Stop' )
+# main_brain = FSMBrainState( 'main' )
+# print "EIEI"
+# stop = Stop( nextSubbrain = 'ScanGoal' )
+# scan = ScanGoal( nextSubbrain = 'Stop' )
 
-main_brain.addSubBrain( stop )
-main_brain.addSubBrain( scan )
-main_brain.setFirstSubBrain( 'ScanGoal' )
+# main_brain.addSubBrain( stop )
+# main_brain.addSubBrain( scan )
+# main_brain.setFirstSubBrain( 'ScanGoal' )

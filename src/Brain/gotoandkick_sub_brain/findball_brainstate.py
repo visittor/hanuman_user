@@ -87,8 +87,8 @@ class FindBall( FSMBrainState ):
 		# #	Call pattern
 		# self.rosInterface.Pantilt( command = 1, pattern = 'basic_pattern' )
 		
-		while len( self.rosInterface.visionManager.object_name ) == 0:
-			pass
+		# while len( self.rosInterface.visionManager.object_name ) == 0:
+		# 	pass
 		#	Get time for first step
 		# self.previousTime = time.time()		
 
@@ -98,9 +98,8 @@ class FindBall( FSMBrainState ):
 		visionMsg = self.rosInterface.visionManager
 
 		#	Get index
-		idxBallObj = visionMsg.object_name.index( 'ball' )
 
-		if visionMsg.object_confidence[ idxBallObj ] >= 0.5:
+		if 'ball' in visionMsg.object_name:
 
 			rospy.loginfo( "Found ball!!!!" )
 
