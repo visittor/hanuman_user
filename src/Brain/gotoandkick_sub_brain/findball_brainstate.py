@@ -53,12 +53,11 @@ DistanceThreshold = 0.30
 
 class FindBall( FSMBrainState ):
 	
-	def __init__( self, nextState = "Non
+	def __init__( self, nextState = "None" ):
 
 		
-		super( FindBall, self ).__init__
+		super( FindBall, self ).__init__( "FindBall" )
 
- 		
 		self.nextState = nextState
 	
 		#	Initial attribute for storin
@@ -88,9 +87,8 @@ class FindBall( FSMBrainState ):
 		# #	Call pattern
 		# self.rosInterface.Pantilt( command = 1, pattern = 'basic_pattern' )
 		
-		while len( self.rosInterface.visionManager.object_name ) == 0: 
+		while len( self.rosInterface.visionManager.object_name ) == 0:
 			pass
-
 		#	Get time for first step
 		# self.previousTime = time.time()		
 
@@ -166,16 +164,27 @@ class PantiltScan( FSMBrainState ):
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
 		#	Call pantilt scanner
-		self.rosInterface.Pantilt( command = 1, pattern = 'basic_pattern' )
+		self.rosInterface.Pantilt( command = 1, pattern = 'findball_pattern' )
 
 		self.previousTime = time.time()
 
 	def step( self ):
 
-		#	Calculate current time
-		currentTime = time.time() - self.previousTime
+		try:
 
-		rospy.loginfo( "At step in PantiltScan. Time >>> {}".format( currentTime ) )
+			panAngle = self.rosInterface.pantiltJS.position[ 0 ]
+			tiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
+
+			# rospy.loginfo( "Pan angle : {}".format( math.degrees( panAngle ) ) )
+			# rospy.loginfo( "Tilt angle : {}".format( math.degrees( tiltAngle ) ) )
+
+		except AttributeError as e:
+			rospy.logwarn( "Error : {}".format( e ) )
+
+		#	Calculate current time
+		# currentTime = time.time() - self.previousTime
+
+		# rospy.loginfo( "At step in PantiltScan. Time >>> {}".format( currentTime ) )
 
 		# if currentTime >= self.findBallStateTimeOut:
 		# 	self.SignalChangeSubBrain( self.nextState )

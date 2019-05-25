@@ -75,7 +75,7 @@ class SlideCurve( FSMBrainState ):
 	def firstStep( self ):
 
 		#	Get direction from global variable
-		direction = self.getGlobalVariable( 'curveSlideSide' )
+		direction = self.getGlobalVariable( 'curveSlideAngle' )
 		
 
 		if direction is not None:
@@ -107,14 +107,11 @@ class SlideCurve( FSMBrainState ):
 		currentTime = time.time()
 		
 		#	TODO : Maybe change to radius
-		# if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
+		if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
 			
-		# 	self.rosInterface.LocoCommand( velX = 0.0,
-		# 								   velY = 0.0,
-		# 								   omgZ = 0.0,
-		# 								   commandType = 0,
-		# 								   ignorable = False )
+			self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   	   ignorable =  False )
 			
-		# 	self.SignalChangeSubBrain( self.nextState )
+			self.SignalChangeSubBrain( self.nextState )
 
-main_brain = SlideCurve()
+# main_brain = SlideCurve()

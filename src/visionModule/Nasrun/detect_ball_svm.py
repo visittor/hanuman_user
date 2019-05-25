@@ -108,7 +108,9 @@ class ImageProcessing( VisionModule ):
 
 		return errorX, errorY
 		
-	def ImageProcessingFunction( self, img, header ): 
+	def ImageProcessingFunction( self, img, header ):
+
+		startTime = time.time() 
 
 		#	get image property
 		imageWidth = img.shape[ 1 ]
@@ -230,6 +232,8 @@ class ImageProcessing( VisionModule ):
 		msg.object_error = [ ballErrorList ]
 		msg.object_confidence = [ ballConfidence ]
 		msg.header.stamp = rospy.Time.now()
+
+		rospy.loginfo( "Time usage : {}".format( time.time() - startTime ) )
 
 		return msg
 

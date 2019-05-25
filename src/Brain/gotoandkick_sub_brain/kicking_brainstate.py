@@ -76,14 +76,26 @@ class KickTheBall( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+		direction = self.getGlobalVariable( 'direction' )
 		
-		self.rosInterface.LocoCommand( velX = self.velX ,
-									   velY = 0.0,
-									   omgZ = 0.0,
-									   command = 'OneStepWalk',
-									   commandType = 0 )
+		# self.rosInterface.LocoCommand( velX = self.velX ,
+		# 							   velY = 0.0,
+		# 							   omgZ = 0.0,
+		# 							   command = 'OneStepWalk',
+		# 							   commandType = 0,
+		# 							   ignorable = False )
 		
-		time.sleep( 1.0 )
+		# time.sleep( 1.0 )
+
+		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+										position=[ math.radians( 0 ), math.radians( 15 ) ],
+										command=0 )
+
+		if direction > 0:
+			self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
+		else:
+			self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
 
 		self.previousTime  = time.time()
 	
@@ -95,21 +107,22 @@ class KickTheBall( FSMBrainState ):
 		rospy.loginfo( "Time to kick : {}".format( currentTime - self.previousTime ) )
 		
 		if currentTime - self.previousTime > self.waitTime:
-			
-			#	Get side to kick
-			direction = self.getGlobalVariable( 'direction' )
-			#direction = 1
-			
-			if direction > 0:
-				self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
-			else:
-				self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
 
-			time.sleep( 3 )
-			self.rosInterface.LocoCommand( velX = 0.0,
-									   	   velY = 0.0,
-									   	   omgZ = 0.0,
-									   	   commandType = 0 )
+			
+		# 	#	Get side to kick
+		# 	direction = self.getGlobalVariable( 'direction' )
+		# 	#direction = 1
+			
+		# 	if direction > 0:
+		# 		self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
+		# 	else:
+		# 		self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
+
+		# 	time.sleep( 3 )
+		# 	self.rosInterface.LocoCommand( velX = 0.0,
+		# 							   	   velY = 0.0,
+		# 							   	   omgZ = 0.0,
+		# 							   	   commandType = 0 )
 
 			self.SignalChangeSubBrain( self.nextState ) 
 		

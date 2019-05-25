@@ -79,6 +79,9 @@ class FollowBall( FSMBrainState ):
 		#	Get neares distance before kick
 		self.distanceToKick = float( self.config[ 'ChangeStateParameter' ][ 'NearestDistanceFootballWrtRobot' ] )
 
+		#	Get limit angle
+		self.limitTiltAngle = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
+
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )	
@@ -86,9 +89,9 @@ class FollowBall( FSMBrainState ):
 		#	re-initial num frame that not detect ball
 		self.numFrameNotDetectBall = 0
 
-		self.rosInterface.Pantilt( command = 3 )
+		# self.rosInterface.Pantilt( command = 3 )
 			
-		self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
+		# self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 		
 	def step( self ):
 		
@@ -97,6 +100,12 @@ class FollowBall( FSMBrainState ):
 		
 		#	Get index
 		idxBallObj = visionMsg.object_name.index( 'ball' )
+
+		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+
+		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
+
+		rospy.loginfo( "Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
 		
 		#	Check confidence if model could detect ball
 		if visionMsg.object_confidence[ idxBallObj ] > 0.5:
@@ -107,16 +116,26 @@ class FollowBall( FSMBrainState ):
 
 			thetaWrtBall = visionMsg.pos2D_polar[ idxBallObj ].y
 
-			#	Store in global variable
-			self.setGlobalVariable( 'previousDistance', distanceWrtBall )
+			localDistanceX = localPosDict.pos3D_cart[ idxBallObj ].x
+			localDistanceY = localPosDict.pos3D_cart[ idxBallObj ].y
+
+			rospy.loginfo( "distance localmap | current distance : {} | {}".format( localDistanceX, distanceWrtBall ) )
+
+			if currentTiltAngle >= math.radians( self.limitTiltAngle ):
+
+				rospy.loginfo( "Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
+
+				#	Change state to kick immedietly.
+				self.stopRobotBehavior()
+
+				self.SignalChangeSubBrain( self.nextState )
 
 			if abs( thetaWrtBall ) > math.radians( self.smallTheta ):
 				
-				#	it should switch to first state to find the ball
-
+				#	Back to align the ball
 				self.SignalChangeSubBrain( self.previousState )
 
-			if distanceWrtBall >= self.distanceToKick:
+			if localDistanceX >= self.distanceToKick:
 				
 				#	Get side to kick in kicking brain state
 				direction = 1 if sideDistanceWrtBall > 0 else -1
@@ -153,8 +172,10 @@ class FollowBall( FSMBrainState ):
 		self.rosInterface.Pantilt( command = 3 )
 			
 		#	stop
-		self.rosInterface.LocoCommand( velX = 0.0,
-					       			   velY = 0.0,
-					       			   omgZ = 0.0,
-					       			   commandType = 0,
-					       			   ignorable = False )		
+		# self.rosInterface.LocoCommand( velX = 0.0,
+		# 			       			   velY = 0.0,
+		# 			       			   omgZ = 0.0,
+		# 			       			   commandType = 0,
+		# 			       			   ignorable = False )		
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
