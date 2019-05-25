@@ -22,6 +22,7 @@ def findBoundary( colorMap, colorID, flip = False ):
 	colorMap = colorMap if not flip else colorMap[::-1]
 
 	y = findFirstValue2D( colorMap, colorID, axis = 0 )
+	y[ y == -1 ] = colorMap.shape[0] - 1
 	x = np.arange( colorMap.shape[1] )
 
 	# # mask[-2] = True
@@ -58,13 +59,14 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 		return:
 			propertyLineList : list of tuple which contain m, c, x0, xf
 	'''
-	
+	if len( contourPoint ) < 3:
+		return []
 	#	reshape contour point
 	contourPoint = contourPoint.reshape( -1, 2 )
 	
 	#	get x, y array
-	x = contourPoint[ :, 0 ].reshape( -1, 1 )
-	y = contourPoint[ :, 1 ]
+	x = contourPoint[ 1:-1, 0 ].reshape( -1, 1 )
+	y = contourPoint[ 1:-1, 1 ]
 	
 	#	initial inlier mask and outlier mask
 	inlierMask = np.full( y.size, False )
@@ -81,7 +83,8 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 	regressor = linear_model.RANSACRegressor( residual_threshold = 2.0 )
 
 	for i in xrange( 2 ):
-	
+		if len( yRemain ) < outlierThreshold:
+			break
 		#	fit equation
 		regressor.fit( xRemain, yRemain )
 		
@@ -117,15 +120,15 @@ def findLinearEqOfFieldBoundary( contourPoint, outlierThreshold = 100 ):
 		
 		except ZeroDivisionError:
 			continue
-		
-		if len( yRemain ) < outlierThreshold:
-			break
 
 	x0 = contourPoint[0,0]
 	xf = contourPoint[-1,0]
 
 	if len( propertyLineList ) == 1:
 		return [ ( propertyLineList[0][0], propertyLineList[0][1], x0, xf ) ]
+
+	elif len( propertyLineList ) == 0:
+		return []
 
 
 	## y1 = m1x1 + c1
@@ -183,7 +186,10 @@ def findNewLineFromRansac( contourPoints, imageWidth, imageHeight ):
 
 		pointList.append( contour )
 
-	if len( pointList ) > 1:
+	if len( pointList ) == 0:
+		return np.array([])
+
+	elif len( pointList ) > 1:
 		ransacContour = np.vstack( pointList )
 	else:
 		ransacContour = pointList[ 0 ]

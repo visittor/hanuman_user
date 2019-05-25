@@ -70,7 +70,7 @@ class Vision( VisionModule ):
 			points.append( point2D( x = p[0], y = p[1] ) )
 
 		newFieldContour = findNewLineFromRansac( fieldContour, 640, 480 )
-		goalList = findGoal( newFieldContour, color_map, goalColorID = 5 )
+		goalList = findGoal( newFieldContour, color_map, goalColorID = 2 )
 
 		landmarkName = []
 		landmarkPose = []
