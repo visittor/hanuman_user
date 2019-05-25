@@ -98,23 +98,25 @@ class FollowBall( FSMBrainState ):
 		#	Get current vision msg
 		visionMsg = self.rosInterface.visionManager
 		
-		#	Get index
-		idxBallObj = visionMsg.object_name.index( 'ball' )
-
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+
+		#	Get index
+		idxBallObj = localPosDict.object_name.index( 'ball' )
+
+		idxBall = visionMsg.object_name.index( 'ball' )
 
 		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
 
-		rospy.loginfo( "Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
+		# rospy.loginfo( "Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
 		
 		#	Check confidence if model could detect ball
-		if visionMsg.object_confidence[ idxBallObj ] > 0.5:
+		if localPosDict.object_confidence[ idxBallObj ] > 0.5:
 			
 			#	get distance and angle
-			distanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].x
-			sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].y
+			distanceWrtBall = visionMsg.pos3D_cart[ idxBall ].x
+			sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBall ].y
 
-			thetaWrtBall = visionMsg.pos2D_polar[ idxBallObj ].y
+			thetaWrtBall = localPosDict.pos2D_polar[ idxBallObj ].y
 
 			localDistanceX = localPosDict.pos3D_cart[ idxBallObj ].x
 			localDistanceY = localPosDict.pos3D_cart[ idxBallObj ].y

@@ -12,6 +12,8 @@
 import sys
 import os
 
+import random
+
 ########################################################
 #
 #	LOCAL IMPORTS
@@ -89,10 +91,14 @@ class SlideCurve( FSMBrainState ):
 										   ignorable = False )
 
 		else:
+
+			dire = random.randint( 0, 1 )
+
+			direction = -1 if dire == 0 else 1
 			
 			self.rosInterface.LocoCommand( velX = self.velX,
-										   velY = -1*self.velY,
-										   omgZ = self.omegaZ,
+										   velY = -1*direction*self.velY,
+										   omgZ = direction*self.omegaZ,
 										   commandType = 0,
 										   ignorable = False )
 

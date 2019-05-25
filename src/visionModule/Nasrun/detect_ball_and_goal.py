@@ -147,7 +147,7 @@ class ImageProcessing( VisionModule ):
 		whiteObjectInFieldMask = whiteObjectMask * newFieldMask * 255
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
-		canExtract = self.predictor.extractFeature( img, whiteObjectContours, objectPointLocation="center" )
+		canExtract = self.predictor.extractFeature( img, whiteObjectContours, objectPointLocation="bottom" )
 
 		objNameList.append( 'ball' )
 

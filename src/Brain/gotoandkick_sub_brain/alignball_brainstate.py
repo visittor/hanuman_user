@@ -82,20 +82,22 @@ class RotateToTheBall( FSMBrainState ):
 		
 		#	Get vision msg
 		visionMsg = self.rosInterface.visionManager
+
+		localPosDict = self.rosInterface.local_map( reset = False ).postDict
 		
-		idxBallObj = visionMsg.object_name.index( 'ball' )
+		idxBallObj = localPosDict.object_name.index( 'ball' )
 		
 		#	If detect
-		if visionMsg.object_confidence[ idxBallObj ] > 0.5:
+		if localPosDict.object_confidence[ idxBallObj ] > 0.5:
 		
 			#	when vision manager found the ball
 			self.numFrameNotDetectBall = 0
 			
 			#	Get polar coordinate
-			thetaWrtRobotRad = visionMsg.pos2D_polar[ idxBallObj ].y
+			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallObj ].y
 
 			#	Get distance and store in previousDistance as global variable
-			distanceWrtBall = visionMsg.pos3D_cart[ idxBallObj ].x
+			distanceWrtBall = localPosDict.pos3D_cart[ idxBallObj ].x
 			self.setGlobalVariable( 'previousDistance', distanceWrtBall )
 			
 			#	Get sign to rotate
