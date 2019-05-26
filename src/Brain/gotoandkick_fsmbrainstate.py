@@ -28,6 +28,7 @@ from gotoandkick_sub_brain.findball_brainstate import FindBall
 from gotoandkick_sub_brain.slidecurve_brainstate import SlideCurve
 
 from New.scan_goal import ScanGoal
+from New.project_mobile_robot import ScanPole
 
 
 from newbie_hanuman.msg import postDictMsg
@@ -66,14 +67,17 @@ class MainBrain( FSMBrainState ):
 
 		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "ScanGoal", findBallState = "FindBall" ) )
+		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "ScanPole", findBallState = "FindBall" ) )
 		
-		self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
+		# self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
+		self.addSubBrain( ScanPole( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
 		
 		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
 		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
 
 		self.setFirstSubBrain( "FindBall" )
+
+		self.setGlobalVariable( 'PoleColor', ('blue', 'orange') )
 
 	def end( self ):
 		
