@@ -131,12 +131,11 @@ class ImageProcessing( VisionModule ):
 			errorX, errorY = self.calculateError( imageWidth, imageHeight, xIntersect, yIntersect )
 			
 			errorIntersectPoint = Point32( x = errorX, y = errorY, z = 0.0 )
-			intersectPointConfidence = 1.0
 			
 			objNameList.append( 'field_corner' )
 			pos2DList.append( intersectPoint )
 			errorList.append( errorIntersectPoint )
-			confidenceList.append( intersectPointConfidence )
+			confidenceList.append( 1.0 )
 
 		#   Create mask from new contour
 		newFieldMask = np.zeros( marker.shape, dtype=np.uint8 )

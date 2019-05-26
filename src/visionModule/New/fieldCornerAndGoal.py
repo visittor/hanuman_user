@@ -35,10 +35,10 @@ class Vision( VisionModule ):
 
 		self.fieldContour, fieldMask = findBoundary( color_map, self.greenID )
 
-		self.boundaryLine = findLinearEqOfFieldBoundary( self.fieldContour )
+		self.boundaryLine = findLinearEqOfFieldBoundary( self.fieldContour[1:-1] )
 
 		newFieldContour = findNewLineFromRansac( self.fieldContour, 640, 480 )
-		goalList = findGoal( newFieldContour, color_map, goalColorID = 5 )
+		goalList = findGoal( newFieldContour, color_map, goalColorID = self.greenID )
 
 		name = []
 		pos2D = []
