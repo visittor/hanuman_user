@@ -93,13 +93,13 @@ class SlideCurve( FSMBrainState ):
 		currentTime = time.time()
 
 		#	TODO : Maybe change to radius
-		# if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
+		if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
 
-		# 	self.rosInterface.LocoCommand( velX = 0.0,
-		# 								   velY = 0.0,
-		# 								   omgZ = 0.0,
-		# 								   commandType = 0,
-		# 								   ignorable = False )
+			self.rosInterface.LocoCommand( velX = 0.0,
+										   velY = 0.0,
+										   omgZ = 0.0,
+										   commandType = 0,
+										   ignorable = False )
 
 		# 	self.SignalChangeSubBrain( self.nextState )
 

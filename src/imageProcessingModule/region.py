@@ -195,8 +195,10 @@ class BoundingBoxList( object ):
 		x1, y1, x2, y2 = self.expandAreaBoundingBox( expandPixelSize, boundingBox, imageWidth, imageHeight )
 
 		#	top-left and bottom right
-		topLeftPositionTuple = ( x1, y1 )
-		bottomRightPositionTuple = ( x2, y2 ) 
+		topLeftPositionTuple = ( boundingBox[ 0 ], 
+								 boundingBox[ 1 ] )
+		bottomRightPositionTuple = ( boundingBox[ 0 ] + boundingBox[ 2 ], 
+									 boundingBox[ 1 ] + boundingBox[ 3 ] ) 
 
 		#	image ROI
 		roiImage = image[ y1 : y2, x1 : x2 ].copy()
