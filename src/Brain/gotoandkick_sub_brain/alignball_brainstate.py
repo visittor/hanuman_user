@@ -70,6 +70,9 @@ class RotateToTheBall( FSMBrainState ):
 		#	Get theta to change state
 		self.smallTheta = float( self.config[ 'ChangeStateParameter' ][ 'SmallDegreeToAlignTheBall' ] )
 
+		#	Get tilt limit
+		self.tiltLimit = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
+
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
@@ -84,7 +87,13 @@ class RotateToTheBall( FSMBrainState ):
 		visionMsg = self.rosInterface.visionManager
 
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
-		
+
+		#	Get theta of tilt
+		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
+		if currentTiltAngle >= math.radians( self.tiltLimit ):
+
+			self.SignalChangeSubBrain( self.nextState )
+
 		#	If detect
 		if 'ball' in visionMsg.object_name:
 		
@@ -92,13 +101,9 @@ class RotateToTheBall( FSMBrainState ):
 			self.numFrameNotDetectBall = 0
 
 			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
-			idxBallLocalObj = localPosDict.object_name.index( 'ball' )
 			
 			#	Get polar coordinate
 			thetaWrtRobotRad = visionMsg.pos2D_polar[ idxBallVisionObj ].y
-
-			#	Get distance and store in previousDistance as global variable
-			distanceWrtBall = localPosDict.pos3D_cart[ idxBallLocalObj ].x
 			
 			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1

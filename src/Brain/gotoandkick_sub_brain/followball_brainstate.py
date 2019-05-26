@@ -100,15 +100,29 @@ class FollowBall( FSMBrainState ):
 		
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
 
-		#	Get index
-		idxBallObj = localPosDict.object_name.index( 'ball' )
-
-		# idxBall = visionMsg.object_name.index( 'ball' )
-
+		#	Get tilt angle from pan tilt motor
 		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
+		if currentTiltAngle >= math.radians( self.limitTiltAngle ):
 
-		# rospy.loginfo( "Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
-		
+				rospy.loginfo( "	Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
+				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
+				#	Change state to kick immedietly.
+				self.stopRobotBehavior()
+
+				self.SignalChangeSubBrain( self.nextState )
+
+		if 'ball' in visionMsg.object_name:
+			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
+			thetaWrtBall = visionMsg.pos2D_polar[ idxBallVisionObj ].y
+			if abs( thetaWrtBall ) > math.radians( self.smallTheta ):
+				
+				#	Back to align the ball
+				self.SignalChangeSubBrain( self.previousState )
+
+		#
+		#	Follow ball
+		#
+
 		#	Check confidence if model could detect ball
 		if 'ball' in localPosDict.object_name:
 			
@@ -116,26 +130,9 @@ class FollowBall( FSMBrainState ):
 			# distanceWrtBall = visionMsg.pos3D_cart[ idxBall ].x
 			# sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBall ].y
 
-			thetaWrtBall = localPosDict.pos2D_polar[ idxBallObj ].y
-
-			localDistanceX = localPosDict.pos3D_cart[ idxBallObj ].x
-			localDistanceY = localPosDict.pos3D_cart[ idxBallObj ].y
-
-			# rospy.loginfo( "distance localmap | current distance : {} | {}".format( localDistanceX, distanceWrtBall ) )
-
-			if currentTiltAngle >= math.radians( self.limitTiltAngle ):
-
-				rospy.loginfo( "Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
-
-				#	Change state to kick immedietly.
-				self.stopRobotBehavior()
-
-				self.SignalChangeSubBrain( self.nextState )
-
-			if abs( thetaWrtBall ) > math.radians( self.smallTheta ):
-				
-				#	Back to align the ball
-				self.SignalChangeSubBrain( self.previousState )
+			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
+			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
+			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
 
 			if localDistanceX >= self.distanceToKick:
 				
@@ -154,7 +151,6 @@ class FollowBall( FSMBrainState ):
 				self.stopRobotBehavior()
 
 				rospy.loginfo( "Finish" )
-				rospy.loginfo( "	Angle after stop before kick : {} degrees".format( math.degrees( thetaWrtBall ) ) )
 				rospy.loginfo( "	Distance after stop before kick : {} m".format( localDistanceX ) )
 				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
 
