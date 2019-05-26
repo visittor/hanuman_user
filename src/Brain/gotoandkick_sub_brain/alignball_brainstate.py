@@ -81,6 +81,9 @@ class RotateToTheBall( FSMBrainState ):
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+		self.rosInterface.Pantilt( command = 3 )	
+		self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 		
 		#	re-initial numframe to detect ball
 		self.numFrameNotDetectBall = 0

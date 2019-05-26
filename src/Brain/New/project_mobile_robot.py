@@ -70,8 +70,9 @@ class ScanPole( FSMBrainState ):
 
 		# 	return objectDict[color2][0].getPolarCoor( )[1]
 
-
 	def firstStep( self ):
+
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
 		self.rosInterface.local_map( reset = True )
 
@@ -162,6 +163,8 @@ class ScanField( FSMBrainState ):
 
 	def firstStep( self ):
 
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
 		self._startTime = time.time( )
 
 		self.rosInterface.Pantilt( 	pattern = 'findball_pattern',
@@ -201,6 +204,37 @@ class ScanField( FSMBrainState ):
 																self.getGlobalVariable('ballSide') ) )
 
 		# self.rosInterface.Pantilt( command = 3 )
+
+
+class Idle( FSMBrainState ):
+	
+	
+	def __init__( self, previousState = "None" ):
+	
+		#	set name
+		super( Idle, self ).__init__( "Idle" )
+ 		
+		self.previousState = previousState
+
+		self.waitTime = None
+		self.previousTime = None
+
+	def firstStep( self ):
+
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+		#	terminate pantilt
+		self.rosInterface.Pantilt( command = 3 )		
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
+
+		self.previousTime  = time.time()
+	
+	
+	def step( self ):
+
+		if time.time() - self.previousTime > 5.0:
+			self.SignalChangeSubBrain( self.previousState )
 
 
 # main_brain = FSMBrainState( 'main' )

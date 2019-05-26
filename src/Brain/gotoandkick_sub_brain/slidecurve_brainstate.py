@@ -79,7 +79,6 @@ class SlideCurve( FSMBrainState ):
 		#	Get direction from global variable
 		direction = self.getGlobalVariable( 'curveSlideAngle' )
 		
-
 		if direction is not None:
 
 			if abs(  math.degrees( direction ) ) < 30:
