@@ -145,7 +145,12 @@ class ImageProcessing( VisionModule ):
 		whiteObjectMask[ marker == 5 ] = 1
 
 		whiteObjectInFieldMask = whiteObjectMask * newFieldMask * 255
+		kernel = np.ones( (5,5), dtype=np.uint8 )
+		whiteObjectInFieldMask = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+
+		self.vis = whiteObjectContours
 
 		canExtract = self.predictor.extractFeature( img, whiteObjectContours, objectPointLocation="bottom" )
 
@@ -233,3 +238,5 @@ class ImageProcessing( VisionModule ):
 			y = int(msg.pos2D[ cornerIdx ].y)
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
 			cv2.putText( img, "corner", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
+
+		cv2.drawContours( img, self.vis, -1, ( 0, 0, 255 ), 2 )

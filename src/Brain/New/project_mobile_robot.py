@@ -77,7 +77,7 @@ class ScanPole( FSMBrainState ):
 
 		self._startTime = time.time( )
 
-		self.rosInterface.Pantilt( 	pattern = 'scan_horizon_low',
+		self.rosInterface.Pantilt( 	pattern = 'findball_pattern',
 									command = 1
 								)
 
@@ -181,9 +181,12 @@ class ScanField( FSMBrainState ):
 		robotSide, ballSide = self.findSide( objectDict )
 
 		if robotSide is not None and ballSide is not None:
-			self.setGlobalVariable( 'robotSide', robotSide )
-			self.setGlobalVariable( 'ballSide', ballSide )
-			self.SignalChangeSubBrain( self._nextSubbrain )
+			# self.setGlobalVariable( 'robotSide', robotSide )
+			# self.setGlobalVariable( 'ballSide', ballSide )
+			if robotSide * ballSide > 0:
+				self.SignalChangeSubBrain( self._nextSubbrain )
+			else:
+				self.SignalChangeSubBrain( self._failStateSubbrain )
 
 		elif time.time( ) - self._startTime > self._time:
 
@@ -197,16 +200,16 @@ class ScanField( FSMBrainState ):
 		rospy.loginfo( "robot side : {}, ball side : {}".format( self.getGlobalVariable('robotSide'),
 																self.getGlobalVariable('ballSide') ) )
 
-		self.rosInterface.Pantilt( command = 3 )
+		# self.rosInterface.Pantilt( command = 3 )
 
 
-main_brain = FSMBrainState( 'main' )
-print "EIEI"
-stop = Stop( nextSubbrain = 'ScanField', time = 2 )
-scan = ScanField( nextSubbrain = 'Stop' )
+# main_brain = FSMBrainState( 'main' )
+# print "EIEI"
+# stop = Stop( nextSubbrain = 'ScanField', time = 2 )
+# scan = ScanField( nextSubbrain = 'Stop' )
 
-main_brain.addSubBrain( stop )
-main_brain.addSubBrain( scan )
-main_brain.setFirstSubBrain( 'Stop' )
+# main_brain.addSubBrain( stop )
+# main_brain.addSubBrain( scan )
+# main_brain.setFirstSubBrain( 'Stop' )
 
 

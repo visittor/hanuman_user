@@ -139,6 +139,9 @@ class Vision( VisionModule ):
 		whiteObjectMask[ marker == 5 ] = 1
 
 		whiteObjectInFieldMask = whiteObjectMask * newFieldMask * 255
+		kernel = np.ones( (5,5), dtype=np.uint8 )
+		whiteObjectInFieldMask = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		canExtract = self.predictor.extractFeature( img, whiteObjectContours, objectPointLocation="bottom" )
@@ -221,8 +224,13 @@ class Kinematic( KinematicModule ):
 
 		super( Kinematic, self ).__init__( )
 
-		config = configobj.ConfigObj( '/home/visittor/humanoid_data/test_2.ini' )
-		loadDimensionFromConfig( '/home/visittor/humanoid_data/test_2.ini' )
+		robotConfigPathStr = rospy.get_param( '/robot_config', None )
+
+		if robotConfigPathStr is None:
+			raise TypeError( 'Required robot config.' )
+
+		config = configobj.ConfigObj( robotConfigPathStr )
+		loadDimensionFromConfig( robotConfigPathStr )
 
 		fx = float( config['CameraParameters']['fx'] )
 		fy = float( config['CameraParameters']['fy'] )
@@ -304,7 +312,7 @@ class Kinematic( KinematicModule ):
 		msg.pos3D_cart = cartList
 		msg.pos2D_polar = polarList
 		msg.pos2D = pos2DList
-		msg.object_error = errorList
+		msg.object_error = objMsg.object_error
 		msg.object_confidence = confidences
 		msg.imgH = imgH
 		msg.imgW = imgW

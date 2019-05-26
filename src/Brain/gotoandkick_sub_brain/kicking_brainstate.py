@@ -104,7 +104,7 @@ class KickTheBall( FSMBrainState ):
 		
 		currentTime = time.time()
 
-		rospy.loginfo( "Time to kick : {}".format( currentTime - self.previousTime ) )
+		# rospy.loginfo( "Time to kick : {}".format( currentTime - self.previousTime ) )
 		
 		if currentTime - self.previousTime > self.waitTime:
 

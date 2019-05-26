@@ -82,6 +82,9 @@ class FollowBall( FSMBrainState ):
 		#	Get limit angle
 		self.limitTiltAngle = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
 
+		#	Get fx and fy from robot config
+		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
+
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )	
@@ -99,9 +102,21 @@ class FollowBall( FSMBrainState ):
 		visionMsg = self.rosInterface.visionManager
 		
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+		
+		ballErrorY = 0
+
+		if 'ball' in visionMsg.object_name:
+
+			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
+			ballErrorY = visionMsg.object_error[ idxBallVisionObj ].y
+
+		imgH = visionMsg.imgH
+		fovHeight = 2 * np.arctan( 0.5 * imgH / self.fy )
+
+		tiltAngle = ballErrorY * fovHeight / 2
 
 		#	Get tilt angle from pan tilt motor
-		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
+		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
 		if currentTiltAngle >= math.radians( self.limitTiltAngle ):
 
 				rospy.loginfo( "	Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )

@@ -61,7 +61,9 @@ class RotateToTheBall( FSMBrainState ):
 
 		self.omegaZ = None
 		self.smallTheta = None
-	
+
+		self.fy = None
+
 	def initialize( self ):
 
 		#	Get omega_z from config
@@ -72,6 +74,9 @@ class RotateToTheBall( FSMBrainState ):
 
 		#	Get tilt limit
 		self.tiltLimit = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
+
+		#	Get fx and fy from robot config
+		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
 
 	def firstStep( self ):
 		
@@ -88,11 +93,7 @@ class RotateToTheBall( FSMBrainState ):
 
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
 
-		#	Get theta of tilt
-		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ]
-		if currentTiltAngle >= math.radians( self.tiltLimit ):
-
-			self.SignalChangeSubBrain( self.nextState )
+		ballErrorY = 0
 
 		#	If detect
 		if 'ball' in visionMsg.object_name:
@@ -105,6 +106,8 @@ class RotateToTheBall( FSMBrainState ):
 			#	Get polar coordinate
 			thetaWrtRobotRad = visionMsg.pos2D_polar[ idxBallVisionObj ].y
 			
+			ballErrorY = visionMsg.object_error[ idxBallVisionObj ].y
+
 			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1
 			
@@ -143,5 +146,16 @@ class RotateToTheBall( FSMBrainState ):
 				#	Back to previous state
 				self.SignalChangeSubBrain( self.previousState )
 		
-			
+
+		#	Get image width and height
+		imgH = visionMsg.imgH
+		fovHeight = 2 * np.arctan( 0.5 * imgH / self.fy )
+
+		tiltAngle = ballErrorY * fovHeight / 2
+
+		#	Get theta of tilt
+		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
+		if currentTiltAngle >= math.radians( self.tiltLimit ):
+
+			self.SignalChangeSubBrain( self.nextState )		
 		
