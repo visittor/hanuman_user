@@ -65,24 +65,28 @@ class MainBrain( FSMBrainState ):
 
 		super( MainBrain, self ).__init__( "MainBrain" )
 
-		self.addSubBrain( FindBall( nextState = "ScanField" ) )
+		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
 
-		self.addSubBrain( ScanField( nextSubbrain="RotateToTheBall", failStateSubbrain="Idle" ) )
+		# self.addSubBrain( ScanField( nextSubbrain="RotateToTheBall", failStateSubbrain="Idle" ) )
 
-		self.addSubBrain( Idle( previousState = "FindBall" ) )
+		# self.addSubBrain( Idle( previousState = "FindBall" ) )
 
 		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "ScanPole", findBallState = "FindBall" ) )
+		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "ScanGoal", findBallState = "FindBall" ) )
 		
-		# self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
-		self.addSubBrain( ScanPole( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
+		self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
+		# self.addSubBrain( ScanPole( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
 		
 		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
 		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
 
 		self.setFirstSubBrain( "FindBall" )
 
-		self.setGlobalVariable( 'PoleColor', ('yellow', 'magenta') )
+		#	No.1
+		self.setGlobalVariable( 'PoleColor', ('yellow', 'orange') )
+
+		#	No.3
+		# self.setGlobalVariable( 'PoleColor', ('blue', 'orange') )
 
 	def end( self ):
 		

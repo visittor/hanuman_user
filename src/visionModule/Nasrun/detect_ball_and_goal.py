@@ -239,4 +239,4 @@ class ImageProcessing( VisionModule ):
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
 			cv2.putText( img, "corner", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
 
-		cv2.drawContours( img, self.vis, -1, ( 0, 0, 255 ), 2 )
+		# cv2.drawContours( img, self.vis, -1, ( 0, 0, 255 ), 2 )

@@ -108,6 +108,8 @@ class KickTheBall( FSMBrainState ):
 		
 		if currentTime - self.previousTime > self.waitTime:
 
+			self.rosInterface.local_map( reset = True ).postDict
+
 			
 		# 	#	Get side to kick
 		# 	direction = self.getGlobalVariable( 'direction' )
