@@ -28,6 +28,7 @@ import math
 import time
 import rospy
 
+from default_config import getParameters
 
 ########################################################
 #
@@ -48,8 +49,6 @@ import rospy
 #
 #	CLASS DEFINITIONS
 #
-
-
 class KickTheBall( FSMBrainState ):
 	
 	
@@ -66,65 +65,75 @@ class KickTheBall( FSMBrainState ):
 		self.velX = None
 		self.waitTime = None
 
+		self.direction = 1
+
 	def initialize( self ):
 
 		#	Get time and velocity x
-		self.velX = float( self.config[ 'VelocityParameter' ][ 'VelocityXWhenStepToKick' ] )
-		self.waitTime = float( self.config[ 'VelocityParameter' ][ 'WaitingTimeAfterStep' ] )
+		self.velX = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenStepToKick'))
+		self.waitTime = float( getParameters(self.config, 'VelocityParameter', 'WaitingTimeAfterStep'))
 
+		self.tiltAngle = float( getParameters(self.config, 'PanTiltPlanner', 'TiltAngleForLookAtFoot'))
 
 	def firstStep( self ):
 
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
-		direction = self.getGlobalVariable( 'direction' )
+		self.direction = 1
 		
-		# self.rosInterface.LocoCommand( velX = self.velX ,
-		# 							   velY = 0.0,
-		# 							   omgZ = 0.0,
-		# 							   command = 'OneStepWalk',
-		# 							   commandType = 0,
-		# 							   ignorable = False )
+		self.rosInterface.LocoCommand( velX = self.velX ,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   command = 'OneStepWalk',
+									   commandType = 0,
+									   ignorable = False )
 		
-		# time.sleep( 1.0 )
+		time.sleep( 1.0 )
 
+## NOTE : What is this for
 		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
-										position=[ math.radians( 0 ), math.radians( 15 ) ],
-										command=0 )
+									position=[ 0.0, math.radians( self.tiltAngle ) ],
+									command=0,
+									velocity=[100, 100] )
 
-		if direction > 0:
-			self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
-		else:
-			self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
+		# if direction > 0:
+		# 	self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
+		# else:
+		# 	self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
 
 		self.previousTime  = time.time()
-	
 	
 	def step( self ):
 		
 		currentTime = time.time()
 
 		# rospy.loginfo( "Time to kick : {}".format( currentTime - self.previousTime ) )
-		
+		visionMsg = self.rosInterface.visionManager
+
+		if 'ball' in visionMsg.object_name:
+			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
+			errorX = visionMsg.object_error[ idxBallVisionObj ].x
+
+			self.direction = 1 if errorX > 0.0 else -1
+			
 		if currentTime - self.previousTime > self.waitTime:
 
 			self.rosInterface.local_map( reset = True ).postDict
-
 			
-		# 	#	Get side to kick
-		# 	direction = self.getGlobalVariable( 'direction' )
-		# 	#direction = 1
+			#	Get side to kick
+			direction = self.getGlobalVariable( 'direction' )
+			#direction = 1
 			
-		# 	if direction > 0:
-		# 		self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
-		# 	else:
-		# 		self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
+			if direction > 0:
+				self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
+			else:
+				self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
 
-		# 	time.sleep( 3 )
-		# 	self.rosInterface.LocoCommand( velX = 0.0,
-		# 							   	   velY = 0.0,
-		# 							   	   omgZ = 0.0,
-		# 							   	   commandType = 0 )
+			time.sleep( 3 )
+			self.rosInterface.LocoCommand( velX = 0.0,
+									   	   velY = 0.0,
+									   	   omgZ = 0.0,
+									   	   commandType = 0 )
 
 			self.SignalChangeSubBrain( self.nextState ) 
 		

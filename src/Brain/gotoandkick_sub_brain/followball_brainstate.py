@@ -28,6 +28,8 @@ import math
 import time
 import rospy
 
+from default_config import getParameters
+
 ########################################################
 #
 #	GLOBALS
@@ -51,16 +53,14 @@ import rospy
 
 class FollowBall( FSMBrainState ):
 
-	def __init__( self, previousState = "None", nextState = "None", findBallState = "None" ):
+	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
 		
 		super( FollowBall, self ).__init__( 'FollowBall' )
 		
-		self.previousState = previousState
-		self.nextState = nextState
+		self.failState = failState
+		self.successState = successState
 		
-		self.findBallState = findBallState
-		
-		self.numFrameNotDetectBall = None
+		self.lostBallState = lostBallState
 
 		self.velX = None
 		self.velY = None
@@ -68,33 +68,33 @@ class FollowBall( FSMBrainState ):
 		self.distanceToKick = None
 
 	def initialize( self ):
-		
+## NOTE : Visittor : Create default for these parameters --> Take it as an args of __init__.
 		#	Get velocity of x and y
-		self.velX = float( self.config[ 'VelocityParameter' ][ 'VelocityXWhenFollowTheBall' ] )
-		self.velY = float( self.config[ 'VelocityParameter' ][ 'VelocityYWhenFollowTheBall' ] )
+		self.velX_max = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_max'))
+		self.velX_min = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_min'))
+		self.velX_slope = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_m'))
+		self.velX_offset = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_c'))
+
+		self.velY = float( getParameters(self.config, 'VelocityParameter', 'VelocityYWhenFollowTheBall'))
 		
 		#	Get theta to change state
-		self.smallTheta = float( self.config[ 'ChangeStateParameter' ][ 'SmallDegreeToAlignTheBall' ] )
+		self.smallTheta = float( getParameters(self.config, 'ChangeStateParameter', 'SmallDegreeToAlignTheBall'))
 
 		#	Get neares distance before kick
-		self.distanceToKick = float( self.config[ 'ChangeStateParameter' ][ 'NearestDistanceFootballWrtRobot' ] )
+		self.distanceToKick = float( getParameters(self.config, 'ChangeStateParameter', 'NearestDistanceFootballWrtRobot'))
 
 		#	Get limit angle
-		self.limitTiltAngle = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
+		self.limitTiltAngle = float( getParameters(self.config, 'ChangeStateParameter', 'LimitTiltAngleDegree'))
+
+		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
 
 		#	Get fx and fy from robot config
 		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
+		self.fx = float( self.config[ "CameraParameters" ][ "fx" ] )
 
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )	
-		
-		#	re-initial num frame that not detect ball
-		self.numFrameNotDetectBall = 0
-
-		# self.rosInterface.Pantilt( command = 3 )
-			
-		# self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 		
 	def step( self ):
 		
@@ -105,38 +105,35 @@ class FollowBall( FSMBrainState ):
 		
 		ballErrorY = 0
 
+		#
+		# This is logic for changing state.
+		#
+
 		if 'ball' in visionMsg.object_name:
 
 			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
+			ballErrorX = visionMsg.object_error[ idxBallVisionObj ].x
 			ballErrorY = visionMsg.object_error[ idxBallVisionObj ].y
 
-		imgH = visionMsg.imgH
-		fovHeight = 2 * np.arctan( 0.5 * imgH / self.fy )
+			imgH = visionMsg.imgH
+			fovHeight = 2 * np.arctan( 0.5 * imgH / self.fy )
 
-		tiltAngle = ballErrorY * fovHeight / 2
+			imgW = visionMsg.imgW
+			fovWidth = 2 * np.arctan( 0.5 * imgW / self.fx )
 
-		#	Get tilt angle from pan tilt motor
-		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
-		if currentTiltAngle >= math.radians( self.limitTiltAngle ):
+			tiltAngle = ballErrorY * fovHeight / 2
+			panAngle = ballErrorX * fovWidth / 2
 
-				rospy.loginfo( "	Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
-				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
-				#	Change state to kick immedietly.
-				self.stopRobotBehavior()
+			#	Get tilt angle from pan tilt motor
+			currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
+			currentPanAngle = self.rosInterface.pantiltJS.position[ 0 ] + panAngle
 
-				self.SignalChangeSubBrain( self.nextState )
-
-		if 'ball' in visionMsg.object_name:
-			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
-			thetaWrtBall = visionMsg.pos2D_polar[ idxBallVisionObj ].y
-			if abs( thetaWrtBall ) > math.radians( self.smallTheta ):
-				
-				#	Back to align the ball
-				self.SignalChangeSubBrain( self.previousState )
-
-		#
-		#	Follow ball
-		#
+			if currentTiltAngle >= math.radians( self.limitTiltAngle ):
+					rospy.loginfo( "Finish" )
+					rospy.loginfo( "	Final Tilt angle : {}".format( math.degrees( currentTiltAngle ) ) )
+					rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
+					#	Change state to kick immedietly.
+					self.SignalChangeSubBrain( self.successState )
 
 		#	Check confidence if model could detect ball
 		if 'ball' in localPosDict.object_name:
@@ -148,42 +145,55 @@ class FollowBall( FSMBrainState ):
 			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
 			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
 			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
+			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
 
-			if localDistanceX >= self.distanceToKick:
-				
-				#	Get side to kick in kicking brain state
-				direction = 1 if localDistanceY > 0 else -1
-				
-				self.setGlobalVariable( 'direction', direction )	
+			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+				#	it should switch to first state to find the ball
+				self.SignalChangeSubBrain( self.lostBallState )
 			
-				self.rosInterface.LocoCommand( velX = self.velX,
-							       			   velY = self.velY,
-							       			   omgZ = 0.0,
-							       			   commandType = 0,
-							       			   ignorable = False )
-			else:
-	
-				self.stopRobotBehavior()
+			if localDistanceX < self.distanceToKick:
 
+				self.stopRobotBehavior()
 				rospy.loginfo( "Finish" )
 				rospy.loginfo( "	Distance after stop before kick : {} m".format( localDistanceX ) )
 				rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
 
-				self.SignalChangeSubBrain( self.nextState )
+				self.SignalChangeSubBrain( self.successState )
+
+## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.
+			if abs( thetaWrtRobotRad ) > math.radians( self.smallTheta ) and localDistanceX > 0.5:
 				
-			
-		else:
-			#	it should switch to first state to find the ball
-			self.stopRobotBehavior()
-			
-			self.SignalChangeSubBrain( self.findBallState )
-			
-			
-	def stopRobotBehavior( self ):
+				#	Back to align the ball
+				self.SignalChangeSubBrain( self.failState )
+
+		else:		
+			self.SignalChangeSubBrain( self.lostBallState )
+
+		#
+		#	Follow ball
+		#
+
+		idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
+		localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
+		localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
+
+		direction = 1 if localDistanceY > 0 else -1
 		
-		#	terminate pantilt
-		self.rosInterface.Pantilt( command = 3 )
-			
+		self.setGlobalVariable( 'direction', direction )	
+		
+		velX = (localDistanceX * self.velX_slope) + self.velX_offset
+		velX = max( self.velX_min, min( velX, self.velX_max ) )
+
+		self.rosInterface.LocoCommand( velX = velX,
+					       			   velY = self.velY,
+					       			   omgZ = 0.0,
+					       			   commandType = 0,
+					       			   ignorable = False )			
+	def leaveStateCallBack( self ):
+
+		self.stopRobotBehavior( )
+		
+	def stopRobotBehavior( self ):
 		#	stop
 		# self.rosInterface.LocoCommand( velX = 0.0,
 		# 			       			   velY = 0.0,

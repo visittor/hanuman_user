@@ -30,6 +30,8 @@ import math
 import time
 import rospy
 
+from default_config import getParameters
+
 ########################################################
 #
 #	GLOBALS
@@ -68,11 +70,11 @@ class SlideCurve( FSMBrainState ):
 	def initialize( self ):
 		#	Get config
 
-		self.velX = float( self.config[ 'VelocityParameter' ][ 'VelocityXSlideCurve' ] )
-		self.velY = float( self.config[ 'VelocityParameter' ][ 'VelocityYSlideCurve' ] )
-		self.omegaZ = float( self.config[ 'VelocityParameter' ][ 'OmegaZSlideCurve' ] )
+		self.velX = float( getParameters(self.config, 'VelocityParameter', 'VelocityXSlideCurve'))
+		self.velY = float( getParameters(self.config, 'VelocityParameter', 'VelocityYSlideCurve'))
+		self.omegaZ = float( getParameters(self.config, 'VelocityParameter', 'OmegaZSlideCurve' ))
 
-		self.waitingTimeSlideCurve = float( self.config[ "VelocityParameter" ][ "WaitingTimeSlideCurve" ] )
+		self.waitingTimeSlideCurve = float( getParameters(self.config, "VelocityParameter", "WaitingTimeSlideCurve"))
 
 	def firstStep( self ):
 
@@ -105,8 +107,6 @@ class SlideCurve( FSMBrainState ):
 										   omgZ = direction*self.omegaZ,
 										   commandType = 0,
 										   ignorable = False )
-
-			
 		
 		#	get time step
 		self.previousTime = time.time()

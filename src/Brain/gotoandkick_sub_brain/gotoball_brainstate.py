@@ -35,6 +35,8 @@ from kicking_brainstate import KickTheBall
 
 from slidecurve_brainstate import SlideCurve
 
+from default_config import getParameters
+
 ########################################################
 #
 #	GLOBALS
@@ -57,23 +59,89 @@ DefaultInitialPreviousDistance = 0.50
 #	CLASS DEFINITIONS
 #
 
-class GotoBall( FSMBrainState ):
-	
-	def __init__( self ):
-		
-		super( GotoBall, self ).__init__( "GotoBall" )
-		
-		#	Add sub brain
-		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
-		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "SlideCurve", findBallState = "FindBall" ) )
-		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
-		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
+class _IDLE( FSMBrainState ):
 
-		#	Set first sub brain
-		self.setFirstSubBrain( "FindBall" )
+	def __init__( self ):
+
+		super( _IDLE, self ).__init__( '_IDLE' )
+
+	def firstStep( self ):
+
+		self.stopRobotBehavior( )
+
+	def stopRobotBehavior( self ):
+		#	stop	
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
+
+class GotoBall( FSMBrainState ):
+
+	def __init__( self, nextState = 'None' ):
+
+		super( GotoBall, self ).__init__( 'GotoBall' )
+
+		self.addSubBrain( _IDLE( ) )
+
+		self.addSubBrain( RotateToTheBall( failState = '_IDLE',
+										successState = "FollowBall",
+										lostBallState = '_IDLE' ) )
+		self.addSubBrain( FollowBall( failState = "RotateToTheBall", 
+									successState = 'None',
+									lostBallState = '_IDLE' ) )
+
+		self.lookAtBall = False
+
+		self.nextState = nextState
+
+		self.setFirstSubBrain( '_IDLE' ) 
+
+	def initialize( self ):
+
+		#	Get time out from config
+		self.scanBallPattern = self.config[ 'PanTiltPlanner' ][ 'ScanBallPattern' ]
+		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
+
+	def firstStep( self ):
+
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+		#	Call pattern
+		self.rosInterface.Pantilt( command = 1, pattern = self.scanBallPattern )
 		
-		# #	Set previous distance for decision when finding the ball
-		# self.setGlobalVariable( "previousDistance", DefaultInitialPreviousDistance )
+	def step( self ):
+
+		#	Get vision msg
+		visionMsg = self.rosInterface.visionManager
+		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+
+		if 'ball' in visionMsg.object_name and 'ball' in localPosDict.object_name:
+			idxBallLocalObj = localPosDict.object_name.index( 'ball' )
+			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+				pass
+			
+			# self.rosInterface.Pantilt( command = 3 )
+			if not self.lookAtBall:
+				self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
+				rospy.loginfo( "Found ball!!!!" )
+				self.lookAtBall = True
+			
+			if self.currSubBrainName == '_IDLE':
+				self.ChangeSubBrain( 'RotateToTheBall' )
+
+		else:
+			if self.lookAtBall:
+				self.lookAtBall = False
+				rospy.loginfo( "LOST ball!!!!" )
+				self.rosInterface.Pantilt( command = 1, pattern = self.scanBallPattern )
+
+		if self.currSubBrainName == 'None':
+			self.SignalChangeSubBrain( self.nextState )
+
+	def leaveStateCallBack( self ):
+		print 'eiei'
+		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+							position=[ 0.0, 0.0 ],
+							command=0,
+							velocity=[] )
 
 main_brain = GotoBall()

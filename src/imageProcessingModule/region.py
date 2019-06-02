@@ -96,6 +96,18 @@ class BoundingBoxDataStruct( object ):
 
 		return imgGray
 
+	@property
+	def center( self ):
+		return self.calculateObjectPoint( 'center' )
+
+	@property
+	def top( self ):
+		return self.calculateObjectPoint( 'top' )
+
+	@property
+	def bottom( self ):
+		return self.calculateObjectPoint( 'bottom' )
+
 
 class BoundingBoxList( object ):
 
@@ -228,6 +240,8 @@ class BoundingBoxList( object ):
 
 		#	filter by size and rectangle-like
 		filterSizeFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= self.boundingBoxSize and boundingBoxTuple[ 3 ] >= self.boundingBoxSize
+		
+# NOTE : visittor : Should use aspect ratio instead.
 		filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= self.rectangleThreshold
 
 		boundingBoxFilteredSizeList = filter( filterSizeFunction, boundingBoxList )

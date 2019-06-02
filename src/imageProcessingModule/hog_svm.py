@@ -50,15 +50,12 @@ def loadModel( modelPathStr ):
 #
 #	CLASS DEFINITIONS
 #
+class HOG_predictor( object ):
 
-class HOG_SVM( object ):
-
-	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, positiveThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
- 
-		#   get model for classifier
-		self.footballModel = loadModel( modelBallPathStr )
-		self.goalModel = loadModel( modelGoalPathStr )
+
+		self.positiveThreshold = positiveThreshold
 
 		#	define hog descriptor instance
 		self.hogDescriptor = cv2.HOGDescriptor( winSize, blockSize, blockStride, cellSize, nBins )
@@ -71,9 +68,6 @@ class HOG_SVM( object ):
 
 		#	flag to check that have any bounding box
 		self.ableToExtraction = True
-		
-		#	set threshold for positive classification
-		self.positiveThreshold = positiveThreshold
 		
 		#	initial best bounding box attribute
 		self.bestBoundingBox = None
@@ -93,13 +87,13 @@ class HOG_SVM( object ):
 			hogFeature = self.hogDescriptor.compute( boundingBox.roiImage )
 
 			#	HACK!!! : Get gray scale
-			imageGray = boundingBox.convertImageToGrayScale( )
+			# imageGray = boundingBox.convertImageToGrayScale( )
 
-			hogGrayFeature = self.hogDescriptor.compute( imageGray )
+			# hogGrayFeature = self.hogDescriptor.compute( imageGray )
 
 			#	get feature vector
 			boundingBox.featureVector = hogFeature.T
-			boundingBox.featureVectorGray = hogGrayFeature.T
+			# boundingBox.featureVectorGray = hogGrayFeature.T
 
 		return True
 
@@ -108,23 +102,9 @@ class HOG_SVM( object ):
 		#	loop every bounding list
 		for boundingObject in self.boundingBoxListObject.boundingBoxList:
 
-			#	get feature of bounding box
-			hogFeature = boundingObject.featureVector
-			hogGrayFeature = boundingObject.featureVectorGray
-
-			# #	predict by svm, [ 0, 1 ] is index which positive side
-			# classificationScore = self.model.predict( hogFeature )
-
 			#	get score in form probability
-			boundingObject.footballProbabilityScore =  self.footballModel.predict_proba( hogFeature )[ 0, 1 ]
-			boundingObject.goalProbabilityScore = self.goalModel.predict_proba( hogGrayFeature )[ 0, 1 ]
-
-			# #	store the result to same object
-			# if classificationScore[ 0 ] == 1:
-			# 	boundingObject.isFootball = True
-			# else:
-			# 	boundingObject.isFootball = False
-
+			boundingObject.footballProbabilityScore =  1.0
+			boundingObject.goalProbabilityScore = 1.0
 
 	def getBestRegion( self ):
 		"""
@@ -195,6 +175,8 @@ class HOG_SVM( object ):
 			
 		#	clear bounding box list
 		self.boundingBoxListObject.clearBoundingBoxList()
+
+		return foundBall
 		
 		if foundBall == True:
 			return list( ( bestPosition, confidence ) )
@@ -216,9 +198,8 @@ class HOG_SVM( object ):
 
 		for goalObj in sortBoundingBoxGoalList:
 			if goalObj.goalProbabilityScore > self.positiveThreshold:
-				centerGoal = goalObj.object2DPosTuple
 				confidence = goalObj.goalProbabilityScore
-				goalList.append( ( centerGoal, confidence ) )
+				goalList.append( goalObj )
 
 		return goalList
 			
@@ -237,3 +218,56 @@ class HOG_SVM( object ):
 
 		print "###################################"
 
+
+class HOG_SVM( HOG_predictor ):
+
+	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
+
+		super( HOG_SVM, self ).__init__( positiveThreshold = positiveThreshold, 
+										winSize = winSize, blockSize = blockSize, 
+										blockStride = blockStride,	cellSize = cellSize, 
+										nBins = nBins, rectangleThreshold = rectangleThreshold, 
+										boundingBoxSize = boundingBoxSize )
+
+		# #   get model for classifier
+		self.footballModel = loadModel( modelBallPathStr )
+		self.goalModel = loadModel( modelGoalPathStr )
+
+	def predict( self ):
+
+		#	loop every bounding list
+		for boundingObject in self.boundingBoxListObject.boundingBoxList:
+
+			#	get feature of bounding box
+			hogFeature = boundingObject.featureVector
+
+			#	get score in form probability
+			boundingObject.footballProbabilityScore =  self.footballModel.predict_proba( hogFeature )[ 0, 1 ]
+			boundingObject.goalProbabilityScore = self.goalModel.predict_proba( hogFeature )[ 0, 1 ]
+
+class HOG_MLP( HOG_predictor ):
+
+	def __init__( self, modelPath, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
+
+		super( HOG_MLP, self ).__init__( positiveThreshold = positiveThreshold, 
+										winSize = winSize, blockSize = blockSize, 
+										blockStride = blockStride,	cellSize = cellSize, 
+										nBins = nBins, rectangleThreshold = rectangleThreshold, 
+										boundingBoxSize = boundingBoxSize )
+
+		self.model = loadModel( modelPath )
+
+	def predict( self ):
+		predictions = []
+		#	loop every bounding list
+		for boundingObject in self.boundingBoxListObject.boundingBoxList:
+
+			prediction = self.model.predict_proba( boundingObject.featureVector )
+			predictions.append( prediction )
+			#	get score in form probability
+			boundingObject.footballProbabilityScore = prediction[0, 0] 
+			boundingObject.goalProbabilityScore = prediction[0, 1]
+
+		print predictions

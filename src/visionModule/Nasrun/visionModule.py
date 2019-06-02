@@ -16,7 +16,7 @@
 
 from detect_ball_and_goal import ImageProcessing
 
-from detect_ball_svm import Kinematic
+from detect_ball_and_goal import Kinematic
 
 
 #	create instance

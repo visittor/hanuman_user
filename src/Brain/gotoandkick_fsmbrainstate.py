@@ -20,10 +20,9 @@ import os
 from brain.brainState import FSMBrainState
 from brain.HanumanRosInterface import HanumanRosInterface
 
-from gotoandkick_sub_brain.followball_brainstate import FollowBall
-from gotoandkick_sub_brain.kicking_brainstate import KickTheBall
+from gotoandkick_sub_brain.gotoball_brainstate import GotoBall
 
-from gotoandkick_sub_brain.alignball_brainstate import RotateToTheBall
+from gotoandkick_sub_brain.kicking_brainstate import KickTheBall
 from gotoandkick_sub_brain.findball_brainstate import FindBall
 from gotoandkick_sub_brain.slidecurve_brainstate import SlideCurve
 
@@ -59,31 +58,44 @@ import rospy
 #	CLASS DEFINITIONS
 #
 
+class _IDLE( FSMBrainState ):
+
+	def __init__( self, nextState = 'None' ):
+
+		super( _IDLE, self ).__init__( '_IDLE' )
+
+		self.nextState = nextState
+
+	def firstStep( self ):
+
+		self.stopRobotBehavior( )
+		self._startTime = time.time( )
+
+	def step( self ):
+
+		if time.time( ) - self._startTime > 5:
+			self.SignalChangeSubBrain( self.nextState )
+
+	def stopRobotBehavior( self ):
+		#	stop	
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
+
 class MainBrain( FSMBrainState ):
 	
 	def __init__( self ):
 
 		super( MainBrain, self ).__init__( "MainBrain" )
 
-		self.addSubBrain( FindBall( nextState = "RotateToTheBall" ) )
+		self.addSubBrain( GotoBall( nextState = 'ScanGoal' ) )
 
-		# self.addSubBrain( ScanField( nextSubbrain="RotateToTheBall", failStateSubbrain="Idle" ) )
-
-		# self.addSubBrain( Idle( previousState = "FindBall" ) )
-
-		self.addSubBrain( RotateToTheBall( previousState = "FindBall", nextState = "FollowBall" ) )
-		self.addSubBrain( FollowBall( previousState = "RotateToTheBall", nextState = "ScanGoal", findBallState = "FindBall" ) )
-		
 		self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
 		# self.addSubBrain( ScanPole( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
 		
 		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
-		self.addSubBrain( KickTheBall( nextState="FindBall", previousState="FollowBall" ) )
+		self.addSubBrain( KickTheBall( nextState="GotoBall", previousState="FollowBall" ) )
 
-		self.setFirstSubBrain( "FindBall" )
-
-		#	No.1
-		self.setGlobalVariable( 'PoleColor', ('yellow', 'orange') )
+		self.setFirstSubBrain( "GotoBall" )
 
 		#	No.3
 		# self.setGlobalVariable( 'PoleColor', ('blue', 'orange') )

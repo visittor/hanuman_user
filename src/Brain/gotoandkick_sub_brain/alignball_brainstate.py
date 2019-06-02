@@ -28,6 +28,8 @@ import math
 import time
 import rospy
 
+from default_config import getParameters
+
 ########################################################
 #
 #	GLOBALS
@@ -50,46 +52,46 @@ import rospy
 
 class RotateToTheBall( FSMBrainState ):
 	
-	def __init__( self, previousState = "None", nextState = "None" ):
+	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
 		
 		super( RotateToTheBall, self ).__init__( "RotateToTheBall" )
 		
-		self.nextState = nextState
-		self.previousState = previousState
+		self.successState = successState
+		self.failState = failState
+
+		self.lostBallState = lostBallState
 
 		self.numFrameNotDetectBall = None
 
 		self.omegaZ = None
 		self.smallTheta = None
 
-		self.fy = None
+		self.fx = None
 
 	def initialize( self ):
 
 		#	Get omega_z from config
-		self.omegaZ = float( self.config[ 'VelocityParameter' ][ 'OmegaZWhenRotateToBall' ] )
+		self.omegaZ = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall'))
 
 		#	Get theta to change state
-		self.smallTheta = float( self.config[ 'ChangeStateParameter' ][ 'SmallDegreeToAlignTheBall' ] )
+		self.smallTheta = float( getParameters(self.config, 'ChangeStateParameter', 'SmallDegreeToAlignTheBall'))
 
 		#	Get tilt limit
-		self.tiltLimit = float( self.config[ 'PanTiltPlanner' ][ 'LimitTiltAngleDegree' ] )
+		self.panLimit = float( getParameters(self.config, 'ChangeStateParameter', 'LimitPanAngleDegree'))
+
+		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
 
 		#	Get fx and fy from robot config
-		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
+		self.fx = float( self.config[ "CameraParameters" ][ "fx" ] )
 
 	def firstStep( self ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
-
-		self.rosInterface.Pantilt( command = 3 )	
-		self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 		
 		#	re-initial numframe to detect ball
 		self.numFrameNotDetectBall = 0
 			
 	def step( self ):
-		
 		
 		#	Get vision msg
 		visionMsg = self.rosInterface.visionManager
@@ -98,6 +100,10 @@ class RotateToTheBall( FSMBrainState ):
 
 		ballErrorY = 0
 
+		#
+		# This is logic for changing state.
+		#
+
 		#	If detect
 		if 'ball' in visionMsg.object_name:
 		
@@ -105,60 +111,60 @@ class RotateToTheBall( FSMBrainState ):
 			self.numFrameNotDetectBall = 0
 
 			idxBallVisionObj = visionMsg.object_name.index( 'ball' )
-			
-			#	Get polar coordinate
-			thetaWrtRobotRad = visionMsg.pos2D_polar[ idxBallVisionObj ].y
-			
-			ballErrorY = visionMsg.object_error[ idxBallVisionObj ].y
+			ballErrorX = visionMsg.object_error[ idxBallVisionObj ].x
 
-			#	Get sign to rotate
-			direction = 1 if thetaWrtRobotRad > 0 else -1
-			
-			#	Check angle if not exceed 10 degrees
-			if abs( thetaWrtRobotRad ) > math.radians( self.smallTheta ):
-			
-				self.rosInterface.LocoCommand(	velX = 0.0,
-												velY = 0.0,
-												omgZ = direction * self.omegaZ,
-												commandType = 0,
-												ignorable = False )
-			else:
-				# self.rosInterface.LocoCommand(	velX = 0.0,
-				# 								velY = 0.0,
-				# 								omgZ = 0.0,
-				# 								commandType = 0,
-				# 								ignorable = False )
+			imgW = visionMsg.imgW
+			fovWidth = 2 * np.arctan( 0.5 * imgW / self.fx )
+
+			panAngle = ballErrorX * fovWidth / 2
+
+			currentPanAngle = self.rosInterface.pantiltJS.position[ 0 ] + panAngle
+
+			# if math.fabs(currentPanAngle) < math.fabs( math.radians( self.panLimit ) ):
 				
-				self.SignalChangeSubBrain( self.nextState )
+			# 	self.SignalChangeSubBrain( self.successState )
 				
-		else:	
-			#	Increment when detect ball
-			self.numFrameNotDetectBall += 1
-			
-			if self.numFrameNotDetectBall >= 5:
-				#	terminate pantilt
-				self.rosInterface.Pantilt( command = 3 )
+		if 'ball' in localPosDict.object_name:	
 
-				#	Stop locomotion
-				self.rosInterface.LocoCommand( velX = 0.0,
-							       velY = 0.0,
-							       omgZ = 0.0,
-							       commandType = 0,
-							       ignorable = False )
+			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
+			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
+			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
+			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
 
+			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+				#	it should switch to first state to find the ball
+				self.SignalChangeSubBrain( self.lostBallState )
+
+## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.			
+			if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
 				#	Back to previous state
-				self.SignalChangeSubBrain( self.previousState )
+				self.SignalChangeSubBrain( self.successState )
+
+		else:
+			self.SignalChangeSubBrain( self.lostBallState )
+
+		#
+		#	Rotate to ball
+		#
 		
+		#	Get sign to rotate
+		direction = 1 if thetaWrtRobotRad > 0 else -1
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = direction * self.omegaZ,
+										commandType = 0,
+										ignorable = False )
 
-		#	Get image width and height
-		imgH = visionMsg.imgH
-		fovHeight = 2 * np.arctan( 0.5 * imgH / self.fy )
+	def leaveStateCallBack( self ):
 
-		tiltAngle = ballErrorY * fovHeight / 2
-
-		#	Get theta of tilt
-		currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
-		if currentTiltAngle >= math.radians( self.tiltLimit ):
-
-			self.SignalChangeSubBrain( self.nextState )		
+		self.stopRobotBehavior( )
 		
+	def stopRobotBehavior( self ):
+		#	stop
+		# self.rosInterface.LocoCommand( velX = 0.0,
+		# 			       			   velY = 0.0,
+		# 			       			   omgZ = 0.0,
+		# 			       			   commandType = 0,
+		# 			       			   ignorable = False )		
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
