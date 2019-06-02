@@ -60,12 +60,6 @@ class InitialState( FSMBrainState ):
 		rospy.logdebug( "Entering initial state" )
 		rospy.logdebug( "Sit down" )
 		
-		#	terminate pantilt planner
-		self.rosInterface.Pantilt( command=3 )
-		
-		#	command to sit
-		self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
-		
 	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Waiting for ready signal" )
@@ -81,8 +75,6 @@ class ReadyState( FSMBrainState ):
 
 		rospy.logdebug( "Entering ready state" )
 		rospy.logdebug( "Stand up" )
-		
-		self.rosInterface.LocoCommand( command = 'sitToStand' )
 
 	def step( self ):
 		# do command in this state
@@ -94,18 +86,13 @@ class SetState( FSMBrainState ):
 	def __init__( self ):
 
 		#	set name
-		super( SetState, self ).__init__( "SetState", commandType = 1 )
+		super( SetState, self ).__init__( "SetState" )
 
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering set state" )
 		rospy.logdebug( "Stop walking" )
 		
-		self.rosInterface.LocoCommand(	velX = 0.0,
- 						velY = 0.0,
- 						omgZ = 0.0,
- 						commandType = 0,
- 						ignorable = False )
 
 	def step( self ):
 		# do command in this state
@@ -117,21 +104,12 @@ class PlayState( FSMBrainState ):
 
 		#	set name
 		super( PlayState, self ).__init__( "PlayState" )
-		
-		#	instance of walkaround]
-		self.walkAround = WalkAround()
-		
-		#	add subbrain
-		self.addSubBrain( self.walkAround )
-		self.setFirstSubBrain( "WalkAround" )
+
 
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering play state" )
 		
-		
-		
-
 	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Play game!" )
@@ -146,16 +124,21 @@ class FinishState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering finish state" )
-		rospy.logdebug( "Stop walking" )
-		
-		self.rosInterface.LocoCommand(	velX = 0.0,
- 						velY = 0.0,
- 						omgZ = 0.0,
- 						commandType = 0,
- 						ignorable = False )
-						
-		self.rosInterface.Pantilt( command=3 )
 		
 	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Finish game" )
+
+class PernaltyState( FSMBrainState ):
+
+	def __init__( self ):
+
+		#	set name
+		super( PernaltyState, self ).__init__( "PernaltyState" )
+
+	def firstStep( self ):
+
+		rospy.logdebug( "Entering pernalty state TT" )
+	
+	def step( self ):
+		rospy.logdebug( "TT" )
