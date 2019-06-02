@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 #
 # Copyright (C) 2019  FIBO/KMUTT
-#			Written by Kongkiat Rothomphiwat
+#			Written by Kongkiat Rothomphiwat,
+#                      Nasrun Hayeeyama
 #
 
 ########################################################
@@ -23,11 +24,13 @@ import numpy as np
 from brain.brainState import FSMBrainState
 from brain.HanumanRosInterface import HanumanRosInterface
 
-from gameController.Receiver import GAME_TYPE, GAME_STATE_TYPE, SECONDARY_STATE_TYPE, TEAM_COLOR_TYPE
+# from newbie_hanuman.msg import gameState, TeamInfo, RobotInfo
 
-from newbie_hanuman.msg import gameState, TeamInfo, RobotInfo
+from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PenaltyState
 
-from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState
+from gameController.gamestate import GameState
+
+from construct import Bytes
 
 ########################################################
 #
@@ -49,64 +52,73 @@ from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState
 #	CLASS DEFINITIONS
 #
 
-class GameState( FSMBrainState ):
+class Controller( FSMBrainState ):
 
-    def __init__( self ):
-        super( GameState, self ).__init__("GameState")
-		#   initial instance state
-        initialState = InitialState()
-        readyState = ReadyState()
-        setState = SetState()
-        playState = PlayState()
-        finishState = FinishState()
-		#   Add sub brain
-        self.addSubBrain( initialState )
-        self.addSubBrain( readyState )
-        self.addSubBrain( setState )
-        self.addSubBrain( playState )
-        self.addSubBrain( finishState )
-        #   set first sub brain
-        self.setFirstSubBrain( "InitialState" )
-        #   attribute for store game state package
-        self.gameStateMsg = None
-        #   attribute for manipulation
-        self.gameState = None
-        self.kickOffTeam = None
-        self.teamID = [None,None]
-
-    def getGameStateMsg( self ):
-        self.gameStateMsg = self.rosInterface.GameState
-        self.__updateAttribute()
-
-    def __updateAttribute(self):
-        self.gameState = GAME_STATE_TYPE[ self.gameStateMsg.game_state ]
-        self.kickOffTeam = self.gameStateMsg.kick_of_team
-        for i in range(2):
-            self.teamID[i] = self.gameStateMsg.teams[i].team_number
-
-    def firstStep(self):
-        print( "Start Game" )
-
-    def step(self):
-        self.getGameStateMsg()
-
-        if self.gameState == 'STATE_INITIAL':
-            self.ChangeSubBrain('InitialState')
-        elif self.gameState == 'STATE_READY':
-            self.ChangeSubBrain('ReadyState')
-        elif self.gameState == 'STATE_SET':
-            self.ChangeSubBrain('SetState')
-        elif self.gameState == 'STATE_PLAYING':
-            self.ChangeSubBrain('PlayState')
-        elif self.gameState == 'STATE_FINISHED':
-            self.ChangeSubBrain('FinishState')
-        
-            
-main_brain = GameState()
-			
+	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState ):
 		
+		super( Controller, self ).__init__( "Controller" )
+
+		self.playerNumber = None
+		self.teamNumber = None
+
+		self.addSubBrain( initialState, "InitialState" )
+		self.addSubBrain( readyState, "ReadyState" )
+		self.addSubBrain( setState, "SetState" )
+		self.addSubBrain( playState, "PlayState" )
+		self.addSubBrain( finishState, "FinishState" )
+
+		self.addSubBrain( penaltyState, "PenaltyState" )
+
+	def firstStep( self ):
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+	def initialize( self ):
+
+		self.teamNumber = int( self.config[ "GameControllerParameter" ][ "Team" ] )
+		self.playerNumber = int( self.config[ "GameControllerParameter" ][ "Player" ] )
+
+	def step( self ):
+		
+		gameState = self.rosInterface.gameState
+
+		teamInfo = filter( lambda x : x[ 'team_number' ] == self.teamNumber, gameState[ 'teams' ] )
+		robotInfo = teamInfo[ 0 ][ 'players' ][ self.playerNumber - 1 ]
+
+		if robotInfo[ "secs_till_unpenalized" ] != 0:
+			self.ChangeSubBrain( "PenaltyState" )
+			return
+		
+		if robotInfo[ "number_of_red_cards" ] != 0:
+			self.ChangeSubBrain( "PenaltyState" )
+			return
+
+		if gameState[ "game_state" ] == "STATE_INITIAL":
+			self.ChangeSubBrain( "InitialState" )
+		elif gameState[ "game_state" ] == "STATE_READY":
+			self.ChangeSubBrain( "ReadyState" )
+			 #  Enter to the field
+		elif gameState[ "game_state" ] == "STATE_SET":
+			self.ChangeSubBrain( "SetState" )
+		elif gameState[ "game_state" ] == "STATE_PLAYING":
+			self.ChangeSubBrain( "PlayState" )
+		elif gameState[ "game_state" ] == "STATE_FINISHED":
+			self.ChangeSubBrain( "FinishState" ) 
 
 
+initialState = InitialState()
+readyState = ReadyState()
+setState = SetState()
+playState = PlayState()
+finishState = FinishState()
+penaltyState = PernaltyState()
 
+
+main_brain = Controller( initialState = initialState,
+						 readyState = readyState,
+						 setState = setState,
+						 playState = playState,
+						 finishState = finishState,
+						 penaltyState = penaltyState
+ )
 
 
