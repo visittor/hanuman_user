@@ -115,6 +115,7 @@ class KickTheBall( FSMBrainState ):
 			errorX = visionMsg.object_error[ idxBallVisionObj ].x
 
 			self.direction = 1 if errorX > 0.0 else -1
+			rospy.loginfo( "I SHALL KICK {}.".format( 'LEFT' if self.direction > 1 else "RIGHT" ))
 			
 		if currentTime - self.previousTime > self.waitTime:
 
@@ -124,7 +125,7 @@ class KickTheBall( FSMBrainState ):
 			direction = self.getGlobalVariable( 'direction' )
 			#direction = 1
 			
-			if direction > 0:
+			if self.direction > 0:
 				self.rosInterface.LocoCommand( command = "LeftKick", commandType = 1 )
 			else:
 				self.rosInterface.LocoCommand( command = "RightKick", commandType = 1 )
