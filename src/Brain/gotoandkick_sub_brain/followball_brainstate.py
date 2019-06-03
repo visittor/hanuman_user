@@ -75,6 +75,11 @@ class FollowBall( FSMBrainState ):
 		self.velX_slope = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_m'))
 		self.velX_offset = float( getParameters(self.config, 'VelocityParameter', 'VelocityXWhenFollowTheBall_c'))
 
+		self.omg_max = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall_max'))
+		self.omg_min = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall_min'))
+		self.omg_slope = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall_m'))
+		self.omg_offset = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall_c'))
+
 		self.velY = float( getParameters(self.config, 'VelocityParameter', 'VelocityYWhenFollowTheBall'))
 		
 		#	Get theta to change state
@@ -85,6 +90,7 @@ class FollowBall( FSMBrainState ):
 
 		#	Get limit angle
 		self.limitTiltAngle = float( getParameters(self.config, 'ChangeStateParameter', 'LimitTiltAngleDegree'))
+		self.limitPanAngle = float( getParameters(self.config, 'ChangeStateParameter', 'LimitPanAngleDegree'))
 
 		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
 
@@ -102,7 +108,10 @@ class FollowBall( FSMBrainState ):
 		visionMsg = self.rosInterface.visionManager
 		
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
-		
+
+		pantiltJS = self.rosInterface.pantiltJS
+		pantiltJS = { n:p  for n, p in zip( pantiltJS.name, pantiltJS.position ) }
+
 		ballErrorY = 0
 
 		#
@@ -125,8 +134,8 @@ class FollowBall( FSMBrainState ):
 			panAngle = ballErrorX * fovWidth / 2
 
 			#	Get tilt angle from pan tilt motor
-			currentTiltAngle = self.rosInterface.pantiltJS.position[ 1 ] + tiltAngle
-			currentPanAngle = self.rosInterface.pantiltJS.position[ 0 ] + panAngle
+			currentTiltAngle = pantiltJS['tilt'] + tiltAngle
+			currentPanAngle = pantiltJS['pan'] + panAngle
 
 			if currentTiltAngle >= math.radians( self.limitTiltAngle ):
 					rospy.loginfo( "Finish" )
@@ -134,6 +143,9 @@ class FollowBall( FSMBrainState ):
 					rospy.loginfo( "	Select side to kick : {}".format( self.getGlobalVariable( 'direction' ) ) )
 					#	Change state to kick immedietly.
 					self.SignalChangeSubBrain( self.successState )
+
+			if math.fabs(currentPanAngle) >= math.radians( self.limitPanAngle ):
+				self.SignalChangeSubBrain( self.lostBallState )
 
 		#	Check confidence if model could detect ball
 		if 'ball' in localPosDict.object_name:
@@ -184,9 +196,12 @@ class FollowBall( FSMBrainState ):
 		velX = (localDistanceX * self.velX_slope) + self.velX_offset
 		velX = max( self.velX_min, min( velX, self.velX_max ) )
 
+		omgZ = (self.omg_slope*pantiltJS['pan']) + self.omg_offset
+		omgZ = max( self.omg_min, min( omgZ, slef.omg_max ) )
+
 		self.rosInterface.LocoCommand( velX = velX,
 					       			   velY = self.velY,
-					       			   omgZ = 0.0,
+					       			   omgZ = omgZ,
 					       			   commandType = 0,
 					       			   ignorable = False )			
 	def leaveStateCallBack( self ):
