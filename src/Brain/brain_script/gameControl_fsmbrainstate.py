@@ -26,7 +26,7 @@ from brain.HanumanRosInterface import HanumanRosInterface
 
 # from newbie_hanuman.msg import gameState, TeamInfo, RobotInfo
 
-from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PenaltyState
+from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PernaltyState
 
 from gameController.gamestate import GameState
 
@@ -69,6 +69,8 @@ class Controller( FSMBrainState ):
 
 		self.addSubBrain( penaltyState, "PenaltyState" )
 
+		self.setFirstSubBrain( "None" )
+
 	def firstStep( self ):
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
@@ -80,6 +82,9 @@ class Controller( FSMBrainState ):
 	def step( self ):
 		
 		gameState = self.rosInterface.gameState
+
+		if gameState == None:
+			return
 
 		teamInfo = filter( lambda x : x[ 'team_number' ] == self.teamNumber, gameState[ 'teams' ] )
 		robotInfo = teamInfo[ 0 ][ 'players' ][ self.playerNumber - 1 ]
@@ -105,20 +110,20 @@ class Controller( FSMBrainState ):
 			self.ChangeSubBrain( "FinishState" ) 
 
 
-initialState = InitialState()
-readyState = ReadyState()
-setState = SetState()
-playState = PlayState()
-finishState = FinishState()
-penaltyState = PernaltyState()
+# initialState = InitialState()
+# readyState = ReadyState()
+# setState = SetState()
+# playState = PlayState()
+# finishState = FinishState()
+# penaltyState = PernaltyState()
 
 
-main_brain = Controller( initialState = initialState,
-						 readyState = readyState,
-						 setState = setState,
-						 playState = playState,
-						 finishState = finishState,
-						 penaltyState = penaltyState
- )
+# main_brain = Controller( initialState = initialState,
+# 						 readyState = readyState,
+# 						 setState = setState,
+# 						 playState = playState,
+# 						 finishState = finishState,
+# 						 penaltyState = penaltyState
+#  )
 
 
