@@ -112,5 +112,5 @@ class MainBrain( FSMBrainState ):
 					       			   commandType = 0,
 					       			   ignorable = False )
 
-main_brain = MainBrain()
+# main_brain = MainBrain()
 										  

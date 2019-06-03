@@ -5,7 +5,7 @@ _DEFAULT_CONFIG = {
 							'VelocityXWhenFollowTheBall_c'	 : '0.0',
 
 							'VelocityYWhenFollowTheBall' : '0.0',
-
+							'OmegaZWhenRotateToBall'	 : '0.4',
 							'OmegaZWhenRotateToBall_max'	 : '0.4',
 							'OmegaZWhenRotateToBall_min'	 : '0.2',
 							'OmegaZWhenRotateToBall_m'	 	 : '0.8',
@@ -28,7 +28,7 @@ _DEFAULT_CONFIG = {
 
 	'PanTiltPlanner' : {					
 							'TiltAngleForLookAtFoot': '60',
-							'ScanBallPattern' 		: basic_pattern_near
+							'ScanBallPattern' 		: 'basic_pattern_near'
 						}
 }
 
