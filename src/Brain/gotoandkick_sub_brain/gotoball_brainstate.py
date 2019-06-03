@@ -112,7 +112,11 @@ class GotoBall( FSMBrainState ):
 
 		#	Get vision msg
 		visionMsg = self.rosInterface.visionManager
-		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+		localPosDict = self.rosInterface.local_map( reset = False )
+		if localPosDict is None:
+			return
+		else:
+			localPosDict = localPosDict.postDict
 
 		if 'ball' in visionMsg.object_name and 'ball' in localPosDict.object_name:
 			idxBallLocalObj = localPosDict.object_name.index( 'ball' )

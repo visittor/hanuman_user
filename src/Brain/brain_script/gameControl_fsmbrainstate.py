@@ -89,6 +89,9 @@ class Controller( FSMBrainState ):
 		teamInfo = filter( lambda x : x[ 'team_number' ] == self.teamNumber, gameState[ 'teams' ] )
 		robotInfo = teamInfo[ 0 ][ 'players' ][ self.playerNumber - 1 ]
 
+		# print "Second to unpenalize : {}".format( robotInfo[ "secs_till_unpenalized" ] )
+		# print "Number of red cards : {}".format( robotInfo[ "number_of_red_cards" ] )
+
 		if robotInfo[ "secs_till_unpenalized" ] != 0:
 			self.ChangeSubBrain( "PenaltyState" )
 			return
