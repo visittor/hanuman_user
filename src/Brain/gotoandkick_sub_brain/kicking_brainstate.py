@@ -88,7 +88,7 @@ class KickTheBall( FSMBrainState ):
 									   commandType = 0,
 									   ignorable = False )
 		
-		time.sleep( 1.0 )
+		time.sleep( 2.0 )
 
 ## NOTE : What is this for
 		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
@@ -116,7 +116,13 @@ class KickTheBall( FSMBrainState ):
 
 			self.direction = 1 if errorX > 0.0 else -1
 			rospy.loginfo( "I SHALL KICK {}.".format( 'LEFT' if self.direction > 1 else "RIGHT" ))
-			
+		
+		elif 'kicking_side' in visionMsg.object_name:
+			idxBallVisionObj = visionMsg.object_name.index( 'kicking_side' )
+			errorX = visionMsg.object_error[ idxBallVisionObj ].x
+			self.direction = 1 if errorX > 0.0 else -1
+			rospy.loginfo( "I SHALL KICK {}.".format( 'LEFT' if self.direction > 1 else "RIGHT" ))
+		
 		if currentTime - self.previousTime > self.waitTime:
 
 			self.rosInterface.local_map( reset = True ).postDict

@@ -157,6 +157,25 @@ class ImageProcessing( VisionModule ):
 
 		return [cntL, cntR]
 
+	def findKickCandidate( self, whiteMask ):
+		imgH, imgW = whiteMask.shape[:2]
+
+		yOffset = 80
+
+		centerL = imgW / 4, (imgH - yOffset) / 2
+		centerR = (3*imgW )/ 4, (imgH - yOffset) / 2
+
+		w = imgW / 4
+		h = ( imgH - yOffset ) / 2
+
+		LSide = whiteMask[centerL[1]-h:centerL[1]+h, centerL[0]-w:centerL[0]+w]
+		RSide = whiteMask[centerR[1]-h:centerR[1]+h, centerR[0]-w:centerR[0]+w]
+
+		sumL = np.sum( LSide )
+		sumR = np.sum( RSide )
+
+		return centerL if sumL > sumR else centerR
+
 	def getHorizonLine( self, pan, tilt, dist = 100 ):
 
 		point3D = np.array( [dist, 0.0, 0.0] )
@@ -221,6 +240,20 @@ class ImageProcessing( VisionModule ):
 
 		self.whiteObjectContours = self.getWhiteObjectContour( marker, ransacContours )
 		# self.whiteObjectContours = self.getWhiteObjectContour_lookDown( imgW, imgH )
+
+		self.kickCandidate = self.findKickCandidate( marker == 5 )
+
+		objNameList.append( 'kicking_side' )
+
+		pos2DList.append( Point32( self.kickCandidate[0],
+								   self.kickCandidate[1],
+								   0.0 ) )
+		#	calculate error
+		errorX, errorY = self.calculateError( imgW, imgH, self.kickCandidate[0], self.kickCandidate[1] )
+
+		errorList.append( Point32( x = errorX, y = errorY, z = 0.0 ) )
+
+		confidenceList.append( 1 )
 
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
 
@@ -290,6 +323,8 @@ class ImageProcessing( VisionModule ):
 		super( ImageProcessing, self ).visualizeFunction( img, msg )
 
 		cv2.drawContours( img, self.whiteObjectContours, -1, (0,0,255), 2 )
+
+		cv2.circle( img, self.kickCandidate, 5, (0,0,255), -1 )
 
 		if 'ball' in msg.object_name:
 			ballIdx = msg.object_name.index( 'ball' )
