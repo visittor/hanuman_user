@@ -130,32 +130,17 @@ class ImageProcessing( VisionModule ):
 
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
+		## Delete line segment from mask.
+		kernel = np.ones( (25,3), dtype=np.uint8 )
+		kernel[:,0] = 0
+		kernel[:,2] = 0
+		whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		
+		whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+
+		whiteObjectContours.extend( whiteObjectContours_noline )
+
 		return whiteObjectContours
-
-	def getWhiteObjectContour_lookDown( self, imgW, imgH ):
-
-		yOffset = 80
-
-		centerL = imgW / 4, (imgH - yOffset) / 2
-		centerR = (3*imgW )/ 4, (imgH - yOffset) / 2
-
-		w = imgW / 4
-		h = ( imgH - yOffset ) / 2
-
-		w = w if h > w else h
-		h = h if w > h else w
-
-		cntL = np.array( [  [centerL[0]-w, centerL[1]-h],
-							[centerL[0]+w, centerL[1]-h],
-							[centerL[0]+w, centerL[1]+h],
-							[centerL[0]-w, centerL[1]+h] ] ).astype(int).reshape(-1,1,2)
-
-		cntR = np.array( [  [centerR[0]-w, centerR[1]-h],
-							[centerR[0]+w, centerR[1]-h],
-							[centerR[0]+w, centerR[1]+h],
-							[centerR[0]-w, centerR[1]+h] ] ).astype(int).reshape(-1,1,2)
-
-		return [cntL, cntR]
 
 	def findKickCandidate( self, whiteMask ):
 		imgH, imgW = whiteMask.shape[:2]
@@ -184,10 +169,6 @@ class ImageProcessing( VisionModule ):
 		H = getInverseHomoMat( H )
 
 		x, horizon = Project3Dto2D( point3D, H, self.cameraMatrix )
-
-		# print Project2Dto3D( np.array( [320, 240]), H, self.cameraMatrix )
-
-		# print x, horizon
 
 		return horizon
 
@@ -239,7 +220,6 @@ class ImageProcessing( VisionModule ):
 			confidenceList.append( 1.0 )
 
 		self.whiteObjectContours = self.getWhiteObjectContour( marker, ransacContours )
-		# self.whiteObjectContours = self.getWhiteObjectContour_lookDown( imgW, imgH )
 
 		self.kickCandidate = self.findKickCandidate( marker == 5 )
 
@@ -303,7 +283,6 @@ class ImageProcessing( VisionModule ):
 
 		return msg
 
-
 	def createVisionMsg( self, objectNameList, pos2DList, objectErrorList, objectConfidenceList, imgWidth, imgHeight ):
 		'''	createVisionMsg function
 		'''
@@ -322,7 +301,7 @@ class ImageProcessing( VisionModule ):
 		"""For visualization by using cranial nerve monitor"""
 		super( ImageProcessing, self ).visualizeFunction( img, msg )
 
-		cv2.drawContours( img, self.whiteObjectContours, -1, (0,0,255), 2 )
+		cv2.drawContours( img, self.whiteObjectContours, -1, (0,0,255), 1 )
 
 		cv2.circle( img, self.kickCandidate, 5, (0,0,255), -1 )
 
