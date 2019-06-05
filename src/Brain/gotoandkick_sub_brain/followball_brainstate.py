@@ -205,7 +205,7 @@ class FollowBall( FSMBrainState ):
 					       			   velY = self.velY,
 					       			   omgZ = omgZ,
 					       			   commandType = 0,
-					       			   ignorable = False )			
+					       			   ignorable = True )			
 	def leaveStateCallBack( self ):
 
 		self.stopRobotBehavior( )
