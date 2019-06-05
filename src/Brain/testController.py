@@ -47,7 +47,7 @@ from gotoandkick_fsmbrainstate import _IDLE, MainBrain
 
 initialState = InitialState()
 readyState = ReadyState()
-setState = _IDLE()
+setState = SetState()
 playState = MainBrain()
 finishState = _IDLE()
 penaltyState = _IDLE()
