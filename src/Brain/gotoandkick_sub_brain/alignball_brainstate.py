@@ -224,32 +224,31 @@ class RotateToTheBall2( FSMBrainState ):
 		#
 		# This is logic for changing state.
 		#
-				
-		if 'ball' in localPosDict.object_name:	
+		if time.time() - self.time > 2:
+			if 'ball' in localPosDict.object_name:	
 
-			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
-			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
-			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
-			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
+				idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
+				localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
+				localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
+				thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
 
-			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
-				#	it should switch to first state to find the ball
-				self.SignalChangeSubBrain( self.lostBallState )
+				if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+					#	it should switch to first state to find the ball
+					self.SignalChangeSubBrain( self.lostBallState )
 
 ## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.			
-			if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
-				#	Back to previous state
-				self.SignalChangeSubBrain( self.successState )
+				if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
+					#	Back to previous state
+					self.SignalChangeSubBrain( self.successState )
 
-		else:
-			self.SignalChangeSubBrain( self.lostBallState )
+			else:
+				self.SignalChangeSubBrain( self.lostBallState )
 
-		#
-		#	Rotate to ball
-		#
-		
-		#	Get sign to rotate
-		if time.time() - self.time > 2:
+			#
+			#	Rotate to ball
+			#
+			
+			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1
 			self.rosInterface.LocoCommand(	velX = 0.0,
 											velY = 0.0,
