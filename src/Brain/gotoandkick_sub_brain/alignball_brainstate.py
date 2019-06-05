@@ -173,7 +173,7 @@ class RotateToTheBall2( FSMBrainState ):
 	
 	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
 		
-		super( RotateToTheBall, self ).__init__( "RotateToTheBall" )
+		super( RotateToTheBall2, self ).__init__( "RotateToTheBall" )
 		
 		self.successState = successState
 		self.failState = failState
@@ -249,7 +249,7 @@ class RotateToTheBall2( FSMBrainState ):
 		#
 		
 		#	Get sign to rotate
-		if time.time() - self.time > 2:
+		if time.time() - self.timeStart > 2:
 			direction = 1 if thetaWrtRobotRad > 0 else -1
 			self.rosInterface.LocoCommand(	velX = 0.0,
 											velY = 0.0,
@@ -257,12 +257,12 @@ class RotateToTheBall2( FSMBrainState ):
 											command = 'OneStepWalk',
 											commandType = 0,
 											ignorable = False )
-			self.time = time.time()
+			self.timeStart = time.time()
 
 	def leaveStateCallBack( self ):
 
-		self.stopRobotBehavior( )
-		
+		# self.stopRobotBehavior( )
+		pass
 	def stopRobotBehavior( self ):
 		#	stop
 		# self.rosInterface.LocoCommand( velX = 0.0,

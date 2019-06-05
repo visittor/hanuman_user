@@ -101,8 +101,9 @@ class MainBrain( FSMBrainState ):
 		# self.setGlobalVariable( 'PoleColor', ('blue', 'orange') )
 
 	def step( self ):
-		rospy.loginfo( "		Running on step mainbrain..." )
-
+		# rospy.loginfo( "		Running on step mainbrain..." )
+		pass
+	
 	def end( self ):
 		
 		#	terminate pantilt
