@@ -92,6 +92,12 @@ class Controller( FSMBrainState ):
 		# print "Second to unpenalize : {}".format( robotInfo[ "secs_till_unpenalized" ] )
 		# print "Number of red cards : {}".format( robotInfo[ "number_of_red_cards" ] )
 
+		#	Game controller information
+		rospy.loginfo( "	Listening from gamecontroller..." )
+		rospy.loginfo( "GameState : {}".format( gameState[ "game_state" ] ) )
+		rospy.loginfo( "Secs to unpenalize : {}".format( robotInfo[ "secs_till_unpenalized" ] ) )
+		rospy.loginfo( "Number of red card : {}".format( robotInfo[ "number_of_red_cards" ] ) )
+
 		if robotInfo[ "secs_till_unpenalized" ] != 0:
 			self.ChangeSubBrain( "PenaltyState" )
 			return
