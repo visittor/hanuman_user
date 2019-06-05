@@ -196,8 +196,10 @@ class FollowBall( FSMBrainState ):
 		velX = (localDistanceX * self.velX_slope) + self.velX_offset
 		velX = max( self.velX_min, min( velX, self.velX_max ) )
 
-		omgZ = (self.omg_slope*pantiltJS['pan']) + self.omg_offset
+		omgZ = (self.omg_slope*math.fabs(pantiltJS['pan'])) + self.omg_offset
 		omgZ = max( self.omg_min, min( omgZ, self.omg_max ) )
+
+		omgZ *= -1 if pantiltJS['pan'] < 0 else 1
 
 		self.rosInterface.LocoCommand( velX = velX,
 					       			   velY = self.velY,
