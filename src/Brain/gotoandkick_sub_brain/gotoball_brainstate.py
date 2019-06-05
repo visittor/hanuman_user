@@ -29,7 +29,7 @@ import time
 import rospy
 
 from findball_brainstate import FindBall
-from alignball_brainstate import RotateToTheBall
+from alignball_brainstate import RotateToTheBall, RotateToTheBall2
 from followball_brainstate import FollowBall
 from kicking_brainstate import KickTheBall
 
@@ -82,9 +82,9 @@ class GotoBall( FSMBrainState ):
 
 		self.addSubBrain( _IDLE( ) )
 
-		self.addSubBrain( RotateToTheBall( failState = '_IDLE',
+		self.addSubBrain( RotateToTheBall2( failState = '_IDLE',
 										successState = "FollowBall",
-										lostBallState = '_IDLE' ) )
+										lostBallState = '_IDLE' ), 'RotateToTheBall' )
 		self.addSubBrain( FollowBall( failState = "RotateToTheBall", 
 									successState = 'None',
 									lostBallState = '_IDLE' ) )

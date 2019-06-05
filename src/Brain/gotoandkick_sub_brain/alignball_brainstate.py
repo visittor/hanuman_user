@@ -168,3 +168,107 @@ class RotateToTheBall( FSMBrainState ):
 		# 			       			   ignorable = False )		
 		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
 									   ignorable =  False )
+
+class RotateToTheBall2( FSMBrainState ):
+	
+	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
+		
+		super( RotateToTheBall, self ).__init__( "RotateToTheBall" )
+		
+		self.successState = successState
+		self.failState = failState
+
+		self.lostBallState = lostBallState
+
+		self.numFrameNotDetectBall = None
+
+		self.omegaZ = None
+		self.smallTheta = None
+
+		self.timeStart = time.time()
+
+		self.fx = None
+
+	def initialize( self ):
+
+		#	Get omega_z from config
+		self.omegaZ = float( getParameters(self.config, 'VelocityParameter', 'OmegaZWhenRotateToBall'))
+
+		#	Get theta to change state
+		self.smallTheta = float( getParameters(self.config, 'ChangeStateParameter', 'SmallDegreeToAlignTheBall'))
+
+		#	Get tilt limit
+		self.panLimit = float( getParameters(self.config, 'ChangeStateParameter', 'LimitPanAngleDegree'))
+
+		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
+
+		#	Get fx and fy from robot config
+		self.fx = float( self.config[ "CameraParameters" ][ "fx" ] )
+
+	def firstStep( self ):
+		
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+		
+		#	re-initial numframe to detect ball
+		self.numFrameNotDetectBall = 0
+			
+	def step( self ):
+		
+		#	Get vision msg
+		visionMsg = self.rosInterface.visionManager
+
+		localPosDict = self.rosInterface.local_map( reset = False ).postDict
+
+		ballErrorY = 0
+
+		#
+		# This is logic for changing state.
+		#
+				
+		if 'ball' in localPosDict.object_name:	
+
+			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
+			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
+			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
+			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
+
+			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+				#	it should switch to first state to find the ball
+				self.SignalChangeSubBrain( self.lostBallState )
+
+## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.			
+			if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
+				#	Back to previous state
+				self.SignalChangeSubBrain( self.successState )
+
+		else:
+			self.SignalChangeSubBrain( self.lostBallState )
+
+		#
+		#	Rotate to ball
+		#
+		
+		#	Get sign to rotate
+		if time.time() - self.time > 2:
+			direction = 1 if thetaWrtRobotRad > 0 else -1
+			self.rosInterface.LocoCommand(	velX = 0.0,
+											velY = 0.0,
+											omgZ = direction * self.omegaZ,
+											command = 'OneStepWalk',
+											commandType = 0,
+											ignorable = False )
+			self.time = time.time()
+
+	def leaveStateCallBack( self ):
+
+		self.stopRobotBehavior( )
+		
+	def stopRobotBehavior( self ):
+		#	stop
+		# self.rosInterface.LocoCommand( velX = 0.0,
+		# 			       			   velY = 0.0,
+		# 			       			   omgZ = 0.0,
+		# 			       			   commandType = 0,
+		# 			       			   ignorable = False )		
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
