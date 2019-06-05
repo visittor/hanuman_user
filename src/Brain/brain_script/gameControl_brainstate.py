@@ -59,6 +59,8 @@ class InitialState( FSMBrainState ):
 
 		rospy.logdebug( "Entering initial state" )
 		rospy.logdebug( "Sit down" )
+
+		self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
 		
 	def step( self ):
 		# do command in this state
@@ -74,7 +76,7 @@ class ReadyState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering ready state" )
-		rospy.logdebug( "Stand up" )
+		rospy.logdebug( "Enter to the field" )
 
 	def step( self ):
 		# do command in this state
@@ -91,7 +93,9 @@ class SetState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering set state" )
-		rospy.logdebug( "Stop walking" )
+		rospy.logdebug( "Stand up" )
+
+		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
 		
 
 	def step( self ):
