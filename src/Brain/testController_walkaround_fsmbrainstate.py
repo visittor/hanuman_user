@@ -21,7 +21,7 @@ from brain.brainState import FSMBrainState
 from brain.HanumanRosInterface import HanumanRosInterface
 
 from brain_script.gameControl_fsmbrainstate import Controller
-from brain_script.gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState
+from brain_script.gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PernaltyState
 
 from brain_script.walk_around_fsmbrainstate import WalkAround
 
@@ -49,10 +49,10 @@ from gotoandkick_fsmbrainstate import _IDLE, MainBrain
 
 initialState = InitialState()
 readyState = ReadyState()
-setState = _IDLE()
+setState = SetState()
 playState = WalkAround()
 finishState = _IDLE()
-penaltyState = _IDLE()
+penaltyState = PernaltyState()
 
 main_brain = Controller(
 	initialState = initialState,
