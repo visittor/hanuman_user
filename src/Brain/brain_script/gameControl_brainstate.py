@@ -143,6 +143,10 @@ class PernaltyState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering pernalty state TT" )
+
+		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+									   ignorable =  False )
 	
 	def step( self ):
 		rospy.logdebug( "TT" )
+		rospy.logwarn( "You should stop the fucking robottttttttttttttttttttt" )
