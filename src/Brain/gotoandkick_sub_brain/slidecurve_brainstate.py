@@ -91,7 +91,7 @@ class SlideCurve( FSMBrainState ):
 			#	command to slide curve
 			#	TODO : Tune tomorrow
 			self.rosInterface.LocoCommand( velX = 0.0,
-										   velY = -1.0,
+										   velY = -1.0 * direction,
 										   omgZ = 0.0,
 										   commandType = 0,
 										   command = 'SlideCurve',
@@ -104,7 +104,7 @@ class SlideCurve( FSMBrainState ):
 			direction = -1 if dire == 0 else 1
 			
 			self.rosInterface.LocoCommand( velX = 0.0,
-										   velY = -1.0,
+										   velY = -1.0 * direction,
 										   omgZ = 0.0,
 										   commandType = 0,
 										   command = 'SlideCurve',
