@@ -173,7 +173,7 @@ class RotateToTheBall2( FSMBrainState ):
 	
 	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
 		
-		super( RotateToTheBall, self ).__init__( "RotateToTheBall" )
+		super( RotateToTheBall2, self ).__init__( "RotateToTheBall2" )
 		
 		self.successState = successState
 		self.failState = failState
