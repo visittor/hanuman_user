@@ -66,7 +66,7 @@ class _IDLE( FSMBrainState ):
 		super( _IDLE, self ).__init__( '_IDLE' )
 
 	def firstStep( self ):
-
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 		self.stopRobotBehavior( )
 
 	def stopRobotBehavior( self ):
