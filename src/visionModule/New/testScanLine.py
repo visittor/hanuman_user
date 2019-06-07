@@ -8,13 +8,15 @@ from newbie_hanuman.msg import point2D
 from utility.HanumanForwardKinematic import *
 
 from scanLine2 import findBoundary, findChangeOfColor, findLinearEqOfFieldBoundary, findNewLineFromRansac
-from imageProcessingModule import findGoal
+from imageProcessingModule.hog_svm import HOG_SVM, HOG_MLP
 
 from skimage import measure, feature
 from scipy.spatial.distance import cdist
 
 import numpy as np 
 import cv2
+
+import os
 
 DIMENSION_FOR_SIMULATION = [ 0.49088, 0.0, 0.0205, 0.01075, 0.046, 0.034, -0.002, 0.0 ]
 DIMENSION_FOR_REAL_WORLD = [ 0.42889, 0.0055, 0.00187, 0.0254, 0.05, 0.0, 0.0, 14.34]
@@ -24,6 +26,10 @@ DIMENSION_FOR_REAL_WORLD = [ 0.42889, 0.0055, 0.00187, 0.0254, 0.05, 0.0, 0.0, 1
 FX = 577.55352783
 FY = 580.48583984
 
+FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/real_model_with_prob.pkl" )
+GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/model_goal_gray.pkl" ) 
+
+
 # setNewRobotConfiguration( *DIMENSION_FOR_SIMULATION )
 
 class Vision( VisionModule ):
@@ -32,6 +38,8 @@ class Vision( VisionModule ):
 		super( Vision, self ).__init__( )
 		self.objectsMsgType = localizationMsg
 
+		self.predictor = HOG_SVM( FootballModelPath, GoalModelPath, 0.80, rectangleThreshold=30 )
+
 	def _setColorConfig( self, colorConfig ):
 
 		super( Vision, self )._setColorConfig( colorConfig )
@@ -39,9 +47,42 @@ class Vision( VisionModule ):
 		self.greenID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'green' ][ 0 ]
 		self.whiteID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'white' ][ 0 ]
 
+	def getWhiteObjectContour( self, marker, fieldContour ):
+
+		#   Create mask from new contour
+		fieldMask = np.zeros( marker.shape, dtype=np.uint8 )
+		cv2.drawContours( fieldMask, [ fieldContour ], 0, 1, -1 )
+
+		whiteObjectMask = np.zeros( marker.shape, dtype=np.uint8 )
+		whiteObjectMask[ marker == self.whiteID ] = 1
+
+		whiteObjectInFieldMask = cv2.bitwise_and(whiteObjectMask, fieldMask) * 255
+		kernel = np.ones( (5,5), dtype=np.uint8 )
+		whiteObjectInFieldMask = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		whiteObjectInFieldMask = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_CLOSE, kernel )
+
+		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+
+		## Delete line segment from mask.
+		kernel = np.ones( (20,3), dtype=np.uint8 )
+		kernel[:,0] = 0
+		kernel[:,2] = 0
+		whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		
+		whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+
+		whiteObjectContours.extend( whiteObjectContours_noline )
+
+		cv2.imshow( 'gg', whiteObject_noline )
+		cv2.waitKey(1)
+
+		return whiteObjectContours_noline
+
 	def ImageProcessingFunction( self, img, header ):
 
 		stepSize = 20 
+
+		imgH, imgW = img.shape[:2]
 
 		color_map = img[:, :, 1].copy()
 
@@ -49,7 +90,12 @@ class Vision( VisionModule ):
 		
 		boundaryLine = findLinearEqOfFieldBoundary( fieldContour )
 		
-		intersect_x = boundaryLine[0][3]
+		ransacContours =  [ [0, imgH] ]
+		for m, c, x0, xf in boundaryLine:
+			ransacContours.append( [ x0, m*x0 + c ] )
+			ransacContours.append( [ xf, m*xf + c ] )
+		ransacContours.append( [imgW, imgH] )
+		ransacContours = np.vstack( ransacContours ).astype(int).reshape(-1,1,2)
 
 		pointClound = findChangeOfColor( color_map, self.whiteID, self.greenID, mask=fieldMask, step = stepSize )
 
@@ -70,7 +116,8 @@ class Vision( VisionModule ):
 			points.append( point2D( x = p[0], y = p[1] ) )
 
 		newFieldContour = findNewLineFromRansac( fieldContour, 640, 480 )
-		goalList = findGoal( newFieldContour, color_map, goalColorID = 2 )
+		# goalList = findGoal( newFieldContour, color_map, goalColorID = 2 )
+		goalList = []
 
 		landmarkName = []
 		landmarkPose = []
@@ -84,14 +131,40 @@ class Vision( VisionModule ):
 			landmarkPose.append( point2D( x = intersect_x, y = intersect_y ) )
 			landmarkConfidence.append( 0.85 )
 
-		for p in goalList:
-			if p is None:
-				break
-			x,y = p
+		self.whiteObjectContours = self.getWhiteObjectContour( color_map, ransacContours )
 
-			landmarkName.append( 'goal' )
-			landmarkPose.append( point2D( x = x, y = y ) )
-			landmarkConfidence.append( 0.85 )
+		canExtract = self.predictor.extractFeature( img[:,:,0], self.whiteObjectContours, 
+									objectPointLocation="bottom" )
+
+		if canExtract:
+
+			self.predictor.predict()
+
+			goalList = self.predictor.getGoal()
+			foundBall = self.predictor.getBestRegion()
+
+			if foundBall:
+
+				landmarkName.append( 'ball' )
+
+				#	get bounding box object not only position
+				bestBounding = self.predictor.getBestBoundingBox()
+				#	get another point of object
+				botX, botY = bestBounding.bottom
+
+				landmarkPose.append( point2D( botX,
+											   botY ) )
+
+				landmarkConfidence.append( bestBounding.footballProbabilityScore )
+
+			for goalObj in goalList:
+
+				landmarkName.append( 'goal' )
+				botX, botY = goalObj.bottom
+				landmarkPose.append( point2D( botX,
+										   botY ) )
+
+				landmarkConfidence.append( goalObj.goalProbabilityScore )
 
 		msg = localizationMsg( )
 		msg.pointClound.num_scanline = 8
@@ -111,6 +184,8 @@ class Vision( VisionModule ):
 	def visualizeFunction( self, img, msg ):
 
 		super( Vision, self ).visualizeFunction( img, msg )
+
+		cv2.drawContours( img, self.whiteObjectContours, -1, (0,0,255), 1 )
 
 		for point in msg.pointClound.points:
 			x = int( point.x )
@@ -244,6 +319,8 @@ class Kinematic( KinematicModule ):
 
 			else:
 				x, y = p3D[:2]
+				x *= 1.3
+				y *= 1.3
 				ranges.append( np.sqrt( x**2 + y**2 ) )
 				points.append( point2D( x = x, y = y ) )
 
