@@ -248,14 +248,23 @@ class RotateToTheBall2( FSMBrainState ):
 			#	Rotate to ball
 			#
 			
-			#	Get sign to rotate
 			direction = 1 if thetaWrtRobotRad > 0 else -1
-			self.rosInterface.LocoCommand(	velX = 0.0,
-											velY = 0.0,
-											omgZ = direction * self.omegaZ,
-											command = 'OneStepWalk',
-											commandType = 0,
-											ignorable = False )
+			if localDistanceX < 0.5 and math.fabs(thetaWrtRobotRad) < math.radians(60):
+
+				self.rosInterface.LocoCommand(	velX = 0.0,
+												velY = direction * self.omegaZ,
+												omgZ = 0.0,
+												command = 'OneStepWalk',
+												commandType = 0,
+												ignorable = False )
+
+			else:
+				self.rosInterface.LocoCommand(	velX = 0.0,
+												velY = 0.0,
+												omgZ = direction * self.omegaZ,
+												command = 'OneStepWalk',
+												commandType = 0,
+												ignorable = False )
 			self.time = time.time()
 
 	def leaveStateCallBack( self ):

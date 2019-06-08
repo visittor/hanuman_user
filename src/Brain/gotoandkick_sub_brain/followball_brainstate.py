@@ -150,10 +150,6 @@ class FollowBall( FSMBrainState ):
 
 		#	Check confidence if model could detect ball
 		if 'ball' in localPosDict.object_name:
-			
-			#	get distance and angle
-			# distanceWrtBall = visionMsg.pos3D_cart[ idxBall ].x
-			# sideDistanceWrtBall = visionMsg.pos3D_cart[ idxBall ].y
 
 			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
 			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
