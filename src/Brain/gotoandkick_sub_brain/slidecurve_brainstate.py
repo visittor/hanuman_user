@@ -67,6 +67,8 @@ class SlideCurve( FSMBrainState ):
 		self.velY = None
 		self.omegaZ = None
 	
+		self.actualWaitingTime = 0
+
 	def initialize( self ):
 		#	Get config
 
@@ -74,17 +76,21 @@ class SlideCurve( FSMBrainState ):
 		self.velY = float( getParameters(self.config, 'VelocityParameter', 'VelocityYSlideCurve'))
 		self.omegaZ = float( getParameters(self.config, 'VelocityParameter', 'OmegaZSlideCurve' ))
 
-		self.waitingTimeSlideCurve = float( getParameters(self.config, "VelocityParameter", "WaitingTimeSlideCurve"))
+		self.waitingTime = float( getParameters(self.config, "VelocityParameter", "WaitingTimeSlideCurve"))
 
 	def firstStep( self ):
 
 		#	Get direction from global variable
 		direction = self.getGlobalVariable( 'curveSlideAngle' )
+
+		directionDegrees = int(math.degrees( math.fabs(direction) ))
+
+		self.actualWaitingTime = self.waitingTime * (directionDegrees / 20)
 		
 		if direction is not None:
 
-			if abs(  math.degrees( direction ) ) < 30:
-				self.SignalChangeSubBrain( self.nextState )
+			# if abs(  math.degrees( direction ) ) < 30:
+			# 	self.SignalChangeSubBrain( self.nextState )
 
 			direction = 1 if direction > 0 else -1
 
@@ -119,7 +125,7 @@ class SlideCurve( FSMBrainState ):
 		currentTime = time.time()
 		
 		#	TODO : Maybe change to radius
-		if currentTime - self.previousTime >= self.waitingTimeSlideCurve:
+		if currentTime - self.previousTime >= self.actualWaitingTime:
 			
 			self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
 									   	   ignorable =  False )
