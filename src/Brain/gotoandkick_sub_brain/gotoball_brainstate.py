@@ -118,10 +118,10 @@ class GotoBall( FSMBrainState ):
 		else:
 			localPosDict = localPosDict.postDict
 
-		if 'ball' in visionMsg.object_name and 'ball' in localPosDict.object_name:
-			idxBallLocalObj = localPosDict.object_name.index( 'ball' )
-			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
-				pass
+		if 'ball' in visionMsg.object_name:
+			# idxBallLocalObj = localPosDict.object_name.index( 'ball' )
+			# if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+			# 	pass
 			
 			# self.rosInterface.Pantilt( command = 3 )
 			if not self.lookAtBall:
