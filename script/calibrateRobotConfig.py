@@ -99,6 +99,9 @@ def main():
 	parser.add_option( '--resultPath', type='string', action = 'store',
 						dest = 'resultPath', help = 'path for saving result.' )
 
+	parser.add_option( '--use_cammat', action='store_true',
+						dest = 'use_cammat' )
+
 	parser.add_option( '--visualize', action = 'store_true',
 						dest = 'visualize', help = 'To only visualize error.')
  
@@ -122,7 +125,7 @@ def main():
 		distCoeffs = camera_prop[ 'distCoeffs' ]
 		# roi = camera_prop[ 'roi' ]
 
-	else:
+	elif not options.use_cammat:
 		## Re-calculate camera matrix
 		retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera( objPointList_chessboard, 
 														imgPointList_chessboard, (640,480), None, None )
@@ -140,28 +143,43 @@ def main():
 			np.savez( options.savePath,
 						cameraMatrix = cameraMatrix,
 						distCoeffs = distCoeffs, )
+
 	if options.resultPath is not None:
-
-		camProp = { 'fx' : cameraMatrix[0,0], 'fy' : cameraMatrix[1,1],
-					'cx' : cameraMatrix[0,2], 'cy' : cameraMatrix[1,2] }
-
-		try:
+		
+		if options.use_cammat:
 			config = configobj.ConfigObj( options.resultPath )
-		except Exception:
-			config = configobj.ConfigObj()
-			config.filename = options.resultPath
-		print distCoeffs
-		config['CameraParameters']['fx'] = cameraMatrix[0,0]
-		config['CameraParameters']['fy'] = cameraMatrix[1,1]
-		config['CameraParameters']['cx'] = cameraMatrix[0,2]
-		config['CameraParameters']['cy'] = cameraMatrix[1,2]
-		config['CameraParameters']['k1'] = distCoeffs[ 0 ]
-		config['CameraParameters']['k2'] = distCoeffs[ 1 ]
-		config['CameraParameters']['k3'] = distCoeffs[ 4 ] if len( distCoeffs ) >= 5 else 0.0
-		config['CameraParameters']['p1'] = distCoeffs[ 2 ]
-		config['CameraParameters']['p2'] = distCoeffs[ 3 ]
+			cameraMatrix = np.zeros( (3,3), dtype = np.float64 )
+			distCoeffs = []
+			cameraMatrix[0,0] = config['CameraParameters']['fx'] 
+			cameraMatrix[1,1] = config['CameraParameters']['fy'] 
+			cameraMatrix[0,2] = config['CameraParameters']['cx'] 
+			cameraMatrix[1,2] = config['CameraParameters']['cy']
+			cameraMatrix[2,2] = 1
+			distCoeffs.append(config['CameraParameters']['k1']) 
+			distCoeffs.append(config['CameraParameters']['k2']) 
+			distCoeffs.append(config['CameraParameters']['k3'])
+			distCoeffs.append(config['CameraParameters']['p1']) 
+			distCoeffs.append(config['CameraParameters']['p2']) 
 
-		config.write( )
+		else:
+
+			try:
+				config = configobj.ConfigObj( options.resultPath )
+			except Exception:
+				config = configobj.ConfigObj()
+				config.filename = options.resultPath
+			print distCoeffs
+			config['CameraParameters']['fx'] = cameraMatrix[0,0]
+			config['CameraParameters']['fy'] = cameraMatrix[1,1]
+			config['CameraParameters']['cx'] = cameraMatrix[0,2]
+			config['CameraParameters']['cy'] = cameraMatrix[1,2]
+			config['CameraParameters']['k1'] = distCoeffs[ 0 ]
+			config['CameraParameters']['k2'] = distCoeffs[ 1 ]
+			config['CameraParameters']['k3'] = distCoeffs[ 4 ] if len( distCoeffs ) >= 5 else 0.0
+			config['CameraParameters']['p1'] = distCoeffs[ 2 ]
+			config['CameraParameters']['p2'] = distCoeffs[ 3 ]
+
+			config.write( )
 
 	if options.visualize:
 		loadDimensionFromConfig( options.resultPath )
