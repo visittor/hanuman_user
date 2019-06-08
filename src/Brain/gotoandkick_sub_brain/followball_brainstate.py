@@ -145,6 +145,7 @@ class FollowBall( FSMBrainState ):
 					self.SignalChangeSubBrain( self.successState )
 
 			if math.fabs(currentPanAngle) >= math.radians( self.limitPanAngle ):
+				rospy.loginfo( "Change state to lostBall due to exceed pan angle limit.")
 				self.SignalChangeSubBrain( self.lostBallState )
 
 		#	Check confidence if model could detect ball
@@ -170,7 +171,7 @@ class FollowBall( FSMBrainState ):
 
 ## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.
 			if abs( thetaWrtRobotRad ) > math.radians( self.smallTheta ) and localDistanceX > 0.5:
-				
+				rospy.loginfo( "Change state to fail state due to angle between ball is too large.")
 				#	Back to align the ball
 				self.SignalChangeSubBrain( self.failState )
 

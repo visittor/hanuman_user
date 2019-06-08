@@ -173,7 +173,7 @@ class RotateToTheBall2( FSMBrainState ):
 	
 	def __init__( self, failState = "None", successState = "None", lostBallState = "None" ):
 		
-		super( RotateToTheBall, self ).__init__( "RotateToTheBall" )
+		super( RotateToTheBall2, self ).__init__( "RotateToTheBall2" )
 		
 		self.successState = successState
 		self.failState = failState
@@ -232,14 +232,14 @@ class RotateToTheBall2( FSMBrainState ):
 				localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
 				thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
 
-			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
-				#	it should switch to first state to find the ball
-				self.SignalChangeSubBrain( self.lostBallState )
+				if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
+					#	it should switch to first state to find the ball
+					self.SignalChangeSubBrain( self.lostBallState )
 
 ## NOTE : This case is not pratical since localMap not update object using visionMsg while robot is walking.			
-			if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
-				#	Back to previous state
-				self.SignalChangeSubBrain( self.successState )
+				if math.fabs( thetaWrtRobotRad ) <= math.radians( self.smallTheta ):
+					#	Back to previous state
+					self.SignalChangeSubBrain( self.successState )
 
 			else:
 				self.SignalChangeSubBrain( self.lostBallState )
