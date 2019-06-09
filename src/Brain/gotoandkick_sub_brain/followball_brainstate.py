@@ -201,7 +201,7 @@ class FollowBall( FSMBrainState ):
 
 		else:
 			omgZ = self.omg_max / 2
-			omgZ *= -1 if thetaWrtRobotRad < 0 else 1
+			omgZ *= 0 # -1 if thetaWrtRobotRad < 0 else 1
 
 		self.rosInterface.LocoCommand( velX = velX,
 					       			   velY = self.velY,
