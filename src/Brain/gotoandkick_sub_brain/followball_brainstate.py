@@ -191,22 +191,24 @@ class FollowBall( FSMBrainState ):
 		self.setGlobalVariable( 'direction', direction )	
 		
 		velX = (localDistanceX * self.velX_slope) + self.velX_offset
-		velX = max( self.velX_min, min( velX, self.velX_max ) )
+		velX = self.velX_min if velX < self.velX_max else self.velX_max
 
 		if 'ball' in visionMsg.object_name:
 			omgZ = (self.omg_slope*math.fabs(pantiltJS['pan'])) + self.omg_offset
-			omgZ = max( self.omg_min, min( omgZ, self.omg_max ) )
+			omgZ = min( self.omg_min, min( omgZ, self.omg_max ) )
 
 			omgZ *= -1 if pantiltJS['pan'] < 0 else 1
-		
+
 		else:
-			omgZ = 0.0
+			omgZ = self.omg_max / 2
+			omgZ *= -1 if thetaWrtRobotRad < 0 else 1
 
 		self.rosInterface.LocoCommand( velX = velX,
 					       			   velY = self.velY,
 					       			   omgZ = omgZ,
 					       			   commandType = 0,
-					       			   ignorable = True )			
+					       			   ignorable = True )
+
 	def leaveStateCallBack( self ):
 
 		self.stopRobotBehavior( )

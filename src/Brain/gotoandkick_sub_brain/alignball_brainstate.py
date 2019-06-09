@@ -249,7 +249,8 @@ class RotateToTheBall2( FSMBrainState ):
 			#
 			
 			direction = 1 if thetaWrtRobotRad > 0 else -1
-			if localDistanceX < 0.5 and math.fabs(thetaWrtRobotRad) < math.radians(60):
+			coeff = localDistanceX / (localDistanceX**2 + localDistanceY**2)
+			if coeff > 1.0:
 
 				self.rosInterface.LocoCommand(	velX = 0.0,
 												velY = direction * self.omegaZ,
