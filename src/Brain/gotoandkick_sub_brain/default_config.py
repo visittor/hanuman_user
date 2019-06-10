@@ -24,7 +24,9 @@ _DEFAULT_CONFIG = {
 								'BallConfidenceThreshold' 			: '0.5',
 								
 								'LimitTiltAngleDegree'  			: '60',
-								'LimitPanAngleDegree'   			: '15', },
+								'LimitPanAngleDegree'   			: '15',
+
+								'FindballStateTimeOut'				: '15.0', },
 
 	'PanTiltPlanner' : {					
 							'TiltAngleForLookAtFoot': '60',

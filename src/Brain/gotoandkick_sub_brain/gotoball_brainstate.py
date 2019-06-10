@@ -31,7 +31,6 @@ import rospy
 from findball_brainstate import FindBall
 from alignball_brainstate import RotateToTheBall, RotateToTheBall2
 from followball_brainstate import FollowBall
-from kicking_brainstate import KickTheBall
 
 from slidecurve_brainstate import SlideCurve
 
@@ -80,20 +79,21 @@ class GotoBall( FSMBrainState ):
 
 		super( GotoBall, self ).__init__( 'GotoBall' )
 
-		self.addSubBrain( _IDLE( ) )
+		# self.addSubBrain( _IDLE( ), 'FindBall' )
+		self.addSubBrain( FindBall( ), 'FindBall' )
 
-		self.addSubBrain( RotateToTheBall2( failState = '_IDLE',
+		self.addSubBrain( RotateToTheBall2( failState = 'FindBall',
 										successState = "FollowBall",
-										lostBallState = '_IDLE' ), 'RotateToTheBall' )
+										lostBallState = 'FindBall' ), 'RotateToTheBall' )
 		self.addSubBrain( FollowBall( failState = "RotateToTheBall", 
 									successState = 'None',
-									lostBallState = '_IDLE' ) )
+									lostBallState = 'FindBall' ) )
 
 		self.lookAtBall = False
 
 		self.nextState = nextState
 
-		self.setFirstSubBrain( '_IDLE' ) 
+		self.setFirstSubBrain( 'FindBall' ) 
 
 	def initialize( self ):
 
@@ -129,7 +129,7 @@ class GotoBall( FSMBrainState ):
 				rospy.loginfo( "Found ball!!!!" )
 				self.lookAtBall = True
 			
-			if self.currSubBrainName == '_IDLE':
+			if self.currSubBrainName == 'FindBall':
 				self.ChangeSubBrain( 'RotateToTheBall' )
 
 		else:
