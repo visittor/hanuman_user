@@ -79,8 +79,8 @@ class GotoBall( FSMBrainState ):
 
 		super( GotoBall, self ).__init__( 'GotoBall' )
 
-		# self.addSubBrain( _IDLE( ), 'FindBall' )
-		self.addSubBrain( FindBall( ), 'FindBall' )
+		self.addSubBrain( _IDLE( ), 'FindBall' )
+		# self.addSubBrain( FindBall( ), 'FindBall' )
 
 		self.addSubBrain( RotateToTheBall2( failState = 'FindBall',
 										successState = "FollowBall",

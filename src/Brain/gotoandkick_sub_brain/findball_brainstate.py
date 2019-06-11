@@ -58,24 +58,12 @@ class FindBall( FSMBrainState ):
 		
 		super( FindBall, self ).__init__( "FindBall" )
 
-		self.nextState = nextState
-	
-		#	Initial attribute for storin
-
-		self.previousTime = None
-
 		#	Intial attribute for time ou
 
 		self.findBallStateTimeOut = None
 
 		self.stepDirection = [ 1, -1, -1, 1 ]
 		self.stepIndex = 0
-
-		#	Add sub brain
-		# self.addSubBrain( WalkingTimeOut( findball="PantiltScan" ) )
-		self.addSubBrain( PantiltScan(  ) )
-
-		self.setFirstSubBrain( "PantiltScan" )
 
 	def initialize( self ):
 
@@ -86,7 +74,7 @@ class FindBall( FSMBrainState ):
 		
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 		self.stepIndex = 0
-		self.timeStart - time.time( )
+		self.timeStart = time.time( )
 
 	def step( self ):
 
