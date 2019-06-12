@@ -16,6 +16,8 @@ from scipy.spatial.distance import cdist
 import numpy as np 
 import cv2
 
+import rospy
+
 import os
 
 DIMENSION_FOR_SIMULATION = [ 0.49088, 0.0, 0.0205, 0.01075, 0.046, 0.034, -0.002, 0.0 ]
@@ -215,8 +217,9 @@ class Kinematic( KinematicModule ):
 	def __init__( self ):
 		super( Kinematic, self ).__init__(  )
 
-		config = configobj.ConfigObj( '/home/visittor/humanoid_data/test_2.ini' )
-		loadDimensionFromConfig( '/home/visittor/humanoid_data/test_2.ini' )
+		robotConfigPathStr = rospy.get_param( '/robot_config', None )
+		config = configobj.ConfigObj( robotConfigPathStr )
+		loadDimensionFromConfig( robotConfigPathStr )
 		print getRobotConfiguration( )
 		# config = configobj.ConfigObj( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )
 		# loadDimensionFromConfig( '/home/visittor/ros_ws/src/newbie_hanuman/config/robot_sim.ini' )
@@ -299,7 +302,7 @@ class Kinematic( KinematicModule ):
 		pitch = math.radians(cortexMsg.pitch) if cortexMsg is not None else 0.0
 		roll = math.radians(cortexMsg.roll)	if cortexMsg is not None else 0.0
 		# print math.degrees(pitch), math.degrees(roll)
-		# roll = pitch = 0.0
+		roll = pitch = 0.0
 		tranvec = np.zeros( (3,1) )
 		rotvec = np.array( [roll, pitch, 0.0] )
 
