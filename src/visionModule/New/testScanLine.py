@@ -322,8 +322,8 @@ class Kinematic( KinematicModule ):
 
 			else:
 				x, y = p3D[:2]
-				x *= 1.3
-				y *= 1.3
+				# x *= 1.3
+				# y *= 1.3
 				ranges.append( np.sqrt( x**2 + y**2 ) )
 				points.append( point2D( x = x, y = y ) )
 
