@@ -93,7 +93,9 @@ class GotoBall( FSMBrainState ):
 
 		self.nextState = nextState
 
-		self.setFirstSubBrain( 'FindBall' ) 
+		self.setFirstSubBrain( 'FindBall' )
+
+		self._timeStart = time.time( )
 
 	def initialize( self ):
 
@@ -128,11 +130,12 @@ class GotoBall( FSMBrainState ):
 				self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
 				rospy.loginfo( "Found ball!!!!" )
 				self.lookAtBall = True
+				self._timeStart = time.time( )
 			
 			if self.currSubBrainName == 'FindBall':
 				self.ChangeSubBrain( 'RotateToTheBall' )
 
-		else:
+		elif time.time( ) - self._timeStart > 3:
 			if self.lookAtBall:
 				self.lookAtBall = False
 				rospy.loginfo( "LOST ball!!!!" )
