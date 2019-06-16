@@ -72,6 +72,47 @@ class Kinematic( KinematicModule ):
 
 		self.subscribeMotorCortex = True
 
+	def findCircle_ransac( self, point3D ):
+
+		def is_data_valid( random_data ):
+
+			distMat = cdist( random_data, random_data )
+			distAvg = (np.sum( distMat )/2) / len( random_data )
+
+			if distAvg < 0.2:
+				return False
+
+			return True
+
+		def is_model_valid(model, *random_data):
+			x, y, r = model.params
+
+			if r > 0.9:
+				return False
+
+			return True
+		if len( point3D ) < 3:
+			return
+		model, inliers = measure.ransac(point3D, measure.CircleModel,
+                                min_samples=3, residual_threshold=0.05,
+                                max_trials=500, is_model_valid = is_model_valid,
+                                is_data_valid = is_data_valid)
+
+		if model is None:
+			return
+
+		x, y, r = model.params
+
+		thr = max(0.3 * len( point3D ), 20)
+
+		return x, y, r if np.sum(inliers) > thr and r is not None else None
+
+	def getDensityProbability_normalize( self, x, mean, sigma ):
+		prob = self.getDensityProbability( x, mean, sigma )
+		prob_perfect = self.getDensityProbability( mean, mean, sigma )
+
+		return prob / prob_perfect
+
 	def kinematicCalculation( self, objMsg, js, cortexMsg, rconfig=None ):
 
 		points2D = [ [p.x, p.y] for p in objMsg.pos2D ]
@@ -166,6 +207,13 @@ class Kinematic( KinematicModule ):
 				x, y = p3D[:2]
 				ranges.append( math.sqrt( x**2 + y**2 ) )
 				points.append( point2D( x = x, y = y ) )
+
+		circle = self.findCircle_ransac( np.array([[p.x,p.y] for p in points]) )
+		if circle is not None and circle[0] is not None and circle[1] is not None and circle[2] is not None:
+			names.append( 'circle' )
+			landmarkPose3D.append( point2D( x = circle[0], y = circle[1] ) )
+			confidences.append( self.getDensityProbability_normalize( circle[2], 
+																	0.75, 0.5 ) )
 
 		# print points3D
 		msg = postDictMsg( )
