@@ -4,6 +4,9 @@ import os
 import cv2
 import numpy as np
 
+from skimage import measure, feature
+from scipy.spatial.distance import cdist
+
 import rospy
 import configobj
 
@@ -90,6 +93,9 @@ class Kinematic( KinematicModule ):
 			if r > 0.9:
 				return False
 
+			elif r < 0.5:
+				return False
+
 			return True
 		if len( point3D ) < 3:
 			return
@@ -103,9 +109,15 @@ class Kinematic( KinematicModule ):
 
 		x, y, r = model.params
 
-		thr = max(0.3 * len( point3D ), 20)
+		thr = max(0.1 * len( point3D ), 20)
 
 		return x, y, r if np.sum(inliers) > thr and r is not None else None
+
+	def getDensityProbability( self, x, mean, sigma ):
+
+		prob = math.exp( -((x-mean)**2)/(2*sigma**2) ) / (math.sqrt(2*math.pi)*sigma)
+
+		return prob
 
 	def getDensityProbability_normalize( self, x, mean, sigma ):
 		prob = self.getDensityProbability( x, mean, sigma )
@@ -194,6 +206,8 @@ class Kinematic( KinematicModule ):
 
 			else:
 				x, y = p3D[:2]
+				# x *= 0.8
+				# y *= 0.8
 				ranges.append( math.sqrt( x**2 + y**2 ) )
 				points.append( point2D( x = x, y = y ) )
 
@@ -205,6 +219,8 @@ class Kinematic( KinematicModule ):
 
 			else:
 				x, y = p3D[:2]
+				# x *= 0.8
+				# y *= 0.8
 				ranges.append( math.sqrt( x**2 + y**2 ) )
 				points.append( point2D( x = x, y = y ) )
 
@@ -228,8 +244,8 @@ class Kinematic( KinematicModule ):
 
 		pointCloundMSG = scanlinePointClound( )
 		pointCloundMSG.num_scanline = 20
-		pointCloundMSG.min_range = 0
-		pointCloundMSG.max_range = 7
+		pointCloundMSG.min_range = 0.5
+		pointCloundMSG.max_range = 4
 		pointCloundMSG.range = ranges
 		pointCloundMSG.points = points
 		pointCloundMSG.splitting_index = splitIndexes
