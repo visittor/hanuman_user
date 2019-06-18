@@ -28,8 +28,6 @@ import math
 import time
 import rospy
 
-from default_config import getParameters
-
 ########################################################
 #
 #	GLOBALS
@@ -53,8 +51,9 @@ from default_config import getParameters
 class _IDLE( FSMBrainState ):
 
 	def __init__( self ):
-		pass
-
+		
+		super( _IDLE, self ).__init__( "_IDLE" )
+ 
 	def firstStep( self ):
 		self.rosInterface.LocoCommand( velX = 0.0,
 									   velY = 0.0,
@@ -73,6 +72,9 @@ class _IDLE( FSMBrainState ):
 class _GoForward( FSMBrainState ):
 
 	def __init__( self, duration, nextState = 'None' ):
+
+		super( _GoForward, self ).__init__( "_GoForward" )
+
 		self.duration = duration
 		self.nextState = nextState
 
@@ -99,7 +101,8 @@ class _GoForward( FSMBrainState ):
 class _TurnLeft( FSMBrainState ):
 
 	def __init__( self ):
-		pass
+		
+		super( _TurnLeft, self ).__init__( "_TurnLeft" )
 
 	def firstStep( self ):
 		self.rosInterface.LocoCommand( velX = 0.0,
@@ -118,7 +121,7 @@ class _TurnLeft( FSMBrainState ):
 class _TurnRight( FSMBrainState ):
 
 	def __init__( self ):
-		pass
+		super( _TurnRight, self ).__init__( "_TurnRight" )
 
 	def firstStep( self ):
 		self.rosInterface.LocoCommand( velX = 0.0,
@@ -138,12 +141,14 @@ class GoToField( FSMBrainState ):
 
 	def __init__( self, nextState = 'None' ):
 
+		super( GoToField, self ).__init__( "GoToField" )
+
 		self.addSubBrain( _IDLE( ), 'IDLE' )
 		self.addSubBrain( _GoForward( 5 ), 'Forward' )
 		self.addSubBrain( _TurnRight(), 'TurnRight' )
 		self.addSubBrain( _TurnLeft(), 'TurnLeft' )
 
-		self.setFirstSubBrain( '_IDLE' )
+		self.setFirstSubBrain( 'IDLE' )
 
 		self.nextState = nextState
 
@@ -187,6 +192,8 @@ class TurnToGoal( FSMBrainState ):
 
 	def __init__( self, nextState = 'None' ):
 
+		super( TurnToGoal, self ).__init__( "TurnToGoal" )
+
 		self.addSubBrain( _IDLE( ), 'IDLE' )
 		self.addSubBrain( _TurnRight( ), 'TurnRight' )
 		self.addSubBrain( _TurnLeft( ), 'TurnLeft' )
@@ -220,11 +227,13 @@ class EnterField( FSMBrainState ):
 
 	def __init__( self ):
 
+		super( EnterField, self ).__init__( "EnterField" )
+
 		self.addSubBrain( _IDLE(), 'IDLE' )
 		self.addSubBrain( GoToField('TurnToGoal') )
 		self.addSubBrain( TurnToGoal('None') )
 
-		self.setFirstSubBrain( '_IDLE' )
+		self.setFirstSubBrain( 'IDLE' )
 
 	def initialize( self ):
 
@@ -268,6 +277,8 @@ class ReadyState( FSMBrainState ):
 
 	def __init__( self ):
 
+		super( ReadyState, self ).__init__( "ReadyState" )
+
 		self.addSubBrain( EnterField( ) )
 
 		self.setFirstSubBrain( 'None' )
@@ -279,7 +290,12 @@ class ReadyState( FSMBrainState ):
 		pass
 
 	def firstStep( self ):
-		pass
+		
+		#	Add sit to stand
+		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
+
+		rospy.loginfo( "Robot is going to half of field" )
+
 
 	def step( self ):
 
