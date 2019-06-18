@@ -229,9 +229,9 @@ class EnterField( FSMBrainState ):
 	def initialize( self ):
 
 		if self.config.has_key('Localization'):
-			self.x_init = self.config['Localization'].get( 'init_x', 0.0 )
-			self.y_init = self.config['Localization'].get( 'init_y', 0.0 )
-			self.w_init = self.config['Localization'].get( 'init_w', 0.0 )
+			self.x_init = float( self.config['Localization'].get( 'init_x', 0.0 ) )
+			self.y_init = float( self.config['Localization'].get( 'init_y', 0.0 ) )
+			self.w_init = float( self.config['Localization'].get( 'init_w', 0.0 ) )
 
 		else:
 			self.x_init = 0.0
@@ -285,3 +285,4 @@ class ReadyState( FSMBrainState ):
 
 		if self.firstTime:
 			self.ChangeSubBrain( 'EnterField' )
+			self.firstTime = False
