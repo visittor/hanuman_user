@@ -21,7 +21,11 @@ from brain.brainState import FSMBrainState
 from brain.HanumanRosInterface import HanumanRosInterface
 
 from brain_script.gameControl_fsmbrainstate import Controller
-from brain_script.gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PernaltyState
+from brain_script.gameControl_brainstate import InitialState, SetState, PlayState, FinishState, PernaltyState
+# from brain_script.gameControl_brainstate import ReadyState
+
+from enter_field.EnterField import ReadyState
+
 
 from gotoandkick_fsmbrainstate import _IDLE, MainBrain
 
