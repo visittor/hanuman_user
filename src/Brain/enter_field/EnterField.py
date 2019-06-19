@@ -96,7 +96,6 @@ class _GoForward( FSMBrainState ):
 									   omgZ = 0.0,
 									   commandType = 0,
 									   ignorable = False )
-		time.sleep( 3 )
 
 class _TurnLeft( FSMBrainState ):
 
