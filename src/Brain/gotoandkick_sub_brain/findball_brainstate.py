@@ -112,7 +112,7 @@ class FindBall( FSMBrainState ):
 
 		super( FindBall, self ).__init__( "FindBall" )
 
-		self.turnDuration = 2
+		self.turnDuration = 4
 
 		self.addSubBrain( TurnLeftTimer( self.turnDuration ) )
 		self.addSubBrain( TurnRightTimer( self.turnDuration ) )
