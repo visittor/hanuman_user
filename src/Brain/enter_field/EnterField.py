@@ -78,7 +78,7 @@ class _GoForward( FSMBrainState ):
 		self.nextState = nextState
 
 	def firstStep( self ):
-		self.rosInterface.LocoCommand( velX = 0.5,
+		self.rosInterface.LocoCommand( velX = 0.8,
 									   velY = 0.0,
 									   omgZ = 0.0,
 									   commandType = 0,
@@ -96,6 +96,7 @@ class _GoForward( FSMBrainState ):
 									   omgZ = 0.0,
 									   commandType = 0,
 									   ignorable = False )
+		time.sleep( 3 )
 
 class _TurnLeft( FSMBrainState ):
 
@@ -143,7 +144,7 @@ class GoToField( FSMBrainState ):
 		super( GoToField, self ).__init__( "GoToField" )
 
 		self.addSubBrain( _IDLE( ), 'IDLE' )
-		self.addSubBrain( _GoForward( 5 ), 'Forward' )
+		self.addSubBrain( _GoForward( 10 ), 'Forward' )
 		self.addSubBrain( _TurnRight(), 'TurnRight' )
 		self.addSubBrain( _TurnLeft(), 'TurnLeft' )
 
@@ -266,16 +267,16 @@ class EnterField( FSMBrainState ):
 		self.startTime = time.time( )
 
 		currPos = self.rosInterface.robot_pose
-		currPos.w %= 2*np.pi
+		currPos.theta %= 2*np.pi
 
-		self.setGlobalVariable( 'currRobotPos', (currPos.x, currPos.y, currPos.w) )
+		self.setGlobalVariable( 'currRobotPos', (currPos.x, currPos.y, currPos.theta) )
 
 	def step( self ):
 
 		currPos = self.rosInterface.robot_pose
-		currPos.w %= 2*np.pi
+		currPos.theta %= 2*np.pi
 
-		self.setGlobalVariable( 'currRobotPos', (currPos.x, currPos.y, currPos.w) )
+		self.setGlobalVariable( 'currRobotPos', (currPos.x, currPos.y, currPos.theta) )
 
 		if self.currSubBrainName == 'IDLE' and time.time() - self.startTime > 3:
 			self.ChangeSubBrain( 'GoToField' )
@@ -301,7 +302,7 @@ class ReadyState( FSMBrainState ):
 		self.rosInterface.Pantilt( command = 1, pattern = "basic_pattern" )
 		
 		#	Add sit to stand
-		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
+		# self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
 
 		rospy.loginfo( "Robot is going to half of field" )
 

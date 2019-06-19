@@ -60,7 +60,7 @@ class InitialState( FSMBrainState ):
 		rospy.logdebug( "Entering initial state" )
 		rospy.logdebug( "Sit down" )
 
-		self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
+		# self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
 		
 	def step( self ):
 		# do command in this state
