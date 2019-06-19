@@ -51,14 +51,73 @@ DistanceThreshold = 0.30
 #	CLASS DEFINITIONS
 #
 
+class TurnLeftTimer( FSMBrainState ):
+
+	def __init__( self, time, nextState = 'None' ):
+
+		super( TurnLeftTimer, self ).__init__( 'TurnLeftTimer' )
+
+		self.duration = time
+		self.nextState = nextState
+
+	def firstStep( self ):
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = 0.5,
+										commandType = 0,
+										ignorable = False )
+		self.startTime = time.time( )
+
+	def step( self ):
+		if time.time( ) - self.startTime > self.duration:
+			self.SignalChangeSubBrain( self.nextState )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand( velX = 0.0,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   commandType = 0,
+									   ignorable = False )		
+class TurnRightTimer( FSMBrainState ):
+
+	def __init__( self, time, nextState = 'None' ):
+
+		super( TurnRightTimer, self ).__init__( 'TurnRightTimer' )
+
+		self.duration = time
+		self.nextState = nextState
+
+	def firstStep( self ):
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = -0.5,
+										commandType = 0,
+										ignorable = False )
+		self.startTime = time.time( )
+
+	def step( self ):
+		if time.time( ) - self.startTime > self.duration:
+			self.SignalChangeSubBrain( self.nextState )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand( velX = 0.0,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   commandType = 0,
+									   ignorable = False )	
+
 class FindBall( FSMBrainState ):
 	
 	def __init__( self, nextState = "None" ):
 
-		
 		super( FindBall, self ).__init__( "FindBall" )
 
-		#	Intial attribute for time ou
+		self.turnDuration = 4
+
+		self.addSubBrain( TurnLeftTimer( self.turnDuration ) )
+		self.addSubBrain( TurnRightTimer( self.turnDuration ) )
+
+		self.setFirstSubBrain( 'None' )
 
 		self.findBallStateTimeOut = None
 
@@ -69,6 +128,7 @@ class FindBall( FSMBrainState ):
 
 		#	Get time out from config
 		self.findBallStateTimeOut = float( self.config[ 'ChangeStateParameter' ][ 'FindballStateTimeOut' ] )
+		self.findBallStateTimeOut += self.turnDuration
 
 	def firstStep( self ):
 		
@@ -82,12 +142,10 @@ class FindBall( FSMBrainState ):
 
 			direction = self.stepDirection[ self.stepIndex ]
 
-			self.rosInterface.LocoCommand(	velX = 0.0,
-											velY = 0.0,
-											omgZ = direction * 0.8,
-											command = 'OneStepWalk',
-											commandType = 0,
-											ignorable = False )
+			if direction > 0:
+				self.ChangeSubBrain( 'TurnLeftTimer' )
+			else:
+				self.ChangeSubBrain( 'TurnRightTimer' )
 
 			self.stepIndex = ( self.stepIndex + 1 ) % len( self.stepDirection )
 			self.timeStart = time.time( )
