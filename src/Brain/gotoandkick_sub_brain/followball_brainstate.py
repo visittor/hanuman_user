@@ -195,7 +195,7 @@ class FollowBall( FSMBrainState ):
 
 		if 'ball' in visionMsg.object_name:
 			omgZ = (self.omg_slope*math.fabs(pantiltJS['pan'])) + self.omg_offset
-			omgZ = min( self.omg_min, min( omgZ, self.omg_max ) )
+			omgZ = max( self.omg_min, min( omgZ, self.omg_max ) )
 
 			omgZ *= -1 if pantiltJS['pan'] < 0 else 1
 
