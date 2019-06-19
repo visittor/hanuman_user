@@ -173,8 +173,6 @@ class ImageProcessing( VisionModule ):
 
 		msg = self.createVisionMsg( objectNameList, pos2DList, objectErrorList, objectConfidenceList, imageWidth, imageHeight )
 		
-		time.sleep( 0.5 )
-
 		return msg
 
 	def createVisionMsg( self, objectNameList, pos2DList, objectErrorList, objectConfidenceList, imgWidth, imgHeight ):
