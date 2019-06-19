@@ -311,3 +311,5 @@ class ReadyState( FSMBrainState ):
 		if self.firstTime:
 			self.ChangeSubBrain( 'EnterField' )
 			self.firstTime = False
+
+main_brain = ReadyState()
