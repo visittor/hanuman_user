@@ -61,13 +61,12 @@ class _IDLE( FSMBrainState ):
 									   commandType = 0,
 									   ignorable = False )
 
-		self.rosInterface.Pantilt( command = 1, pattern = "basic_pattern" )
-
 	def leaveStateCallBack( self ):
-		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
-							position=[ 0.0, 0.0 ],
-							command=0,
-							velocity=[100, 100] )
+		# self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+		# 					position=[ 0.0, 0.0 ],
+		# 					command=0,
+		# 					velocity=[100, 100] )
+		pass
 
 class _GoForward( FSMBrainState ):
 
@@ -157,6 +156,7 @@ class GoToField( FSMBrainState ):
 
 	def firstStep( self ):
 		self.startPos = self.getGlobalVariable( 'currRobotPos' )
+		self.startTime = time.time( )
 
 	def step( self ):
 
@@ -165,8 +165,15 @@ class GoToField( FSMBrainState ):
 		if self.currSubBrainName == 'Forward':
 			return
 
+		elif self.currSubBrainName == 'None':
+			self.startTime = time.time( )
+			self.ChangeSubBrain( 'IDLE' )
+
 		if math.fabs(currPos[1]) < 0.75 or self.startPos[1] * currPos[1] < 0:
 			self.SignalChangeSubBrain( self.nextState )
+
+		elif time.time() - self.startTime < 3 and self.prevSubBrainName == 'None':
+			return
 
 		elif currPos[1] < 0:
 			if math.radians( 270.0 ) <= currPos[2] or currPos[2] < math.radians( 60.0 ): 
@@ -290,6 +297,8 @@ class ReadyState( FSMBrainState ):
 		pass
 
 	def firstStep( self ):
+
+		self.rosInterface.Pantilt( command = 1, pattern = "basic_pattern" )
 		
 		#	Add sit to stand
 		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
