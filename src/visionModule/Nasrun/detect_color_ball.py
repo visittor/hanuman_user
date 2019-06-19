@@ -172,7 +172,9 @@ class ImageProcessing( VisionModule ):
 			objectConfidenceList.append( 1.0 )
 
 		msg = self.createVisionMsg( objectNameList, pos2DList, objectErrorList, objectConfidenceList, imageWidth, imageHeight )
-		
+
+		time.sleep(0.25)
+
 		return msg
 
 	def createVisionMsg( self, objectNameList, pos2DList, objectErrorList, objectConfidenceList, imgWidth, imgHeight ):
