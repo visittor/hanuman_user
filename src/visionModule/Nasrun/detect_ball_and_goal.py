@@ -90,7 +90,7 @@ class ImageProcessing( VisionModule ):
 		
 		#	get model object
 		#	positive threshold is 0.70
-		self.predictor = HOG_SVM( FootballModelPath, GoalModelPath, 0.80, rectangleThreshold=30 )
+		self.predictor = HOG_SVM( FootballModelPath, GoalModelPath, 0.80, rectangleThreshold=0.5, boundingBoxSize=10 )
 		# self.predictor = HOG_MLP( '/home/visittor/Downloads/Dataset/Dataset/model/train_SVM_model.pk1', 
 		# 						0.80, rectangleThreshold=30 )
 
