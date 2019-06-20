@@ -77,7 +77,8 @@ class TurnLeftTimer( FSMBrainState ):
 									   velY = 0.0,
 									   omgZ = 0.0,
 									   commandType = 0,
-									   ignorable = False )		
+									   ignorable = False )
+
 class TurnRightTimer( FSMBrainState ):
 
 	def __init__( self, time, nextState = 'None' ):
@@ -104,7 +105,63 @@ class TurnRightTimer( FSMBrainState ):
 									   velY = 0.0,
 									   omgZ = 0.0,
 									   commandType = 0,
-									   ignorable = False )	
+									   ignorable = False )
+
+class BackwardTimer( FSMBrainState ):
+
+	def __init__( self, time, nextState = 'None' ):
+
+		super( BackwardTimer, self ).__init__( 'BackwardTimer' )
+
+		self.duration = time
+		self.nextState = nextState
+
+	def firstStep( self ):
+		self.rosInterface.LocoCommand(	velX = -0.5,
+										velY = 0.0,
+										omgZ = 0.0,
+										commandType = 0,
+										ignorable = False )
+		self.startTime = time.time( )
+
+	def step( self ):
+		if time.time( ) - self.startTime > self.duration:
+			self.SignalChangeSubBrain( self.nextState )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand( velX = 0.0,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   commandType = 0,
+									   ignorable = False )
+
+class ForwardTimer( FSMBrainState ):
+
+	def __init__( self, time, nextState = 'None' ):
+
+		super( ForwardTimer, self ).__init__( 'ForwardTimer' )
+
+		self.duration = time
+		self.nextState = nextState
+
+	def firstStep( self ):
+		self.rosInterface.LocoCommand(	velX = 0.5,
+										velY = 0.0,
+										omgZ = 0.0,
+										commandType = 0,
+										ignorable = False )
+		self.startTime = time.time( )
+
+	def step( self ):
+		if time.time( ) - self.startTime > self.duration:
+			self.SignalChangeSubBrain( self.nextState )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand( velX = 0.0,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   commandType = 0,
+									   ignorable = False )
 
 class FindBall( FSMBrainState ):
 	
@@ -112,23 +169,26 @@ class FindBall( FSMBrainState ):
 
 		super( FindBall, self ).__init__( "FindBall" )
 
-		self.turnDuration = 4
+		self.duration = 4
 
-		self.addSubBrain( TurnLeftTimer( self.turnDuration ) )
-		self.addSubBrain( TurnRightTimer( self.turnDuration ) )
+		self.addSubBrain( TurnLeftTimer( self.duration ), 'left' )
+		self.addSubBrain( TurnRightTimer( self.duration ), 'right' )
+		self.addSubBrain( ForwardTimer( self.duration ), 'forward' )
+		self.addSubBrain( BackwardTimer( self.duration ), 'backward' )
 
 		self.setFirstSubBrain( 'None' )
 
 		self.findBallStateTimeOut = None
 
 		self.stepDirection = [ 1, -1, -1, 1 ]
+		self.stepDirection = ['backward', 'left', 'right', 'right', 'left']
 		self.stepIndex = 0
 
 	def initialize( self ):
 
 		#	Get time out from config
 		self.findBallStateTimeOut = float( self.config[ 'ChangeStateParameter' ][ 'FindballStateTimeOut' ] )
-		self.findBallStateTimeOut += self.turnDuration
+		self.findBallStateTimeOut += self.duration
 
 	def firstStep( self ):
 		
@@ -142,10 +202,7 @@ class FindBall( FSMBrainState ):
 
 			direction = self.stepDirection[ self.stepIndex ]
 
-			if direction > 0:
-				self.ChangeSubBrain( 'TurnLeftTimer' )
-			else:
-				self.ChangeSubBrain( 'TurnRightTimer' )
+			self.ChangeSubBrain( direction )
 
 			self.stepIndex = ( self.stepIndex + 1 ) % len( self.stepDirection )
 			self.timeStart = time.time( )
