@@ -135,6 +135,27 @@ class BackwardTimer( FSMBrainState ):
 									   commandType = 0,
 									   ignorable = False )
 
+class StopTimer( FSMBrainState ):
+
+	def __init__( self, time, nextState = 'None' ):
+
+		super( BackwardTimer, self ).__init__( 'BackwardTimer' )
+
+		self.duration = time
+		self.nextState = nextState
+
+	def firstStep( self ):
+		self.rosInterface.LocoCommand(	velX = 0.0,
+										velY = 0.0,
+										omgZ = 0.0,
+										commandType = 0,
+										ignorable = False )
+		self.startTime = time.time( )
+
+	def step( self ):
+		if time.time( ) - self.startTime > self.duration:
+			self.SignalChangeSubBrain( self.nextState )
+
 class ForwardTimer( FSMBrainState ):
 
 	def __init__( self, time, nextState = 'None' ):
@@ -181,7 +202,9 @@ class FindBall( FSMBrainState ):
 		self.findBallStateTimeOut = None
 
 		self.stepDirection = [ 1, -1, -1, 1 ]
-		self.stepDirection = ['backward', 'left', 'right', 'right', 'left']
+		self.stepDirection = ['backward', 'stop', 'left', 
+							'stop', 'right', 'right', 'stop', 
+							'left', 'stop']
 		self.stepIndex = 0
 
 	def initialize( self ):
@@ -189,6 +212,8 @@ class FindBall( FSMBrainState ):
 		#	Get time out from config
 		self.findBallStateTimeOut = float( self.config[ 'ChangeStateParameter' ][ 'FindballStateTimeOut' ] )
 		self.findBallStateTimeOut += self.duration
+
+		self.addSubBrain( BackwardTimer( self.findBallStateTimeOut ), 'stop' )
 
 	def firstStep( self ):
 		
@@ -198,14 +223,13 @@ class FindBall( FSMBrainState ):
 
 	def step( self ):
 
-		if time.time( ) - self.timeStart > self.findBallStateTimeOut:
+		if self.currSubBrainName == 'None':
 
 			direction = self.stepDirection[ self.stepIndex ]
 
 			self.ChangeSubBrain( direction )
 
 			self.stepIndex = ( self.stepIndex + 1 ) % len( self.stepDirection )
-			self.timeStart = time.time( )
 
 	def leaveStateCallBack( self ):
 
