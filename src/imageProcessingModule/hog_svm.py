@@ -53,7 +53,7 @@ def loadModel( modelPathStr ):
 class HOG_predictor( object ):
 
 	def __init__( self, positiveThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 40 ):
 
 		self.positiveThreshold = positiveThreshold
 
@@ -222,7 +222,7 @@ class HOG_predictor( object ):
 class HOG_SVM( HOG_predictor ):
 
 	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
 		super( HOG_SVM, self ).__init__( positiveThreshold = positiveThreshold, 
 										winSize = winSize, blockSize = blockSize, 
@@ -249,7 +249,7 @@ class HOG_SVM( HOG_predictor ):
 class HOG_MLP( HOG_predictor ):
 
 	def __init__( self, modelPath, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 20, boundingBoxSize = 10 ):
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
 		super( HOG_MLP, self ).__init__( positiveThreshold = positiveThreshold, 
 										winSize = winSize, blockSize = blockSize, 

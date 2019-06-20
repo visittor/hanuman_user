@@ -242,7 +242,7 @@ class BoundingBoxList( object ):
 		filterSizeFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= self.boundingBoxSize and boundingBoxTuple[ 3 ] >= self.boundingBoxSize
 		
 # NOTE : visittor : Should use aspect ratio instead.
-		filterNonRectFunction = lambda boundingBoxTuple : abs( boundingBoxTuple[ 2 ] - boundingBoxTuple[ 3 ] ) <= self.rectangleThreshold
+		filterNonRectFunction = lambda boundingBoxTuple : float( boundingBoxTuple[ 2 ] ) / float( boundingBoxTuple[ 3 ] ) >= self.rectangleThreshold
 
 		boundingBoxFilteredSizeList = filter( filterSizeFunction, boundingBoxList )
 		boundingBoxFilteredNonRectList = filter( filterNonRectFunction, boundingBoxFilteredSizeList )
