@@ -43,6 +43,7 @@ from newbie_hanuman.msg import visionMsg, postDictMsg
 from geometry_msgs.msg import Point32 
 
 import math
+import time
 
 ########################################################
 #
@@ -201,6 +202,7 @@ class ImageProcessing( VisionModule ):
 		marker = img[:, :, 1]
 		gray = img[:, :, 0]
 
+		t0 = time.time()
 		fieldContour, fieldMask = findBoundary( marker, self.greenID )
 		coeff = findLinearEqOfFieldBoundary( fieldContour )
 
@@ -211,9 +213,13 @@ class ImageProcessing( VisionModule ):
 		ransacContours.append( [imgW, imgH] )
 		ransacContours = np.vstack( ransacContours ).astype(int).reshape(-1,1,2)
 
+		t1 = time.time()
+
 		pointClound = findChangeOfColor( marker, self.whiteID, self.greenID, 
 										mask = fieldMask, step = 20 )
 		
+		t2 = time.time()
+
 		for scanline in pointClound:
 
 			for x,y in scanline:
@@ -226,6 +232,8 @@ class ImageProcessing( VisionModule ):
 
 			self.addObject( p[0], p[1], 'field', 1.0, (imgH, imgW),
 							objNameList, pos2DList, confidenceList, errorList )
+
+		t3 = time.time()
 
 		if len( coeff ) > 1:
 			#	find y intersect
@@ -240,13 +248,19 @@ class ImageProcessing( VisionModule ):
 
 		self.whiteObjectContours = self.getWhiteObjectContour( marker, ransacContours )
 
+		t4 = time.time()
+
 		self.kickCandidate = self.findKickCandidate( marker == 5 )
 
 		self.addObject( self.kickCandidate[0], self.kickCandidate[1], 'kicking_side',
 						1.0, (imgW,imgH), objNameList, pos2DList, confidenceList,
 						errorList )
 
+		t5 = time.time()
+
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
+
+		t6 = time.time()
 
 		if canExtract:
 
@@ -275,9 +289,21 @@ class ImageProcessing( VisionModule ):
 								(imgW,imgH), objNameList, pos2DList, confidenceList,
 								errorList )
 
+		t7 = time.time()
+
 		msg = self.createVisionMsg( objNameList, pos2DList, errorList, confidenceList, imgW, imgH )
+
+		t8 = time.time()
  
 		rospy.logdebug( "Time usage : {}".format( time.time() - startTime ) )
+		rospy.logdebug( "	Time ransac : {}".format( t1 - t0 ) )
+		rospy.logdebug( "	Time point clound : {}".format( t2 - t1 ) )
+		rospy.logdebug( "	Time append pc : {}".format( t3 - t2 ) )
+		rospy.logdebug( "	Time white cnt : {}".format( t4- t3 ) )
+		rospy.logdebug( "	Time kick cand : {}".format( t5 - t4 ) )
+		rospy.logdebug( "	Time ext feat : {}".format( t6 - t5 ) )
+		rospy.logdebug( "	Time predict : {}".format( t7 - t6 ) )
+		rospy.logdebug( "	Time create msg : {}".format( t8 - t7 ) )
 
 		return msg
 

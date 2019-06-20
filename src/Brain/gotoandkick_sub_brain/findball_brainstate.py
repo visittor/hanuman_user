@@ -139,7 +139,7 @@ class StopTimer( FSMBrainState ):
 
 	def __init__( self, time, nextState = 'None' ):
 
-		super( BackwardTimer, self ).__init__( 'BackwardTimer' )
+		super( StopTimer, self ).__init__( 'StopTimer' )
 
 		self.duration = time
 		self.nextState = nextState
@@ -190,19 +190,20 @@ class FindBall( FSMBrainState ):
 
 		super( FindBall, self ).__init__( "FindBall" )
 
-		self.duration = 4
+		self.duration = 5
 
 		self.addSubBrain( TurnLeftTimer( self.duration ), 'left' )
 		self.addSubBrain( TurnRightTimer( self.duration ), 'right' )
 		self.addSubBrain( ForwardTimer( self.duration ), 'forward' )
 		self.addSubBrain( BackwardTimer( self.duration ), 'backward' )
 
+
 		self.setFirstSubBrain( 'None' )
 
 		self.findBallStateTimeOut = None
 
 		self.stepDirection = [ 1, -1, -1, 1 ]
-		self.stepDirection = ['backward', 'stop', 'left', 
+		self.stepDirection = ['stop', 'backward', 'stop', 'left', 
 							'stop', 'right', 'right', 'stop', 
 							'left', 'stop']
 		self.stepIndex = 0
@@ -213,7 +214,7 @@ class FindBall( FSMBrainState ):
 		self.findBallStateTimeOut = float( self.config[ 'ChangeStateParameter' ][ 'FindballStateTimeOut' ] )
 		self.findBallStateTimeOut += self.duration
 
-		self.addSubBrain( BackwardTimer( self.findBallStateTimeOut ), 'stop' )
+		self.addSubBrain( StopTimer( self.findBallStateTimeOut ), 'stop' )
 
 	def firstStep( self ):
 		
