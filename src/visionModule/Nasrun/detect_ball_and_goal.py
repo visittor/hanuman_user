@@ -139,15 +139,19 @@ class ImageProcessing( VisionModule ):
 		whiteObjectContours = cv2.findContours( whiteObjectInFieldMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		## Delete line segment from mask.
-		kernel = np.ones( (25,3), dtype=np.uint8 )
-		kernel[:,0] = 0
-		kernel[:,2] = 0
+		kernel = np.ones( (25,1), dtype=np.uint8 )
 		whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
-		
 		whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		whiteObjectContours.extend( whiteObjectContours_noline )
 
+		## Delete line segment from mask.
+		kernel = np.ones( (50,1), dtype=np.uint8 )
+		whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+
+		whiteObjectContours.extend( whiteObjectContours_noline )
+		
 		return whiteObjectContours
 
 	def findKickCandidate( self, whiteMask ):
