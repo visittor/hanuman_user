@@ -99,10 +99,13 @@ class ScanGoal( FSMBrainState ):
 		objectDict = self.postDict2ObjDict( postDict )
 
 		if len(objectDict[ "goal" ]) > 0:
-			_, phi = objectDictp["goal"][0].getPolarCoor( )
+			_, phi = objectDict["goal"][0].getPolarCoor( )
 
 		elif len(objectDict[ "field_corner" ]) > 0:
 			_, phi = objectDict["field_corner"][0].getPolarCoor( )
+
+		else:
+			phi = 0
 
 
 		panAng = math.radians( 30 ) if phi > 0 else math.radians( -30 )

@@ -89,7 +89,7 @@ class MainBrain( FSMBrainState ):
 
 		self.addSubBrain( GotoBall( nextState = 'ScanGoal' ) )
 
-		self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
+		self.addSubBrain( ScanGoal( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 10 ) )
 		# self.addSubBrain( ScanPole( nextSubbrain = 'SlideCurve', kickingState="KickTheBall", time = 20 ) )
 		
 		self.addSubBrain( SlideCurve( nextState = "KickTheBall" ) )
