@@ -104,17 +104,12 @@ class SlideCurve( FSMBrainState ):
 										   ignorable = False )
 
 		else:
-
-			dire = random.randint( 0, 1 )
-
-			direction = -1 if dire == 0 else 1
 			
 			self.rosInterface.LocoCommand( velX = 0.0,
-										   velY = -1.0 * direction,
+										   velY = 0.0,
 										   omgZ = 0.0,
 										   commandType = 0,
-										   command = 'SlideCurve',
-										   ignorable = False )
+										   ignorable = True )
 		
 		#	get time step
 		self.previousTime = time.time()
