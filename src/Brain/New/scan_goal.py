@@ -49,6 +49,16 @@ class ScanGoal( FSMBrainState ):
 
 		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
+	def postDict2ObjDict( self, postDict ):
+
+		objectDict = { 'field_corner' : [], 'goal' : [], 'ball' : [] }
+
+		for name, cart, confidence in zip( postDict.object_name, postDict.pos3D_cart, postDict.object_confidence ):
+
+			objectDict.setdefault( name, [] ).append( createObj( name, cart.x, cart.y, confidence ) )
+
+		return objectDict
+
 	def findShootDirection( self, objectDict ):
 
 		if len( objectDict[ 'goal' ] ) > 1:
@@ -84,6 +94,25 @@ class ScanGoal( FSMBrainState ):
 
 	def firstStep( self ):
 
+		postDict = self.rosInterface.local_map( reset = False ).postDict
+
+		objectDict = self.postDict2ObjDict( postDict )
+
+		if len(objectDict[ "goal" ]) > 0:
+			_, phi = objectDictp["goal"][0].getPolarCoor( )
+
+		elif len(objectDict[ "field_corner" ]) > 0:
+			_, phi = objectDict["field_corner"][0].getPolarCoor( )
+
+
+		panAng = math.radians( 30 ) if phi > 0 else math.radians( -30 )
+		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+									position=[ panAng, math.radians(20.0) ],
+									command=0,
+									velocity=[100, 100] )
+
+		time.sleep( 1.0 )
+
 		self.rosInterface.local_map( reset = True )
 
 		self._startTime = time.time( )
@@ -96,11 +125,7 @@ class ScanGoal( FSMBrainState ):
 
 		postDict = self.rosInterface.local_map( reset = False ).postDict
 
-		objectDict = { 'field_corner' : [], 'goal' : [], 'ball' : [] }
-
-		for name, cart, confidence in zip( postDict.object_name, postDict.pos3D_cart, postDict.object_confidence ):
-
-			objectDict[ name ].append( createObj( name, cart.x, cart.y, confidence ) )
+		objectDict = self.postDict2ObjDict( postDict )
 
 		direction = self.findShootDirection( objectDict )
 
