@@ -103,6 +103,7 @@ class ImageProcessing( VisionModule ):
 		cy = float( self.config['CameraParameters']['cy'] )
 		imgW = float( self.config['CameraParameters']['imgW'] )
 		imgH = float( self.config['CameraParameters']['imgH'] )
+		self.scale = float( self.config['CameraParameters']['scale'] )
 
 		self.cameraMatrix = np.array( [ [fx, 0, cx], [0, fy, cy], [0, 0, 1] ] )
 
@@ -178,7 +179,7 @@ class ImageProcessing( VisionModule ):
 					confidenceList, errorList, error = None ):
 
 		nameList.append( name )
-		pos2DList.append( Point32( x = x, y = y, z = 0 ) )
+		pos2DList.append( Point32( x = x/self.scale, y = y/self.scale, z = 0 ) )
 		confidenceList.append( confidence )
 
 		if error is not None:
