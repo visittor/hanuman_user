@@ -265,6 +265,9 @@ class ImageProcessing( VisionModule ):
 
 		t6 = time.time()
 
+		predictTimeStart = 0
+		predictTimeEnd = 0
+
 		if canExtract:
 
 			predictTimeStart = time.time()
