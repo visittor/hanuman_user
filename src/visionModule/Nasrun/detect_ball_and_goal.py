@@ -147,12 +147,12 @@ class ImageProcessing( VisionModule ):
 
 		whiteObjectContours.extend( whiteObjectContours_noline )
 
-		## Delete line segment from mask.
-		kernel = np.ones( (50,1), dtype=np.uint8 )
-		whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
-		whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
+		# ## Delete line segment from mask.
+		# kernel = np.ones( (50,1), dtype=np.uint8 )
+		# whiteObject_noline = cv2.morphologyEx( whiteObjectInFieldMask, cv2.MORPH_OPEN, kernel )
+		# whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
-		whiteObjectContours.extend( whiteObjectContours_noline )
+		# whiteObjectContours.extend( whiteObjectContours_noline )
 		
 		return whiteObjectContours
 
@@ -179,7 +179,7 @@ class ImageProcessing( VisionModule ):
 					confidenceList, errorList, error = None ):
 
 		nameList.append( name )
-		pos2DList.append( Point32( x = x/self.scale, y = y/self.scale, z = 0 ) )
+		pos2DList.append( Point32( x = int( x/self.scale ), y = int( y/self.scale ), z = 0 ) )
 		confidenceList.append( confidence )
 
 		if error is not None:
@@ -261,12 +261,16 @@ class ImageProcessing( VisionModule ):
 
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
 
+		numCandidate = self.predictor.boundingBoxListObject.getNumberCandidate()
+
 		t6 = time.time()
 
 		if canExtract:
 
+			predictTimeStart = time.time()
 			self.predictor.predict()
-
+			predictTimeEnd = time.time()
+			
 			goalList = self.predictor.getGoal()
 			foundBall = self.predictor.getBestRegion()
 
@@ -303,7 +307,9 @@ class ImageProcessing( VisionModule ):
 		rospy.logdebug( "	Time white cnt : {}".format( t4- t3 ) )
 		rospy.logdebug( "	Time kick cand : {}".format( t5 - t4 ) )
 		rospy.logdebug( "	Time ext feat : {}".format( t6 - t5 ) )
+		rospy.logdebug( "	Number of candidate : {}".format( numCandidate ) )
 		rospy.logdebug( "	Time predict : {}".format( t7 - t6 ) )
+		rospy.logdebug( "	Time predict only : {}".format( predictTimeEnd - predictTimeStart ) )
 		rospy.logdebug( "	Time create msg : {}".format( t8 - t7 ) )
 
 		return msg
@@ -332,8 +338,8 @@ class ImageProcessing( VisionModule ):
 
 		if 'ball' in msg.object_name:
 			ballIdx = msg.object_name.index( 'ball' )
-			x = msg.pos2D[ ballIdx ].x
-			y = msg.pos2D[ ballIdx ].y
+			x = int( msg.pos2D[ ballIdx ].x / 2 )
+			y = int( msg.pos2D[ ballIdx ].y / 2 )
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
 			cv2.putText( img, "ball", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
 
@@ -341,14 +347,14 @@ class ImageProcessing( VisionModule ):
 			if i == 'goal':
 				idx = msg.object_name.index( 'goal' )
 				if msg.object_confidence[ idx ] > 0.5:
-					x = msg.pos2D[ idx ].x
-					y = msg.pos2D[ idx ].y
+					x = int(msg.pos2D[ idx ].x/2)
+					y = int(msg.pos2D[ idx ].y/2)
 					cv2.circle( img, ( x, y ), 5, ( 0, 0, 255 ), -1 )
 					cv2.putText( img, "goal", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 0, 0, 255 ), 2 )
 
 		if 'field_corner' in msg.object_name:
 			cornerIdx = msg.object_name.index( 'field_corner' )
-			x = int(msg.pos2D[ cornerIdx ].x)
-			y = int(msg.pos2D[ cornerIdx ].y)
+			x = int(msg.pos2D[ cornerIdx ].x/2)
+			y = int(msg.pos2D[ cornerIdx ].y/2)
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
 			cv2.putText( img, "corner", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
