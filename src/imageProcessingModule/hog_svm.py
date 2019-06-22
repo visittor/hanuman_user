@@ -97,6 +97,9 @@ class HOG_predictor( object ):
 
 		return True
 
+	def extractFeature2( self, image, whiteContours, objectPointLocation = 'center' ):
+		pass
+
 	def predict( self ):
 
 		#	loop every bounding list
@@ -124,67 +127,61 @@ class HOG_predictor( object ):
 		self.bestBoundingBox = None
 
 		# #	calculate
-		# calculateStatus = self.boundingBoxListObject.calculateDistanceFromPreviousBoundingBox()
+		calculateStatus = self.boundingBoxListObject.calculateDistanceFromPreviousBoundingBox()
 
-		# if calculateStatus == True:
+		if calculateStatus == True:
 				
-		# 	#	sort first by distance
-		# 	sortedBoundingBoxList = sorted( self.boundingBoxListObject.boundingBoxList, key = lambda boundingObj : boundingObj.distanceFromPreviousPosition )
+			#	sort first by distance
+			sortedBoundingBoxList = sorted( self.boundingBoxListObject.boundingBoxList, key = lambda boundingObj : boundingObj.distanceFromPreviousPosition )
 
-		# 	#print sortedBoundingBoxList
+			#print sortedBoundingBoxList
 
-		# 	#	loop in sorted list and check from minimum distance that svm is valid, if not get next candidate
-		# 	for boundingBoxObj in sortedBoundingBoxList:
+			#	loop in sorted list and check from minimum distance that svm is valid, if not get next candidate
+			for boundingBoxObj in sortedBoundingBoxList:
 
-		# 		#	check this is a ball ?
-		# 		#	NOTE:
-		# 		#		I change to check ball with probability
-		# 		if boundingBoxObj.footballProbabilityScore > self.positiveThreshold :
+				#	check this is a ball ?
+				#	NOTE:
+				#		I change to check ball with probability
+				if boundingBoxObj.footballProbabilityScore > self.positiveThreshold :
 
-		# 			#	save it
-		# 			self.boundingBoxListObject.setPreviousBoundingBox( boundingBoxObj )
+					#	save it
+					self.boundingBoxListObject.setPreviousBoundingBox( boundingBoxObj )
 					
-		# 			#	get best bounding box
-		# 			self.bestBoundingBox = boundingBoxObj
+					#	get best bounding box
+					self.bestBoundingBox = boundingBoxObj
 					
-		# 			#	get position
-		# 			bestPosition = boundingBoxObj.object2DPosTuple
-		# 			confidence = boundingBoxObj.footballProbabilityScore
+					#	get position
+					bestPosition = boundingBoxObj.object2DPosTuple
+					confidence = boundingBoxObj.footballProbabilityScore
 					
-		# 			#	found ball is true
-		# 			foundBall = True
+					#	found ball is true
+					foundBall = True
 					
-		# 			#	break the loop
-		# 			break
+					#	break the loop
+					break
 					
-		# else:
+		else:
 
-		#	Sort score
-		self.boundingBoxListObject.sortProbScore()
+		# #	Sort score
+		# self.boundingBoxListObject.sortProbScore()
 
-		#	get best bounding box from sorted list by probability score
-		self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
-		
-		#	get position
-		bestPosition = self.bestBoundingBox.object2DPosTuple
-		confidence = self.bestBoundingBox.footballProbabilityScore
-		
-		#	set previous bounding box
-		self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
-		
-		foundBall = True
+			#	get best bounding box from sorted list by probability score
+			self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
+			
+			#	get position
+			bestPosition = self.bestBoundingBox.object2DPosTuple
+			confidence = self.bestBoundingBox.footballProbabilityScore
+			
+			#	set previous bounding box
+			self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
+			
+			foundBall = True
 			
 		#	clear bounding box list
 		self.boundingBoxListObject.clearBoundingBoxList()
 
 		return foundBall
 		
-		if foundBall == True:
-			return list( ( bestPosition, confidence ) )
-		else:
-			return list()
-			
-	
 	def getBestBoundingBox( self ):
 		"""
 			Must call after get best region
