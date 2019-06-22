@@ -98,7 +98,27 @@ class HOG_predictor( object ):
 		return True
 
 	def extractFeature2( self, image, whiteContours, objectPointLocation = 'center' ):
-		pass
+		
+		#	get bounding box from white contours first
+		self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+
+		if self.boundingBoxListObject.getNumberCandidate() == 0:
+			return False
+
+		featureList = list()
+
+		#	compute feature vector
+		for boundingBox in self.boundingBoxListObject.boundingBoxList:
+
+			hogFeature = self.hogDescriptor.compute( boundingBox.roiImage )
+
+			boundingBox.featureVector = hogFeature.T
+
+			featureList.append( hogFeature.T )
+
+		return np.vstack( tuple( featureList ) )
+
+		
 
 	def predict( self ):
 
@@ -243,6 +263,14 @@ class HOG_SVM( HOG_predictor ):
 			#	get score in form probability
 			boundingObject.footballProbabilityScore =  self.footballModel.predict_proba( hogFeature )[ 0, 1 ]
 			boundingObject.goalProbabilityScore = self.goalModel.predict_proba( hogFeature )[ 0, 1 ]
+
+
+	def predict2( self, sample ):
+
+		footballScore = self.footballModel.predict_proba( sample )
+		goalProbabilityScore = self.goalModel.predict_proba( sample )
+
+		return footballScore, goalProbabilityScore
 
 class HOG_MLP( HOG_predictor ):
 
