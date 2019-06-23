@@ -117,7 +117,7 @@ class BackwardTimer( FSMBrainState ):
 		self.nextState = nextState
 
 	def firstStep( self ):
-		self.rosInterface.LocoCommand(	velX = -0.5,
+		self.rosInterface.LocoCommand(	velX = -0.3,
 										velY = 0.0,
 										omgZ = 0.0,
 										commandType = 0,
@@ -245,3 +245,5 @@ class FindBall( FSMBrainState ):
 					       			   ignorable = False )		
 		# self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
 		# 							   ignorable =  False )
+
+main_brain = ForwardTimer(10)
