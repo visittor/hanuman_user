@@ -145,6 +145,9 @@ class BoundingBoxList( object ):
 			#	append to the list
 			self.boundingBoxList.append( boundingBoxStruct )
 
+	def sortProbScore( self ):
+		return sorted( self.boundingBoxList, key = lambda boundingBoxObj : boundingBoxObj.footballProbabilityScore, reverse=True ) 
+
 	def calculateDistanceFromPreviousBoundingBox( self ):
 		
 		#	if previous ball is None, ranking true from svm to top order and terminate this function
@@ -242,7 +245,7 @@ class BoundingBoxList( object ):
 		filterSizeFunction = lambda boundingBoxTuple : boundingBoxTuple[ 2 ] >= self.boundingBoxSize and boundingBoxTuple[ 3 ] >= self.boundingBoxSize
 		
 # NOTE : visittor : Should use aspect ratio instead.
-		filterNonRectFunction = lambda boundingBoxTuple : float( boundingBoxTuple[ 2 ] ) / float( boundingBoxTuple[ 3 ] ) >= self.rectangleThreshold
+		filterNonRectFunction = lambda boundingBoxTuple : float( min( boundingBoxTuple[ 2 : ] ) ) / float( max(boundingBoxTuple[ 2 : ]) ) >= self.rectangleThreshold
 
 		boundingBoxFilteredSizeList = filter( filterSizeFunction, boundingBoxList )
 		boundingBoxFilteredNonRectList = filter( filterNonRectFunction, boundingBoxFilteredSizeList )

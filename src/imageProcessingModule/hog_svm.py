@@ -97,6 +97,9 @@ class HOG_predictor( object ):
 
 		return True
 
+	def extractFeature2( self, image, whiteContours, objectPointLocation = 'center' ):
+		pass
+
 	def predict( self ):
 
 		#	loop every bounding list
@@ -123,7 +126,7 @@ class HOG_predictor( object ):
 		#	re-initial bounding box object
 		self.bestBoundingBox = None
 
-		#	calculate
+		# #	calculate
 		calculateStatus = self.boundingBoxListObject.calculateDistanceFromPreviousBoundingBox()
 
 		if calculateStatus == True:
@@ -159,31 +162,26 @@ class HOG_predictor( object ):
 					
 		else:
 
-			if self.boundingBoxListObject.boundingBoxList[ 0 ].footballProbabilityScore > self.positiveThreshold : 
+		# #	Sort score
+		# self.boundingBoxListObject.sortProbScore()
+
+			#	get best bounding box from sorted list by probability score
+			self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
 			
-				#	get best bounding box from sorted list by probability score
-				self.bestBoundingBox = self.boundingBoxListObject.boundingBoxList[ 0 ]
-				
-				#	get position
-				bestPosition = self.bestBoundingBox.object2DPosTuple
-				confidence = self.bestBoundingBox.footballProbabilityScore
-				
-				#	set previous bounding box
-				self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
-				
-				foundBall = True
+			#	get position
+			bestPosition = self.bestBoundingBox.object2DPosTuple
+			confidence = self.bestBoundingBox.footballProbabilityScore
+			
+			#	set previous bounding box
+			self.boundingBoxListObject.setPreviousBoundingBox( self.bestBoundingBox )
+			
+			foundBall = True
 			
 		#	clear bounding box list
 		self.boundingBoxListObject.clearBoundingBoxList()
 
 		return foundBall
 		
-		if foundBall == True:
-			return list( ( bestPosition, confidence ) )
-		else:
-			return list()
-			
-	
 	def getBestBoundingBox( self ):
 		"""
 			Must call after get best region
