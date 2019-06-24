@@ -252,6 +252,10 @@ class HOG_SVM( HOG_predictor ):
 		self.footballModel = loadModel( modelBallPathStr )
 		self.goalModel = loadModel( modelGoalPathStr )
 
+		#HACK: Test svm from opencv
+		svm = cv2.ml.SVM_create()
+		self.svmModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model.yaml' )
+
 	def predict( self ):
 
 		#	loop every bounding list
@@ -267,10 +271,23 @@ class HOG_SVM( HOG_predictor ):
 
 	def predict2( self, sample ):
 
-		footballScore = self.footballModel.predict_proba( sample )
-		goalProbabilityScore = self.goalModel.predict_proba( sample )
+				#	loop every bounding list
+		for boundingObject in self.boundingBoxListObject.boundingBoxList:
 
-		return footballScore, goalProbabilityScore
+			#	get feature of bounding box
+			hogFeature = boundingObject.featureVector
+
+			#	get score in form probability
+			boundingObject.footballProbabilityScore =  self.svmModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+			boundingObject.goalProbabilityScore = self.svmModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+
+
+		# footballScore = self.svmModel.predict( sample )[ 1 ]
+		# goalProbabilityScore = self.svmModel.predict( sample )[ 1 ]
+
+		# print "	HOG_SVM::predict2 shape output : {}".format( footballScore.shape, goalProbabilityScore.shape )
+
+		# return footballScore, goalProbabilityScore
 
 class HOG_MLP( HOG_predictor ):
 

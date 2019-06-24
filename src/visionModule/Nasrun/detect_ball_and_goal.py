@@ -282,6 +282,8 @@ class ImageProcessing( VisionModule ):
 			predictTimeStart2 = time.time()
 			self.predictor.predict2( featureSample )
 			predictTimeEnd2 = time.time()
+
+			self.predictor.printScore()
 			
 			goalList = self.predictor.getGoal()
 			foundBall = self.predictor.getBestRegion()
