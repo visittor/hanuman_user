@@ -275,15 +275,15 @@ class ImageProcessing( VisionModule ):
 
 		if canExtract:
 
-			predictTimeStart1 = time.time()
-			self.predictor.predict()
-			predictTimeEnd1 = time.time()
+			# predictTimeStart1 = time.time()
+			# self.predictor.predict()
+			# predictTimeEnd1 = time.time()
 
 			predictTimeStart2 = time.time()
 			self.predictor.predict2( featureSample )
 			predictTimeEnd2 = time.time()
 
-			self.predictor.printScore()
+			# self.predictor.printScore()
 			
 			goalList = self.predictor.getGoal()
 			foundBall = self.predictor.getBestRegion()

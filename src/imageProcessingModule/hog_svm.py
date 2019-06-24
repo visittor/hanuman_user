@@ -254,7 +254,8 @@ class HOG_SVM( HOG_predictor ):
 
 		#HACK: Test svm from opencv
 		svm = cv2.ml.SVM_create()
-		self.svmModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model.yaml' )
+		self.svmBallModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model_ball.yaml' )
+		self.svmGoalModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model_goal.yaml' )
 
 	def predict( self ):
 
@@ -278,8 +279,8 @@ class HOG_SVM( HOG_predictor ):
 			hogFeature = boundingObject.featureVector
 
 			#	get score in form probability
-			boundingObject.footballProbabilityScore =  self.svmModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
-			boundingObject.goalProbabilityScore = self.svmModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+			boundingObject.footballProbabilityScore =  self.svmBallModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+			boundingObject.goalProbabilityScore = self.svmGoalModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
 
 
 		# footballScore = self.svmModel.predict( sample )[ 1 ]
