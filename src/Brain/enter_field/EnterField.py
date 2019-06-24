@@ -162,38 +162,44 @@ class GoToField( FSMBrainState ):
 
 		currPos = self.getGlobalVariable( 'currRobotPos' )
 
-		if self.currSubBrainName == 'Forward':
+		if math.fabs(currPos[1]) < 0.30 or self.startPos[1] * currPos[1] < 0:
+			self.SignalChangeSubBrain( self.nextState )
+
+		elif self.currSubBrainName == 'Forward':
 			return
 
 		elif self.currSubBrainName == 'None':
 			self.startTime = time.time( )
 			self.ChangeSubBrain( 'IDLE' )
 
-		if math.fabs(currPos[1]) < 0.75 or self.startPos[1] * currPos[1] < 0:
-			self.SignalChangeSubBrain( self.nextState )
-
-		elif time.time() - self.startTime < 3 and self.prevSubBrainName == 'None':
+		elif time.time() - self.startTime < 5 and self.prevSubBrainName == 'None':
 			return
 
 		elif currPos[1] < 0:
 			if math.radians( 270.0 ) <= currPos[2] or currPos[2] < math.radians( 60.0 ): 
+				print math.radians(270.0), currPos[2], math.radians(60.0)
 				self.ChangeSubBrain( 'TurnLeft' )
 			
 			elif math.radians( 120.0 ) < currPos[2] < math.radians( 270.0 ):
+				print math.radians(120.0), currPos[2], math.radians(270.0)
 				self.ChangeSubBrain( 'TurnRight')
 
 			else:
 				self.ChangeSubBrain( 'Forward' )
+				self.startTime = time.time()
 
 		elif currPos[1] > 0:
-			if -math.radians( 90.0 ) <= currPos[2] < math.radians( 60.0 ): 
+			if math.radians( 270.0 ) <= currPos[2] or currPos[2] < math.radians( 60.0 ): 
+				print math.radians(270.0), currPos[2], math.radians(60.0)
 				self.ChangeSubBrain( 'TurnRight' )
 			
 			elif math.radians( 120.0 ) < currPos[2] < math.radians( 270.0 ):
+				print math.radians(120.0), currPos[2], math.radians(270.0)
 				self.ChangeSubBrain( 'TurnLeft')
 
 			else:
 				self.ChangeSubBrain( 'Forward' )
+				self.startTime = time.time()
 
 class TurnToGoal( FSMBrainState ):
 
@@ -213,22 +219,34 @@ class TurnToGoal( FSMBrainState ):
 		pass
 
 	def firstStep( self ):
-		pass
+		rospy.loginfo( "Turn")
+		self.startTime = time.time()
 
 	def step( self ):
 
 		currPos = self.getGlobalVariable( 'currRobotPos' )
 
-		if currPos[2] < math.radians( 30 ) or currPos[2] > math.radians( 330 ):
-			self.SignalChangeSubBrain( self.nextState )
+		if time.time() - self.startTime < 3:
+			return
 
-		if currPos[2] <= math.radians( 180 ):
+		if currPos[2] < math.radians( 15 ) or currPos[2] > math.radians( 345 ):
+			self.ChangeSubBrain( 'IDLE' )
+			self.startTime = time.time()
+
+		elif currPos[2] <= math.radians( 180 ):
 
 			self.ChangeSubBrain( 'TurnRight' )
 
 		elif currPos[2] > math.radians( 180 ):
 
 			self.ChangeSubBrain( 'TurnLeft' )
+
+	def leaveStateCallBack( self ):
+		self.rosInterface.LocoCommand( velX = 0.0,
+									   velY = 0.0,
+									   omgZ = 0.0,
+									   commandType = 0,
+									   ignorable = False )
 
 class EnterField( FSMBrainState ):
 
@@ -277,7 +295,7 @@ class EnterField( FSMBrainState ):
 
 		self.setGlobalVariable( 'currRobotPos', (currPos.x, currPos.y, currPos.theta) )
 
-		if self.currSubBrainName == 'IDLE' and time.time() - self.startTime > 3:
+		if self.currSubBrainName == 'IDLE' and time.time() - self.startTime > 5:
 			self.ChangeSubBrain( 'GoToField' )
 
 class ReadyState( FSMBrainState ):
