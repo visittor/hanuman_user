@@ -108,6 +108,15 @@ class BoundingBoxDataStruct( object ):
 	def bottom( self ):
 		return self.calculateObjectPoint( 'bottom' )
 
+	@property
+	def bbox( self ):
+		tlx, tly = self.topLeftPositionTuple
+		brx, bry = self.bottomRightPositionTuple
+
+		w = brx - tlx
+		h = bry - tly
+
+		return tlx, tly, w, h
 
 class BoundingBoxList( object ):
 
