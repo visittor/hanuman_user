@@ -11,6 +11,7 @@
 
 import sys
 import os
+import math
 
 ########################################################
 #
@@ -315,3 +316,45 @@ class HOG_MLP( HOG_predictor ):
 			boundingObject.goalProbabilityScore = prediction[0, 1]
 
 		print predictions
+
+class HOG_CV2( HOG_predictor ):
+
+	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
+
+		super( HOG_CV2, self ).__init__( positiveThreshold = positiveThreshold, 
+										winSize = winSize, blockSize = blockSize, 
+										blockStride = blockStride,	cellSize = cellSize, 
+										nBins = nBins, rectangleThreshold = rectangleThreshold, 
+										boundingBoxSize = boundingBoxSize )
+
+		svm = cv2.ml.SVM_create()
+
+		self.svm_ball = svm.load( modelBallPathStr )
+		self.svm_goal = svm.load( modelGoalPathStr )
+
+	# def extractFeature( self, image, whiteContours, objectPointLocation = 'center' ):
+
+	# 	#	get bounding box from white contours first
+	# 	self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+
+	# 	if self.boundingBoxListObject.getNumberCandidate() == 0:
+	# 		return False
+
+	# 	self.image = image.copy()
+
+	def predict( self ):
+
+		## Get all bbox
+		bboxList = []
+
+		for boundingObj in self.boundingBoxListObject.boundingBoxList:
+
+			score = self.svm_ball.predict( boundingObj.featureVector, -1, cv2.ml.STAT_MODEL_RAW_OUTPUT )[1]
+			
+			score = 1 / (1 + math.exp(-score[0,0]))
+			boundingObj.footballProbabilityScore = 1 - score
+
+			score = self.svm_goal.predict( boundingObj.featureVector, 0, cv2.ml.STAT_MODEL_RAW_OUTPUT )[1]
+			score = 1 / (1 + math.exp(-score[0,0]))			
+			boundingObj.goalProbabilityScore = 1 - score
