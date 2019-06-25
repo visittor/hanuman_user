@@ -50,8 +50,8 @@ import time
 #	GLOBALS
 #
 
-FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/real_model_with_prob.pkl" )
-GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/model_goal_gray.pkl" ) 
+FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_ball.yaml" )
+GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_goal.yaml" ) 
 
 ########################################################
 #
@@ -304,18 +304,29 @@ class ImageProcessing( VisionModule ):
 
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
 
+		featureSample = self.predictor.extractFeature2( gray, self.whiteObjectContours, objectPointLocation="bottom" )
+
 		numCandidate = self.predictor.boundingBoxListObject.getNumberCandidate()
 
 		t6 = time.time()
 
-		predictTimeStart = 0
-		predictTimeEnd = 0
+		predictTimeStart1 = 0
+		predictTimeEnd1 = 0
+
+		predictTimeStart2 = 0
+		predictTimeEnd2 = 0
 
 		if canExtract:
 
-			predictTimeStart = time.time()
-			self.predictor.predict()
-			predictTimeEnd = time.time()
+			# predictTimeStart1 = time.time()
+			# self.predictor.predict()
+			# predictTimeEnd1 = time.time()
+
+			predictTimeStart2 = time.time()
+			self.predictor.predict2( featureSample )
+			predictTimeEnd2 = time.time()
+
+			# self.predictor.printScore()
 			
 			goalList = self.predictor.getGoal()
 			foundBall = self.predictor.getBestRegion()
@@ -355,7 +366,8 @@ class ImageProcessing( VisionModule ):
 		rospy.logdebug( "	Time ext feat : {}".format( t6 - t5 ) )
 		rospy.logdebug( "	Number of candidate : {}".format( numCandidate ) )
 		rospy.logdebug( "	Time predict : {}".format( t7 - t6 ) )
-		rospy.logdebug( "	Time predict only : {}".format( predictTimeEnd - predictTimeStart ) )
+		rospy.logdebug( "	Time original predict only : {}".format( predictTimeEnd1 - predictTimeStart1 ) )
+		rospy.logdebug( "	Time eiei predict only : {}".format( predictTimeEnd2 - predictTimeStart2 ) )
 		rospy.logdebug( "	Time create msg : {}".format( t8 - t7 ) )
 
 		return msg
