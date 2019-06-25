@@ -274,10 +274,10 @@ class RotateToTheBall2( FSMBrainState ):
 		
 	def stopRobotBehavior( self ):
 		#	stop
-		# self.rosInterface.LocoCommand( velX = 0.0,
-		# 			       			   velY = 0.0,
-		# 			       			   omgZ = 0.0,
-		# 			       			   commandType = 0,
-		# 			       			   ignorable = False )		
-		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
-									   ignorable =  False )
+		self.rosInterface.LocoCommand( velX = 0.0,
+					       			   velY = 0.0,
+					       			   omgZ = 0.0,
+					       			   commandType = 0,
+					       			   ignorable = False )		
+		# self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
+		# 							   ignorable =  False )
