@@ -11,6 +11,7 @@
 
 import sys
 import os
+import math
 
 ########################################################
 #
@@ -98,7 +99,27 @@ class HOG_predictor( object ):
 		return True
 
 	def extractFeature2( self, image, whiteContours, objectPointLocation = 'center' ):
-		pass
+		
+		#	get bounding box from white contours first
+		self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+
+		if self.boundingBoxListObject.getNumberCandidate() == 0:
+			return False
+
+		featureList = list()
+
+		#	compute feature vector
+		for boundingBox in self.boundingBoxListObject.boundingBoxList:
+
+			hogFeature = self.hogDescriptor.compute( boundingBox.roiImage )
+
+			boundingBox.featureVector = hogFeature.T
+
+			featureList.append( hogFeature.T )
+
+		return np.vstack( tuple( featureList ) )
+
+		
 
 	def predict( self ):
 
@@ -232,6 +253,11 @@ class HOG_SVM( HOG_predictor ):
 		self.footballModel = loadModel( modelBallPathStr )
 		self.goalModel = loadModel( modelGoalPathStr )
 
+		#HACK: Test svm from opencv
+		svm = cv2.ml.SVM_create()
+		self.svmBallModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model_ball.yaml' )
+		self.svmGoalModel = svm.load( '/home/neverholiday/work/ball_detector/src/model/cv_second_model_goal.yaml' )
+
 	def predict( self ):
 
 		#	loop every bounding list
@@ -243,6 +269,27 @@ class HOG_SVM( HOG_predictor ):
 			#	get score in form probability
 			boundingObject.footballProbabilityScore =  self.footballModel.predict_proba( hogFeature )[ 0, 1 ]
 			boundingObject.goalProbabilityScore = self.goalModel.predict_proba( hogFeature )[ 0, 1 ]
+
+
+	def predict2( self, sample ):
+
+				#	loop every bounding list
+		for boundingObject in self.boundingBoxListObject.boundingBoxList:
+
+			#	get feature of bounding box
+			hogFeature = boundingObject.featureVector
+
+			#	get score in form probability
+			boundingObject.footballProbabilityScore =  self.svmBallModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+			boundingObject.goalProbabilityScore = self.svmGoalModel.predict( hogFeature, cv2.ml.STAT_MODEL_RAW_OUTPUT )[ 1 ]
+
+
+		# footballScore = self.svmModel.predict( sample )[ 1 ]
+		# goalProbabilityScore = self.svmModel.predict( sample )[ 1 ]
+
+		# print "	HOG_SVM::predict2 shape output : {}".format( footballScore.shape, goalProbabilityScore.shape )
+
+		# return footballScore, goalProbabilityScore
 
 class HOG_MLP( HOG_predictor ):
 
@@ -269,3 +316,45 @@ class HOG_MLP( HOG_predictor ):
 			boundingObject.goalProbabilityScore = prediction[0, 1]
 
 		print predictions
+
+class HOG_CV2( HOG_predictor ):
+
+	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
+
+		super( HOG_CV2, self ).__init__( positiveThreshold = positiveThreshold, 
+										winSize = winSize, blockSize = blockSize, 
+										blockStride = blockStride,	cellSize = cellSize, 
+										nBins = nBins, rectangleThreshold = rectangleThreshold, 
+										boundingBoxSize = boundingBoxSize )
+
+		svm = cv2.ml.SVM_create()
+
+		self.svm_ball = svm.load( modelBallPathStr )
+		self.svm_goal = svm.load( modelGoalPathStr )
+
+	# def extractFeature( self, image, whiteContours, objectPointLocation = 'center' ):
+
+	# 	#	get bounding box from white contours first
+	# 	self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+
+	# 	if self.boundingBoxListObject.getNumberCandidate() == 0:
+	# 		return False
+
+	# 	self.image = image.copy()
+
+	def predict( self ):
+
+		## Get all bbox
+		bboxList = []
+
+		for boundingObj in self.boundingBoxListObject.boundingBoxList:
+
+			score = self.svm_ball.predict( boundingObj.featureVector, -1, cv2.ml.STAT_MODEL_RAW_OUTPUT )[1]
+			
+			score = 1 / (1 + math.exp(-score[0,0]))
+			boundingObj.footballProbabilityScore = 1 - score
+
+			score = self.svm_goal.predict( boundingObj.featureVector, 0, cv2.ml.STAT_MODEL_RAW_OUTPUT )[1]
+			score = 1 / (1 + math.exp(-score[0,0]))			
+			boundingObj.goalProbabilityScore = 1 - score

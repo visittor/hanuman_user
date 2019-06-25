@@ -51,15 +51,18 @@ from construct import Bytes
 #
 #	CLASS DEFINITIONS
 #
-
+history_fn = '/'.join(__file__.split('/')[:-1] + ['history'])
 class Controller( FSMBrainState ):
 
-	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState ):
+	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState,
+				enter_field = None ):
 		
 		super( Controller, self ).__init__( "Controller" )
 
 		self.playerNumber = None
 		self.teamNumber = None
+
+		self.prevState = ''
 
 		self.addSubBrain( initialState, "InitialState" )
 		self.addSubBrain( readyState, "ReadyState" )
@@ -71,15 +74,35 @@ class Controller( FSMBrainState ):
 
 		self.setFirstSubBrain( "None" )
 
-	def firstStep( self ):
-		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+		if enter_field is not None:
+			self.addSubBrain( enter_field, "EnterField" )
+			self.doEnterfield = True
+		else:
+			self.doEnterfield = False
+
+		self.startEnterField = -1
 
 	def initialize( self ):
 
 		self.teamNumber = int( self.config[ "GameControllerParameter" ][ "Team" ] )
 		self.playerNumber = int( self.config[ "GameControllerParameter" ][ "Player" ] )
 
+	def firstStep( self ):
+		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
+
+		if self.doEnterfield and os.path.isfile(history_fn):
+			with open( history_fn, 'r' ) as f:
+				state = f.read( )
+			
+			if state in ["PENALIZED", "STATE_PLAYING"]:
+				self.startEnterField = time.time( )
+				self.ChangeSubBrain( "EnterField" )
+
+
 	def step( self ):
+
+		if self.startEnterField != -1 and time.time() - self.startEnterField<46.0:
+			return
 		
 		gameState = self.rosInterface.gameState
 
@@ -97,6 +120,19 @@ class Controller( FSMBrainState ):
 		# rospy.loginfo( "			GameState : {}".format( gameState[ "game_state" ] ) )
 		# rospy.loginfo( "			Secs to unpenalize : {}".format( robotInfo[ "secs_till_unpenalized" ] ) )
 		# rospy.loginfo( "			Number of red card : {}".format( robotInfo[ "number_of_red_cards" ] ) )
+
+		state = gameState[ "game_state" ]
+		
+		if robotInfo["secs_till_unpenalized"] != 0:
+			state = "PENALIZED"
+		elif robotInfo[ "number_of_red_cards" ] != 0:
+			state = "PENALIZED"
+
+		if self.prevState != state:
+			with open( history_fn, 'w' ) as f:
+				f.write( state )
+
+			self.prevState = state
 
 		if robotInfo[ "secs_till_unpenalized" ] != 0:
 			self.ChangeSubBrain( "PenaltyState" )
