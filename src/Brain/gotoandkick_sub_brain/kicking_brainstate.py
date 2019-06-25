@@ -142,8 +142,15 @@ class KickTheBall( FSMBrainState ):
 									   	   omgZ = 0.0,
 									   	   commandType = 0 )
 
-			self.rosInterface.local_map( reset = True )
+			self.SignalChangeSubBrain( self.nextState )
 
-			self.SignalChangeSubBrain( self.nextState ) 
+		def leaveStateCallBack( self ):
+			
+			self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
+								position=[ 0.0, 0.0 ],
+								command=0,
+								velocity=[] )
+
+			self.rosInterface.local_map( reset = True )
 		
 # main_brain = KickTheBall()
