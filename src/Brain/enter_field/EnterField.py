@@ -177,11 +177,9 @@ class GoToField( FSMBrainState ):
 
 		elif currPos[1] < 0:
 			if math.radians( 270.0 ) <= currPos[2] or currPos[2] < math.radians( 60.0 ): 
-				print math.radians(270.0), currPos[2], math.radians(60.0)
 				self.ChangeSubBrain( 'TurnLeft' )
 			
 			elif math.radians( 120.0 ) < currPos[2] < math.radians( 270.0 ):
-				print math.radians(120.0), currPos[2], math.radians(270.0)
 				self.ChangeSubBrain( 'TurnRight')
 
 			else:
@@ -189,13 +187,11 @@ class GoToField( FSMBrainState ):
 				self.startTime = time.time()
 
 		elif currPos[1] > 0:
-			if math.radians( 270.0 ) <= currPos[2] or currPos[2] < math.radians( 60.0 ): 
-				print math.radians(270.0), currPos[2], math.radians(60.0)
-				self.ChangeSubBrain( 'TurnRight' )
+			if math.radians( 90.0 ) <= currPos[2] < math.radians( 240.0 ):
+				self.ChangeSubBrain( 'TurnLeft' )
 			
-			elif math.radians( 120.0 ) < currPos[2] < math.radians( 270.0 ):
-				print math.radians(120.0), currPos[2], math.radians(270.0)
-				self.ChangeSubBrain( 'TurnLeft')
+			elif math.radians( 300.0 ) < currPos[2] or currPos[2] < math.radians( 90.0 ):
+				self.ChangeSubBrain( 'TurnRight')
 
 			else:
 				self.ChangeSubBrain( 'Forward' )
