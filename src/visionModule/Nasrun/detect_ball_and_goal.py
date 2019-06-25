@@ -25,7 +25,7 @@ import time
 #	LOCAL IMPORTS
 #
 
-from imageProcessingModule.hog_svm import HOG_SVM, HOG_MLP
+from imageProcessingModule.hog_svm import HOG_SVM, HOG_MLP, HOG_CV2
 
 from colorSegmentation import colorSegmentation, createColorDefFromDict
 
@@ -50,8 +50,8 @@ import time
 #	GLOBALS
 #
 
-FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/real_model_with_prob.pkl" )
-GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/model_goal_gray.pkl" ) 
+FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_ball.yaml" )
+GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_goal.yaml" ) 
 
 ########################################################
 #
@@ -90,7 +90,7 @@ class ImageProcessing( VisionModule ):
 		
 		#	get model object
 		#	positive threshold is 0.70
-		self.predictor = HOG_SVM( FootballModelPath, GoalModelPath, 0.80, rectangleThreshold=0.5, boundingBoxSize=10 )
+		self.predictor = HOG_CV2( FootballModelPath, GoalModelPath, 0.50, rectangleThreshold=0.5, boundingBoxSize=10 )
 		# self.predictor = HOG_MLP( '/home/visittor/Downloads/Dataset/Dataset/model/train_SVM_model.pk1', 
 		# 						0.80, rectangleThreshold=30 )
 
