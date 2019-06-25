@@ -280,7 +280,7 @@ class ImageProcessing( VisionModule ):
 			# predictTimeEnd1 = time.time()
 
 			predictTimeStart2 = time.time()
-			self.predictor.predict2( featureSample )
+			self.predictor.predict( )
 			predictTimeEnd2 = time.time()
 
 			# self.predictor.printScore()
