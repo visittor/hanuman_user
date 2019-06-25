@@ -25,7 +25,7 @@ import time
 #	LOCAL IMPORTS
 #
 
-from imageProcessingModule.hog_svm import HOG_SVM, HOG_MLP
+from imageProcessingModule.hog_svm import HOG_SVM, HOG_MLP, HOG_CV2
 
 from colorSegmentation import colorSegmentation, createColorDefFromDict
 
@@ -90,7 +90,7 @@ class ImageProcessing( VisionModule ):
 		
 		#	get model object
 		#	positive threshold is 0.70
-		self.predictor = HOG_SVM( FootballModelPath, GoalModelPath, 0.80, rectangleThreshold=0.5, boundingBoxSize=10 )
+		self.predictor = HOG_CV2( FootballModelPath, GoalModelPath, 0.50, rectangleThreshold=0.5, boundingBoxSize=10 )
 		# self.predictor = HOG_MLP( '/home/visittor/Downloads/Dataset/Dataset/model/train_SVM_model.pk1', 
 		# 						0.80, rectangleThreshold=30 )
 
@@ -116,6 +116,8 @@ class ImageProcessing( VisionModule ):
 
 		self.greenID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'green' ][ 0 ]
 		self.whiteID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'white' ][ 0 ]
+		self.magentaID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'magenta' ][ 0 ]
+		self.cyanID = [ colorDict.ID for colorDict in self.colorConfig.colorDefList if colorDict.Name == 'cyan' ][ 0 ]
 
 	def calculateError( self, imgW, imgH, centerX, centerY ):
 
@@ -155,6 +157,28 @@ class ImageProcessing( VisionModule ):
 		# whiteObjectContours.extend( whiteObjectContours_noline )
 		
 		return whiteObjectContours
+
+	def getMagentaAndCyanContour( self, marker, fieldMask ):
+		cyanMask = (marker == self.cyanID).astype( int )
+		magentaMask = (marker == self.magentaID).astype( int )
+
+		cyanMask = cv2.bitwise_and(cyanMask, fieldMask) * 255
+		magentaMask = cv2.bitwise_and(magentaMask, fieldMask) * 255
+
+		kernel = np.ones( (5,5), dtype=np.uint8 )
+		
+		cyanMask = cv2.morphologyEx( cyanMask, cv2.MORPH_OPEN, kernel )
+		cyanMask = cv2.morphologyEx( cyanMask, cv2.MORPH_CLOSE, kernel )
+		cyanCnt = cv2.findContours( cyanMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[1]
+
+		magentaMask = cv2.morphologyEx( magentaMask, cv2.MORPH_OPEN, kernel )
+		magentaMask = cv2.morphologyEx( magentaMask, cv2.MORPH_CLOSE, kernel )
+		magentaCnt = cv2.findContours( magentaMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[1]
+
+		cyanCnt = sorted( cyanCnt, key = cv2.contourArea )
+		magentaCnt = sorted( magentaCnt, key = cv2.contourArea )
+
+		return magentaCnt, cyanCnt
 
 	def findKickCandidate( self, whiteMask ):
 		imgH, imgW = whiteMask.shape[:2]
@@ -256,6 +280,25 @@ class ImageProcessing( VisionModule ):
 		self.addObject( self.kickCandidate[0], self.kickCandidate[1], 'kicking_side',
 						1.0, (imgW,imgH), objNameList, pos2DList, confidenceList,
 						errorList )
+
+		# magentaCnt, cyanCnt = self.getMagentaAndCyanContour( marker, fieldMask )
+
+		# if len( magentaCnt ) > 0:
+		# 	largestMagenta = magentaCnt[-1]
+		# 	magentaArea = cv2.contourArea( largestMagenta )
+		# else:
+		# 	magentaArea = 0
+		
+		# if len( cyanCnt ) > 0:
+		# 	largestCyan = cyanCnt[-1]
+		# 	cyanArea = cv2.contourArea( largestCyan )
+		# else:
+		# 	cyanArea = 0
+
+		# if cyanArea + magentaArea > 0:
+		# 	largestArea = max( cyanArea, magentaArea )
+		# 	cyanCfd = cyanArea / largestArea
+		# 	magentaCfd = magentaArea / largestArea
 
 		t5 = time.time()
 
