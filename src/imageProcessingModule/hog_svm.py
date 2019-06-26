@@ -62,7 +62,7 @@ class HOG_predictor( object ):
 		self.hogDescriptor = cv2.HOGDescriptor( winSize, blockSize, blockStride, cellSize, nBins )
 
 		#	define bounding box instance
-		self.boundingBoxListObject = BoundingBoxList( rectangleThreshold, boundingBoxSize )
+		self.boundingBoxListObject = BoundingBoxList( winSize, rectangleThreshold, boundingBoxSize )
 
 		#	flag to check predictor is predict or not yet
 		self.isPredict = False
