@@ -120,11 +120,13 @@ class BoundingBoxDataStruct( object ):
 
 class BoundingBoxList( object ):
 
-	def __init__( self, rectangleThreshold, boundingBoxSize ):
+	def __init__( self, winSize, rectangleThreshold, boundingBoxSize ):
 		
 		#	get attribute filter
 		self.rectangleThreshold = rectangleThreshold
 		self.boundingBoxSize = boundingBoxSize
+
+		self.winSize = winSize
 
 		#	list for store bounding box
 		self.boundingBoxList = list()
@@ -132,7 +134,7 @@ class BoundingBoxList( object ):
 		#	initial bounding data which the best of previous
 		self.previousBoundingBox = None
 
-	def getBoundingBox( self, image, whiteContours, imageSize = 40, objectPointLocation = 'center' ):
+	def getBoundingBox( self, image, whiteContours, objectPointLocation = 'center' ):
 
 		#	get all bounding box
 		allBoundingBoxList = map( cv2.boundingRect, whiteContours )
@@ -146,7 +148,7 @@ class BoundingBoxList( object ):
 			imageROI, topLeftPositionTuple, bottomRightPositionTuple = self.getImageROI( image, boundingBox )
 
 			#	resize first
-			imageROIResized = cv2.resize( imageROI, ( imageSize, imageSize ) )
+			imageROIResized = cv2.resize( imageROI, self.winSize )
 
 			#	initial instance of data structure
 			boundingBoxStruct = BoundingBoxDataStruct( imageROIResized, topLeftPositionTuple, bottomRightPositionTuple, objectPointLocation )
