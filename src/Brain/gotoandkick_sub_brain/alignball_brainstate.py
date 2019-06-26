@@ -129,7 +129,8 @@ class RotateToTheBall( FSMBrainState ):
 			idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 
 			localDistanceX = localPosDict.pos3D_cart[ idxBallLocalObj ].x
 			localDistanceY = localPosDict.pos3D_cart[ idxBallLocalObj ].y
-			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y
+			distanceFromRobot = localPosDict.pos2D_polar[ idxBallLocalObj ].x
+			thetaWrtRobotRad = localPosDict.pos2D_polar[ idxBallLocalObj ].y % (2*np.pi)
 
 			if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
 				#	it should switch to first state to find the ball
@@ -146,14 +147,23 @@ class RotateToTheBall( FSMBrainState ):
 		#
 		#	Rotate to ball
 		#
-		
-		#	Get sign to rotate
-		direction = 1 if thetaWrtRobotRad > 0 else -1
-		self.rosInterface.LocoCommand(	velX = 0.0,
-										velY = 0.0,
-										omgZ = direction * self.omegaZ,
-										commandType = 0,
-										ignorable = False )
+
+		if math.fabs(thetaWrtRobotRad) > 170 and distanceFromRobot < 0.1:
+			self.rosInterface.LocoCommand(	velX = -0.5,
+											velY = 0.0,
+											omgZ = 0.0,
+											commandType = 0,
+											ignorable = False )
+
+		else:
+
+			#	Get sign to rotate
+			direction = 1 if thetaWrtRobotRad < np.pi else -1
+			self.rosInterface.LocoCommand(	velX = 0.0,
+											velY = 0.0,
+											omgZ = direction * self.omegaZ,
+											commandType = 0,
+											ignorable = False )
 
 	def leaveStateCallBack( self ):
 
