@@ -121,8 +121,8 @@ def main():
 
 
 	#   Get to hog
-	hogPositive = ColorHistrogram( positiveSamplePathDir )
-	hogNegative = ColorHistrogram( negativeSamplePathDir )
+	hogPositive = ColorHistrogram( positiveSamplePathDir, winSize=( 64, 64 ), blockSize=( 16, 16 ), cellSize = ( 8, 8 ), blockStride=( 8, 8 ) )
+	hogNegative = ColorHistrogram( negativeSamplePathDir, winSize=( 64, 64 ), blockSize=( 16, 16 ), cellSize = ( 8, 8 ), blockStride=( 8, 8 ) )
 
 	print "\nExtract positive..."
 	positiveFeature = hogPositive.doExtract(  )
