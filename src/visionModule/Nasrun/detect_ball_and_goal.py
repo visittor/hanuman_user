@@ -50,8 +50,11 @@ import time
 #	GLOBALS
 #
 
-FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_ball.yaml" )
-GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_goal.yaml" ) 
+# FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_ball.yaml" )
+# GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/cv_svm_goal.yaml" ) 
+
+FootballModelPath = 'Downloads/hist_hog_model_ball.yaml'
+GoalModelPath = 'Downloads/hist_hog_model_goal.yaml'
 
 ########################################################
 #
@@ -155,15 +158,19 @@ class ImageProcessing( VisionModule ):
 		# whiteObjectContours_noline = cv2.findContours( whiteObject_noline, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE )[ 1 ]
 
 		# whiteObjectContours.extend( whiteObjectContours_noline )
+
+		whiteObjectContours = map( cv2.convexHull, whiteObjectContours )
 		
 		return whiteObjectContours
 
 	def getMagentaAndCyanContour( self, marker, fieldMask ):
-		cyanMask = (marker == self.cyanID).astype( int )
-		magentaMask = (marker == self.magentaID).astype( int )
+		cyanMask = (marker == self.cyanID).astype( np.uint8 )
+		magentaMask = (marker == self.magentaID).astype( np.uint8 )
 
-		cyanMask = cv2.bitwise_and(cyanMask, fieldMask) * 255
-		magentaMask = cv2.bitwise_and(magentaMask, fieldMask) * 255
+		fieldMask = cv2.bitwise_not(fieldMask.astype( np.uint8 ))
+
+		cyanMask = cv2.bitwise_and(cyanMask, fieldMask )
+		magentaMask = cv2.bitwise_and(magentaMask, fieldMask)
 
 		kernel = np.ones( (5,5), dtype=np.uint8 )
 		
@@ -281,30 +288,42 @@ class ImageProcessing( VisionModule ):
 						1.0, (imgW,imgH), objNameList, pos2DList, confidenceList,
 						errorList )
 
-		# magentaCnt, cyanCnt = self.getMagentaAndCyanContour( marker, fieldMask )
+		magentaCnt, cyanCnt = self.getMagentaAndCyanContour( marker, fieldMask )
 
-		# if len( magentaCnt ) > 0:
-		# 	largestMagenta = magentaCnt[-1]
-		# 	magentaArea = cv2.contourArea( largestMagenta )
-		# else:
-		# 	magentaArea = 0
+		if len( magentaCnt ) > 0:
+			largestMagenta = magentaCnt[-1]
+			magentaArea = cv2.contourArea( largestMagenta )
+			largestMagenta = cv2.moments( largestMagenta )
+		else:
+			magentaArea = 0
 		
-		# if len( cyanCnt ) > 0:
-		# 	largestCyan = cyanCnt[-1]
-		# 	cyanArea = cv2.contourArea( largestCyan )
-		# else:
-		# 	cyanArea = 0
+		if len( cyanCnt ) > 0:
+			largestCyan = cyanCnt[-1]
+			cyanArea = cv2.contourArea( largestCyan )
+			largestCyan = cv2.moments( largestCyan )
+		else:
+			cyanArea = 0
 
-		# if cyanArea + magentaArea > 0:
-		# 	largestArea = max( cyanArea, magentaArea )
-		# 	cyanCfd = cyanArea / largestArea
-		# 	magentaCfd = magentaArea / largestArea
+		if cyanArea + magentaArea > 0:
+			largestArea = max( cyanArea, magentaArea )
+			cyanCfd = cyanArea / largestArea
+			magentaCfd = magentaArea / largestArea
+
+			if cyanArea > 0 and largestCyan['m00'] != 0:
+				x = largestCyan['m10']/largestCyan['m00']
+				y = largestCyan['m01']/largestCyan['m00']
+				self.addObject( x, y, 'cyan', cyanCfd, (imgW, imgH), objNameList, 
+								pos2DList, confidenceList, errorList )
+
+			if magentaArea > 0 and largestMagenta['m00'] != 0:
+				x = largestMagenta['m10']/largestMagenta['m00']
+				y = largestMagenta['m01']/largestMagenta['m00']
+				self.addObject( x, y, 'magenta', magentaCfd, (imgW, imgH), objNameList,
+								pos2DList, confidenceList, errorList )
 
 		t5 = time.time()
 
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
-
-		featureSample = self.predictor.extractFeature2( gray, self.whiteObjectContours, objectPointLocation="bottom" )
 
 		numCandidate = self.predictor.boundingBoxListObject.getNumberCandidate()
 
@@ -399,7 +418,7 @@ class ImageProcessing( VisionModule ):
 			x = int( msg.pos2D[ ballIdx ].x / 2 )
 			y = int( msg.pos2D[ ballIdx ].y / 2 )
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
-			cv2.putText( img, "ball", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
+			cv2.putText( img, "ball", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 0.9, ( 255, 0, 0 ), 2 )
 
 		for i in msg.object_name:
 			if i == 'goal':
@@ -408,11 +427,25 @@ class ImageProcessing( VisionModule ):
 					x = int(msg.pos2D[ idx ].x/2)
 					y = int(msg.pos2D[ idx ].y/2)
 					cv2.circle( img, ( x, y ), 5, ( 0, 0, 255 ), -1 )
-					cv2.putText( img, "goal", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 0, 0, 255 ), 2 )
+					cv2.putText( img, "goal", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 0.9, ( 0, 0, 255 ), 2 )
 
 		if 'field_corner' in msg.object_name:
 			cornerIdx = msg.object_name.index( 'field_corner' )
 			x = int(msg.pos2D[ cornerIdx ].x/2)
 			y = int(msg.pos2D[ cornerIdx ].y/2)
 			cv2.circle( img, ( x, y ), 5, ( 255, 0, 0 ), -1 )
-			cv2.putText( img, "corner", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 2, ( 255, 0, 0 ), 2 )
+			cv2.putText( img, "corner", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 0.9, ( 255, 0, 0 ), 2 )
+
+		if 'cyan' in msg.object_name:
+			idx = msg.object_name.index( 'cyan' )
+			x = int(msg.pos2D[ idx ].x/2)
+			y = int(msg.pos2D[ idx ].y/2)
+			cv2.circle( img, ( x, y ), 5, (255, 0, 0 ), -1 )
+			cv2.putText( img, "cyan", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 0.9, ( 255, 0, 0 ), 2 )
+
+		if 'magenta' in msg.object_name:
+			idx = msg.object_name.index( 'magenta' )
+			x = int(msg.pos2D[ idx ].x/2)
+			y = int(msg.pos2D[ idx ].y/2)
+			cv2.circle( img, ( x, y ), 5, (255, 0, 0 ), -1 )
+			cv2.putText( img, "magenta", ( x, y ), cv2.FONT_HERSHEY_COMPLEX, 0.9, ( 255, 0, 0 ), 2 )
