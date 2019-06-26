@@ -117,7 +117,7 @@ class BackwardTimer( FSMBrainState ):
 		self.nextState = nextState
 
 	def firstStep( self ):
-		self.rosInterface.LocoCommand(	velX = -0.3,
+		self.rosInterface.LocoCommand(	velX = -0.6,
 										velY = 0.0,
 										omgZ = 0.0,
 										commandType = 0,
