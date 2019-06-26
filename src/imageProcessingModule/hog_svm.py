@@ -54,7 +54,7 @@ def loadModel( modelPathStr ):
 class HOG_predictor( object ):
 
 	def __init__( self, positiveThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 40 ):
+				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 40 ):
 
 		self.positiveThreshold = positiveThreshold
 
@@ -118,8 +118,6 @@ class HOG_predictor( object ):
 			featureList.append( hogFeature.T )
 
 		return np.vstack( tuple( featureList ) )
-
-		
 
 	def predict( self ):
 
@@ -241,7 +239,7 @@ class HOG_predictor( object ):
 class HOG_SVM( HOG_predictor ):
 
 	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
+				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
 		super( HOG_SVM, self ).__init__( positiveThreshold = positiveThreshold, 
 										winSize = winSize, blockSize = blockSize, 
@@ -294,7 +292,7 @@ class HOG_SVM( HOG_predictor ):
 class HOG_MLP( HOG_predictor ):
 
 	def __init__( self, modelPath, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
+				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
 		super( HOG_MLP, self ).__init__( positiveThreshold = positiveThreshold, 
 										winSize = winSize, blockSize = blockSize, 
@@ -319,8 +317,10 @@ class HOG_MLP( HOG_predictor ):
 
 class HOG_CV2( HOG_predictor ):
 
+	HIT_SIZE = 32
+
 	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
-	   		    cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
+				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
 		super( HOG_CV2, self ).__init__( positiveThreshold = positiveThreshold, 
 										winSize = winSize, blockSize = blockSize, 
@@ -333,15 +333,51 @@ class HOG_CV2( HOG_predictor ):
 		self.svm_ball = svm.load( modelBallPathStr )
 		self.svm_goal = svm.load( modelGoalPathStr )
 
-	# def extractFeature( self, image, whiteContours, objectPointLocation = 'center' ):
+	def getHistogram( self, img, normalize = True ):
 
-	# 	#	get bounding box from white contours first
-	# 	self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+		hist = cv2.calcHist( [img], [0], None, [self.HIT_SIZE], [0,256] ).reshape( 1, -1 )
+		if normalize:
+			hist = hist / np.max( hist )
+		return hist
 
-	# 	if self.boundingBoxListObject.getNumberCandidate() == 0:
-	# 		return False
+	def extractFeature( self, image, whiteContours, objectPointLocation = 'center' ):
 
-	# 	self.image = image.copy()
+		# #	get bounding box from white contours first
+		# self.boundingBoxListObject.getBoundingBox( image, whiteContours, objectPointLocation = objectPointLocation )
+
+		# if self.boundingBoxListObject.getNumberCandidate() == 0:
+		# 	return False
+
+		# #	compute feature vector
+		# for boundingBox in self.boundingBoxListObject.boundingBoxList:
+
+		# 	#	compute!		
+		# 	hogFeature = self.hogDescriptor.compute( boundingBox.roiImage )
+
+		# 	#	HACK!!! : Get gray scale
+		# 	# imageGray = boundingBox.convertImageToGrayScale( )
+
+		# 	# hogGrayFeature = self.hogDescriptor.compute( imageGray )
+
+		# 	#	get feature vector
+		# 	boundingBox.featureVector = hogFeature.T
+		# 	# boundingBox.featureVectorGray = hogGrayFeature.T
+
+		# return True
+
+		isExtract = super( HOG_CV2, self ).extractFeature( image, whiteContours, objectPointLocation = objectPointLocation )
+
+		if not isExtract:
+			return False
+
+		for boundingBox in self.boundingBoxListObject.boundingBoxList:
+			img = boundingBox.roiImage
+
+			hist = self.getHistogram( img )
+
+			boundingBox.featureVector = np.hstack((boundingBox.featureVector, hist))
+
+		return True
 
 	def predict( self ):
 
@@ -349,7 +385,6 @@ class HOG_CV2( HOG_predictor ):
 		bboxList = []
 
 		for boundingObj in self.boundingBoxListObject.boundingBoxList:
-
 			score = self.svm_ball.predict( boundingObj.featureVector, -1, cv2.ml.STAT_MODEL_RAW_OUTPUT )[1]
 			
 			score = 1 / (1 + math.exp(-score[0,0]))
