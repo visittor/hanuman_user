@@ -415,6 +415,9 @@ class ImageProcessing( VisionModule ):
 
 		cv2.circle( img, self.kickCandidate, 5, (0,0,255), -1 )
 
+		for boundingObj in self.predictor.boundingBoxListObject.boundingBoxList:
+			cv2.rectangle( img, boundingObj.topLeftPositionTuple, boundingObj.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
+
 		if 'ball' in msg.object_name:
 			ballIdx = msg.object_name.index( 'ball' )
 			x = int( msg.pos2D[ ballIdx ].x / 2 )
