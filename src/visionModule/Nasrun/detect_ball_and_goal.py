@@ -93,7 +93,7 @@ class ImageProcessing( VisionModule ):
 		
 		#	get model object
 		#	positive threshold is 0.70
-		self.predictor = HOG_CV2( FootballModelPath, GoalModelPath, 0.50, rectangleThreshold=0.5, boundingBoxSize=10, 
+		self.predictor = HOG_CV2( FootballModelPath, GoalModelPath, 0.74, rectangleThreshold=0.5, boundingBoxSize=10, 
 								  winSize=( 64, 64 ), blockSize=( 16, 16 ), cellSize = ( 8, 8 ), blockStride=( 8, 8 ) )
 								  
 		# self.predictor = HOG_MLP( '/home/visittor/Downloads/Dataset/Dataset/model/train_SVM_model.pk1', 
@@ -114,6 +114,8 @@ class ImageProcessing( VisionModule ):
 
 		self.tiltForLookAtFoot = float(self.config['PanTiltPlanner'].get( 'TiltAngleForLookAtFoot', 60 ))
 		self.tiltForLookAtFoot = math.radians( self.tiltForLookAtFoot )
+
+		self.visBBList = []
 
 	def _setColorConfig( self, colorConfig ):
 
@@ -327,6 +329,8 @@ class ImageProcessing( VisionModule ):
 
 		canExtract = self.predictor.extractFeature( gray, self.whiteObjectContours, objectPointLocation="bottom" )
 
+		self.visBBList = self.predictor.boundingBoxListObject.boundingBoxList
+
 		numCandidate = self.predictor.boundingBoxListObject.getNumberCandidate()
 
 		t6 = time.time()
@@ -359,6 +363,8 @@ class ImageProcessing( VisionModule ):
 				#	get another point of object
 				botX, botY = bestBounding.bottom
 				centerX, centerY = bestBounding.center
+
+				print bestBounding.footballProbabilityScore
 
 				self.addObject( botX, botY, 'ball', bestBounding.footballProbabilityScore,
 								(imgW,imgH), objNameList, pos2DList, confidenceList,
@@ -415,7 +421,7 @@ class ImageProcessing( VisionModule ):
 
 		cv2.circle( img, self.kickCandidate, 5, (0,0,255), -1 )
 
-		for boundingObj in self.predictor.boundingBoxListObject.boundingBoxList:
+		for boundingObj in self.visBBList:
 			cv2.rectangle( img, boundingObj.topLeftPositionTuple, boundingObj.bottomRightPositionTuple, ( 255, 0, 0 ), 2 )
 
 		if 'ball' in msg.object_name:
