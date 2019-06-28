@@ -154,7 +154,8 @@ class ScanGoal( FSMBrainState ):
 		direction = self.findShootDirection( objectDict )
 
 		if objectDict.has_key( self.teamColor ):
-			errX, errY = objectDict[self.teamColor].getCartCoor()
+			obj = objectDict[self.teamColor]
+			errX, errY = obj.getCartCoor()
 
 			imgW = 640
 			fovWidth = 2 * np.arctan( 0.5 * imgW / self.fx )
@@ -162,7 +163,7 @@ class ScanGoal( FSMBrainState ):
 			panAngle = errX * fovWidth / 2
 			currentPanAngle = pantiltJS['pan'] + panAngle
 
-			if math.fabs(currentPanAngle) < math.radians(45):
+			if math.fabs(currentPanAngle) < math.radians(45) and obj.score > 100:
 				self.own_goal = True
 
 		if direction is not None:

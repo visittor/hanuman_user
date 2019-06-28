@@ -316,13 +316,13 @@ class ImageProcessing( VisionModule ):
 			if cyanArea > 0 and largestCyan['m00'] != 0:
 				x = largestCyan['m10']/largestCyan['m00']
 				y = largestCyan['m01']/largestCyan['m00']
-				self.addObject( x, y, 'cyan', cyanCfd, (imgW, imgH), objNameList, 
+				self.addObject( x, y, 'cyan', cyanArea, (imgW, imgH), objNameList, 
 								pos2DList, confidenceList, errorList )
 
 			if magentaArea > 0 and largestMagenta['m00'] != 0:
 				x = largestMagenta['m10']/largestMagenta['m00']
 				y = largestMagenta['m01']/largestMagenta['m00']
-				self.addObject( x, y, 'magenta', magentaCfd, (imgW, imgH), objNameList,
+				self.addObject( x, y, 'magenta', magentaArea, (imgW, imgH), objNameList,
 								pos2DList, confidenceList, errorList )
 
 		t5 = time.time()
