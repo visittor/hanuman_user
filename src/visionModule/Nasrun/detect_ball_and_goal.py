@@ -364,7 +364,7 @@ class ImageProcessing( VisionModule ):
 				botX, botY = bestBounding.bottom
 				centerX, centerY = bestBounding.center
 
-				print bestBounding.footballProbabilityScore
+				# print bestBounding.footballProbabilityScore
 
 				self.addObject( botX, botY, 'ball', bestBounding.footballProbabilityScore,
 								(imgW,imgH), objNameList, pos2DList, confidenceList,

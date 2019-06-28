@@ -119,16 +119,17 @@ class GotoBall( FSMBrainState ):
 			return
 		else:
 			localPosDict = localPosDict.postDict
-
 		if 'ball' in visionMsg.object_name:
 			# idxBallLocalObj = localPosDict.object_name.index( 'ball' )
 			# if localPosDict.object_confidence[ idxBallLocalObj ] < self.confidenceThr:
 			# 	pass
+			# rospy.loginfo( "{}".format('Found ball' if self.lookAtBall else 'Lost ball') )
 			
 			# self.rosInterface.Pantilt( command = 3 )
 			if not self.lookAtBall:
+				rospy.loginfo( "Look at ball" )
 				self.rosInterface.Pantilt( command = 2, pattern = 'ball' )
-				rospy.loginfo( "Found ball!!!!" )
+				# rospy.loginfo( "Found ball!!!!" )
 				self.lookAtBall = True
 			
 			self._timeStart = time.time( )
@@ -139,7 +140,7 @@ class GotoBall( FSMBrainState ):
 		elif time.time( ) - self._timeStart > 3:
 			if self.lookAtBall:
 				self.lookAtBall = False
-				rospy.loginfo( "LOST ball!!!!" )
+				# rospy.loginfo( "LOST ball!!!!" )
 				self.rosInterface.Pantilt( command = 1, pattern = self.scanBallPattern )
 
 		if self.currSubBrainName == 'None':
