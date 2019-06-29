@@ -185,7 +185,18 @@ class Kinematic( KinematicModule ):
 			p2D = objMsg.pos2D[i]
 			err = objMsg.object_error[i]
 
-			if plane is None:
+			if name == 'magenta' or name == 'cyan':
+				cartList.append( Point32( x = err.x, y = err.y ) )
+				landmarkPose3D.append( Point32( x = err.x, y = err.y ) )
+
+				polarList.append( Point32( x = err.x, y = err.y ) )
+
+				names.append( name )
+				confidences.append( confidence )
+				errorList.append( Point32( x = err.x, y = err.y ) )
+				pos2DList.append( p2D )			
+
+			elif plane is None:
 				pass
 
 			else:

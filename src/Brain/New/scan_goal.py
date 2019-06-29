@@ -10,6 +10,11 @@ import math
 
 import rospy
 
+COLOR_ENUM = ['blue', 'red', 'yellow', 'black', 'white', 'green',
+			'orange', 'purple', 'brown', 'gray']
+
+# COLOR_ENUM = {i:k for i,k in ennumerate( COLOR_ENUM )}
+
 class Stop( FSMBrainState ):
 
 	def __init__( self, nextSubbrain = 'None', time = 5 ):
@@ -46,6 +51,9 @@ class ScanGoal( FSMBrainState ):
 		self._nextSubbrain = nextSubbrain
 
 		self.kickingState = kickingState
+
+		self.magenta = 0.0
+		self.cyan = 0.0
 
 		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
@@ -92,6 +100,15 @@ class ScanGoal( FSMBrainState ):
 
 			return objectDict['goal'][0].getPolarCoor( )[1]
 
+	def initialize( self ):
+
+		self.teamColor = self.config['GameControllerParameter'].get('TeamColor', 'black')
+		self.teamColor = self.teamColor if self.teamColor in COLOR_ENUM else 'black'
+
+		#	Get fx and fy from robot config
+		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
+		self.fx = float( self.config[ "CameraParameters" ][ "fx" ] )
+
 	def firstStep( self ):
 
 		postDict = self.rosInterface.local_map( reset = False ).postDict
@@ -106,7 +123,6 @@ class ScanGoal( FSMBrainState ):
 
 		else:
 			phi = 0
-
 
 		panAng = math.radians( 30 ) if phi > 0 else math.radians( -30 )
 		self.rosInterface.Pantilt(	name=[ 'pan', 'tilt' ],
@@ -124,15 +140,34 @@ class ScanGoal( FSMBrainState ):
 									command = 1
 								)
 
+		self.own_goal = False
+
 	def step( self ):
 
 		postDict = self.rosInterface.local_map( reset = False ).postDict
 
 		objectDict = self.postDict2ObjDict( postDict )
 
+		pantiltJS = self.rosInterface.pantiltJS
+		pantiltJS = { n:p  for n, p in zip( pantiltJS.name, pantiltJS.position ) }
+
 		direction = self.findShootDirection( objectDict )
 
+		if objectDict.has_key( self.teamColor ):
+			obj = objectDict[self.teamColor]
+			errX, errY = obj.getCartCoor()
+
+			imgW = 640
+			fovWidth = 2 * np.arctan( 0.5 * imgW / self.fx )
+
+			panAngle = errX * fovWidth / 2
+			currentPanAngle = pantiltJS['pan'] + panAngle
+
+			if math.fabs(currentPanAngle) < math.radians(45) and obj.score > 100:
+				self.own_goal = True
+
 		if direction is not None:
+			direction = math.pi - direction if self.own_goal else direction
 			rospy.loginfo( 'Found Shoot Direction {}.'.format( math.degrees(direction) ) )
 			self.setGlobalVariable( 'curveSlideAngle', direction )
 			self.SignalChangeSubBrain( self._nextSubbrain )
