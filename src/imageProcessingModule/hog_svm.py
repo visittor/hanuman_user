@@ -53,10 +53,11 @@ def loadModel( modelPathStr ):
 #
 class HOG_predictor( object ):
 
-	def __init__( self, positiveThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, ballThreshold = 0.5, goalThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 40 ):
 
-		self.positiveThreshold = positiveThreshold
+		self.ballThreshold = ballThreshold
+		self.goalThreshold = goalThreshold
 
 		#	define hog descriptor instance
 		self.hogDescriptor = cv2.HOGDescriptor( winSize, blockSize, blockStride, cellSize, nBins )
@@ -161,7 +162,7 @@ class HOG_predictor( object ):
 				#	check this is a ball ?
 				#	NOTE:
 				#		I change to check ball with probability
-				if boundingBoxObj.footballProbabilityScore > self.positiveThreshold :
+				if boundingBoxObj.footballProbabilityScore > self.ballThreshold :
 
 					#	save it
 					self.boundingBoxListObject.setPreviousBoundingBox( boundingBoxObj )
@@ -214,7 +215,7 @@ class HOG_predictor( object ):
 		goalList = list()
 
 		for goalObj in sortBoundingBoxGoalList:
-			if goalObj.goalProbabilityScore > self.positiveThreshold:
+			if goalObj.goalProbabilityScore > self.goalThreshold:
 				confidence = goalObj.goalProbabilityScore
 				goalList.append( goalObj )
 
@@ -238,10 +239,10 @@ class HOG_predictor( object ):
 
 class HOG_SVM( HOG_predictor ):
 
-	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, modelBallPathStr, modelGoalPathStr, ballThreshold = 0.5, goalThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
-		super( HOG_SVM, self ).__init__( positiveThreshold = positiveThreshold, 
+		super( HOG_SVM, self ).__init__( ballThreshold = ballThreshold, goalThreshold = goalThreshold,
 										winSize = winSize, blockSize = blockSize, 
 										blockStride = blockStride,	cellSize = cellSize, 
 										nBins = nBins, rectangleThreshold = rectangleThreshold, 
@@ -291,10 +292,10 @@ class HOG_SVM( HOG_predictor ):
 
 class HOG_MLP( HOG_predictor ):
 
-	def __init__( self, modelPath, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, modelPath, ballThreshold = 0.5, goalThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
-		super( HOG_MLP, self ).__init__( positiveThreshold = positiveThreshold, 
+		super( HOG_MLP, self ).__init__( ballThreshold = ballThreshold, goalThreshold = goalThreshold, 
 										winSize = winSize, blockSize = blockSize, 
 										blockStride = blockStride,	cellSize = cellSize, 
 										nBins = nBins, rectangleThreshold = rectangleThreshold, 
@@ -319,10 +320,10 @@ class HOG_CV2( HOG_predictor ):
 
 	HIT_SIZE = 32
 
-	def __init__( self, modelBallPathStr, modelGoalPathStr, positiveThreshold, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
+	def __init__( self, modelBallPathStr, modelGoalPathStr, ballThreshold = 0.5, goalThreshold = 0.5, winSize = ( 40, 40 ), blockSize = ( 8, 8 ), blockStride = ( 4, 4 ),
 				cellSize = ( 4, 4 ), nBins = 9, rectangleThreshold = 0.8, boundingBoxSize = 10 ):
 
-		super( HOG_CV2, self ).__init__( positiveThreshold = positiveThreshold, 
+		super( HOG_CV2, self ).__init__( ballThreshold = ballThreshold, goalThreshold = goalThreshold,
 										winSize = winSize, blockSize = blockSize, 
 										blockStride = blockStride,	cellSize = cellSize, 
 										nBins = nBins, rectangleThreshold = rectangleThreshold, 
