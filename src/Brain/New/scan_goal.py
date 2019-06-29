@@ -154,7 +154,7 @@ class ScanGoal( FSMBrainState ):
 		direction = self.findShootDirection( objectDict )
 
 		if objectDict.has_key( self.teamColor ):
-			obj = objectDict[self.teamColor]
+			obj = objectDict[self.teamColor][ 0 ]
 			errX, errY = obj.getCartCoor()
 
 			imgW = 640
