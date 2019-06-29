@@ -11,7 +11,7 @@ import math
 import rospy
 
 COLOR_ENUM = ['blue', 'red', 'yellow', 'black', 'white', 'green',
-			'orange', 'purple', 'brown', 'gray']
+			'orange', 'purple', 'brown', 'gray', 'magenta', 'cyan' ]
 
 # COLOR_ENUM = {i:k for i,k in ennumerate( COLOR_ENUM )}
 
