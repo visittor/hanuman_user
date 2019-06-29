@@ -101,7 +101,7 @@ class Kinematic( KinematicModule ):
 			return
 		model, inliers = measure.ransac(point3D, measure.CircleModel,
                                 min_samples=3, residual_threshold=0.05,
-                                max_trials=200, is_model_valid = is_model_valid,
+                                max_trials=100, is_model_valid = is_model_valid,
                                 is_data_valid = is_data_valid)
 
 		if model is None:
@@ -126,7 +126,8 @@ class Kinematic( KinematicModule ):
 		return prob / prob_perfect
 
 	def kinematicCalculation( self, objMsg, js, cortexMsg, rconfig=None ):
-		t0 = time.time( )
+
+		points2D = [ [p.x, p.y] for p in objMsg.pos2D ]
 
 		pointsClound2D = [ ]
 		boundary2D = [ ]
@@ -141,7 +142,6 @@ class Kinematic( KinematicModule ):
 			else:
 				object2D.append( [p.x, p.y] )
 				indexList.append( i )
-		t1 = time.time()
 
 		pitch = math.radians(cortexMsg.pitch) if cortexMsg is not None else 0.0
 		roll = math.radians(cortexMsg.roll)	if cortexMsg is not None else 0.0
@@ -156,13 +156,9 @@ class Kinematic( KinematicModule ):
 		H = getMatrixForForwardKinematic( js.position[0], js.position[1], roll, pitch )
 		H = np.matmul( HRotate, H )
 
-		t2 = time.time()
 		pointsClound3D = self.calculate3DCoor( pointsClound2D, HCamera = H )
-		t3 = time.time()
 		boundary3D = self.calculate3DCoor( boundary2D, HCamera = H )
-		t4 = time.time()
 		object3D = self.calculate3DCoor( object2D, HCamera = H )
-		t5 = time.time()
 
 		polarList = []
 		cartList = []
@@ -215,8 +211,6 @@ class Kinematic( KinematicModule ):
 				errorList.append( Point32( x = err.x, y = err.y ) )
 				pos2DList.append( p2D )
 
-		t6 = time.time()
-
 		for plane, p3D in pointsClound3D:
 			if plane is None:
 				continue
@@ -229,8 +223,6 @@ class Kinematic( KinematicModule ):
 				points.append( point2D( x = x, y = y ) )
 
 		splitIndexes.append( len( points ))
-
-		t7 = time.time()
 
 		for plane, p3D in boundary3D:
 			if plane is None:
@@ -249,7 +241,6 @@ class Kinematic( KinematicModule ):
 			landmarkPose3D.append( point2D( x = circle[0], y = circle[1] ) )
 			confidences.append( self.getDensityProbability_normalize( circle[2], 
 																	0.75, 0.5 ) )
-		t8 = time.time()
 
 		# print points3D
 		msg = postDictMsg( )
