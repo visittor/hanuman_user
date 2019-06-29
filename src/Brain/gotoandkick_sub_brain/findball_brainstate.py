@@ -202,10 +202,9 @@ class FindBall( FSMBrainState ):
 
 		self.findBallStateTimeOut = None
 
-		self.stepDirection = [ 1, -1, -1, 1 ]
 		self.stepDirection = ['stop', 'backward', 'stop', 'left', 
 							'stop', 'right', 'right', 'stop', 
-							'left', 'stop']
+							'left']
 		self.stepIndex = 0
 
 	def initialize( self ):
@@ -215,6 +214,15 @@ class FindBall( FSMBrainState ):
 		self.findBallStateTimeOut += self.duration
 
 		self.addSubBrain( StopTimer( self.findBallStateTimeOut ), 'stop' )
+
+		if self.config.has_key('ChangeStateParameter'):
+			if self.config['ChangeStateParameter'].has_key('FindBallPattern'):
+				keys = sorted(self.config['ChangeStateParameter']['FindBallPattern'], key=lambda x:int(x))
+				self.stepDirection = []
+				for k in keys:
+					val = self.config['ChangeStateParameter']['FindBallPattern'][k]
+					if val in self.subBrains.keys( ):
+						self.stepDirection.append( val )
 
 	def firstStep( self ):
 		
