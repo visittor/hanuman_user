@@ -126,9 +126,7 @@ class Kinematic( KinematicModule ):
 		return prob / prob_perfect
 
 	def kinematicCalculation( self, objMsg, js, cortexMsg, rconfig=None ):
-
-		points2D = [ [p.x, p.y] for p in objMsg.pos2D ]
-
+		
 		pointsClound2D = [ ]
 		boundary2D = [ ]
 		object2D = [ ]
