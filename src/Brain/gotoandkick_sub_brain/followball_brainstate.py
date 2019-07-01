@@ -87,6 +87,7 @@ class FollowBall( FSMBrainState ):
 
 		#	Get neares distance before kick
 		self.distanceToKick = float( getParameters(self.config, 'ChangeStateParameter', 'NearestDistanceFootballWrtRobot'))
+		self.distanceToPlay = float( getParameters(self.config, 'ChangeStateParameter', 'FarthestDistanceFootballWrtRobot'))
 
 		#	Get limit angle
 		self.limitTiltAngle = float( getParameters(self.config, 'ChangeStateParameter', 'LimitTiltAngleDegree'))
@@ -203,11 +204,17 @@ class FollowBall( FSMBrainState ):
 			omgZ = self.omg_max / 2
 			omgZ *= 0 # -1 if thetaWrtRobotRad < 0 else 1
 
-		self.rosInterface.LocoCommand( velX = velX,
-					       			   velY = self.velY,
-					       			   omgZ = omgZ,
-					       			   commandType = 0,
-					       			   ignorable = True )
+		if localDistanceX > self.distanceToPlay:
+			self.rosInterface.LocoCommand( 	velX = 0.0, velY = 0.0, omgZ = 0.0, 
+											commandType = 0,
+											ignorable = True )
+
+		else:
+			self.rosInterface.LocoCommand( velX = velX,
+						       			   velY = self.velY,
+						       			   omgZ = omgZ,
+						       			   commandType = 0,
+						       			   ignorable = True )
 
 	def leaveStateCallBack( self ):
 
