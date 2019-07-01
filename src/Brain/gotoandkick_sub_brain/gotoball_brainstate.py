@@ -100,7 +100,8 @@ class GotoBall( FSMBrainState ):
 	def initialize( self ):
 
 		#	Get time out from config
-		self.scanBallPattern = self.config[ 'PanTiltPlanner' ][ 'ScanBallPattern' ]
+		self.scanBallPattern = getParameters(self.config, 'PanTiltPlanner', 'ScanBallPattern')
+		self.scanBallPattern_followball = getParameters(self.config, 'PanTiltPlanner', 'ScanBallPatternFollowBall')
 		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
 
 	def firstStep( self ):
@@ -141,7 +142,11 @@ class GotoBall( FSMBrainState ):
 			if self.lookAtBall:
 				self.lookAtBall = False
 				# rospy.loginfo( "LOST ball!!!!" )
-				self.rosInterface.Pantilt( command = 1, pattern = self.scanBallPattern )
+				if self.currSubBrainName == 'FollowBall':
+					pattern = self.scanBallPattern_followball
+				else:
+					pattern = self.scanBallPattern
+				self.rosInterface.Pantilt( command = 1, pattern = pattern )
 
 		if self.currSubBrainName == 'None':
 			self.SignalChangeSubBrain( self.nextState )

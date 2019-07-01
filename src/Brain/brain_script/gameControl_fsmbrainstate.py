@@ -51,7 +51,10 @@ from construct import Bytes
 #
 #	CLASS DEFINITIONS
 #
-history_fn = '/'.join(__file__.split('/')[:-1] + ['history'])
+
+# history_fn = '/'.join(__file__.split('/')[:-1] + ['history'])
+history_fn = os.path.join( os.getenv( 'ROS_WS' ), 'history' )
+
 class Controller( FSMBrainState ):
 
 	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState,
@@ -155,20 +158,21 @@ class Controller( FSMBrainState ):
 			self.ChangeSubBrain( "FinishState" ) 
 
 
-# initialState = InitialState()
-# readyState = ReadyState()
-# setState = SetState()
-# playState = PlayState()
-# finishState = FinishState()
-# penaltyState = PernaltyState()
+#	For debug
+initialState = InitialState()
+readyState = ReadyState()
+setState = SetState()
+playState = PlayState()
+finishState = FinishState()
+penaltyState = PernaltyState()
 
 
-# main_brain = Controller( initialState = initialState,
-# 						 readyState = readyState,
-# 						 setState = setState,
-# 						 playState = playState,
-# 						 finishState = finishState,
-# 						 penaltyState = penaltyState
-#  )
+main_brain = Controller( initialState = initialState,
+						 readyState = readyState,
+						 setState = setState,
+						 playState = playState,
+						 finishState = finishState,
+						 penaltyState = penaltyState
+ )
 
 
