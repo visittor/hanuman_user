@@ -29,8 +29,9 @@ _DEFAULT_CONFIG = {
 								'FindballStateTimeOut'				: '15.0', },
 
 	'PanTiltPlanner' : {					
-							'TiltAngleForLookAtFoot': '60',
-							'ScanBallPattern' 		: 'basic_pattern_near'
+							'TiltAngleForLookAtFoot'	: '60',
+							'ScanBallPattern' 			: 'basic_pattern_near',
+							'ScanBallPatternFollowBall' : 'basic_pattern_near',
 						}
 }
 
