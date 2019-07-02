@@ -51,7 +51,7 @@ import time
 #
 
 FootballModelPath =  os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/hist_hog_model_ball2.yaml" )
-GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/hist_hog_model_goal3.yaml" ) 
+GoalModelPath = os.path.join( os.getenv( 'ROS_WS' ), "src/hanuman_user/config/model/hist_hog_model_goal_sydney.yaml" ) 
 
 # FootballModelPath = 'Downloads/hist_hog_model_ball.yaml'
 # GoalModelPath = 'Downloads/hist_hog_model_goal.yaml'
