@@ -108,6 +108,8 @@ class GotoBall( FSMBrainState ):
 
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
+		self.pattern = self.scanBallPattern
+
 		#	Call pattern
 		self.rosInterface.Pantilt( command = 1, pattern = self.scanBallPattern )
 		
@@ -143,10 +145,13 @@ class GotoBall( FSMBrainState ):
 				self.lookAtBall = False
 				# rospy.loginfo( "LOST ball!!!!" )
 				if self.currSubBrainName == 'FollowBall':
-					pattern = self.scanBallPattern_followball
+					self.pattern = self.scanBallPattern_followball
 				else:
-					pattern = self.scanBallPattern
-				self.rosInterface.Pantilt( command = 1, pattern = pattern )
+					self.pattern = self.scanBallPattern
+				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
+
+			if self.currSubBrainName != 'FollowBall' and self.pattern == self.scanBallPattern_followball:
+				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 		if self.currSubBrainName == 'None':
 			self.SignalChangeSubBrain( self.nextState )
