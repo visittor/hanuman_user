@@ -151,6 +151,7 @@ class GotoBall( FSMBrainState ):
 				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 			if self.currSubBrainName != 'FollowBall' and self.pattern == self.scanBallPattern_followball:
+				self.pattern = self.scanBallPattern
 				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 		if self.currSubBrainName == 'None':
