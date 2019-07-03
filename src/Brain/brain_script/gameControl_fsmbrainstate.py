@@ -28,6 +28,7 @@ from brain.HanumanRosInterface import HanumanRosInterface
 
 from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PernaltyState
 from gameControl_brainstate import EnterField_dummy
+from abnormal_brainstate import AbnormalState
 
 from gameController.gamestate import GameState
 
@@ -58,7 +59,7 @@ history_fn = os.path.join( os.getenv( 'ROS_WS' ), 'history' )
 
 class Controller( FSMBrainState ):
 
-	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState,
+	def __init__( self, initialState, readyState, setState, playState, finishState, penaltyState, abnormalState,
 				enter_field = None ):
 		
 		super( Controller, self ).__init__( "Controller" )
@@ -73,6 +74,8 @@ class Controller( FSMBrainState ):
 		self.addSubBrain( setState, "SetState" )
 		self.addSubBrain( playState, "PlayState" )
 		self.addSubBrain( finishState, "FinishState" )
+
+		self.addSubBrain( abnormalState, "AbnormalState" )
 
 		self.addSubBrain( penaltyState, "PenaltyState" )
 
@@ -125,7 +128,8 @@ class Controller( FSMBrainState ):
 		# rospy.loginfo( "			Number of red card : {}".format( robotInfo[ "number_of_red_cards" ] ) )
 
 		state = gameState[ "game_state" ]
-		
+		secondState = gameState[ "secondary_state" ]
+
 		if robotInfo["secs_till_unpenalized"] != 0:
 			state = "PENALIZED"
 		elif robotInfo[ "number_of_red_cards" ] != 0:
@@ -142,25 +146,32 @@ class Controller( FSMBrainState ):
 			self.doEnterfield = True
 			return
 
-		if gameState[ "game_state" ] == "STATE_INITIAL":
-			self.ChangeSubBrain( "InitialState" )
+		if gameState[ "secondary_state" ] == "STATE_NORMAL":
 
-		elif gameState[ "game_state" ] == "STATE_READY":
-			self.ChangeSubBrain( "ReadyState" )
+			if gameState[ "game_state" ] == "STATE_INITIAL":
+				self.ChangeSubBrain( "InitialState" )
 
-		elif gameState[ "game_state" ] == "STATE_SET":
-			self.ChangeSubBrain( "SetState" )
+			elif gameState[ "game_state" ] == "STATE_READY":
+				self.ChangeSubBrain( "ReadyState" )
 
-		elif gameState[ "game_state" ] == "STATE_PLAYING":
-			if self.doEnterfield:
-				self.ChangeSubBrain( "EnterField" )
-				self.doEnterfield = False
-				self.startEnterField = time.time()
-			else:
-				self.ChangeSubBrain( "PlayState" )
+			elif gameState[ "game_state" ] == "STATE_SET":
+				self.ChangeSubBrain( "SetState" )
+
+			elif gameState[ "game_state" ] == "STATE_PLAYING":
+				if self.doEnterfield:
+					self.ChangeSubBrain( "EnterField" )
+					self.doEnterfield = False
+					self.startEnterField = time.time()
+				else:
+					self.ChangeSubBrain( "PlayState" )
+			
+			elif gameState[ "game_state" ] == "STATE_FINISHED":
+				self.ChangeSubBrain( "FinishState" ) 
 		
-		elif gameState[ "game_state" ] == "STATE_FINISHED":
-			self.ChangeSubBrain( "FinishState" ) 
+		else:
+
+			self.ChangeSubBrain( "AbnormalState" )	
+
 
 #	For debug
 initialState = InitialState()
@@ -169,6 +180,7 @@ setState = SetState()
 playState = PlayState()
 finishState = FinishState()
 penaltyState = PernaltyState()
+abnormal = AbnormalState()
 
 
 main_brain = Controller( initialState = initialState,
@@ -177,6 +189,7 @@ main_brain = Controller( initialState = initialState,
 						 playState = playState,
 						 finishState = finishState,
 						 penaltyState = penaltyState,
+						 abnormalState = abnormal,
 						 enter_field = EnterField_dummy(),
  )
 
