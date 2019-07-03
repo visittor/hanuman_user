@@ -138,6 +138,7 @@ class Controller( FSMBrainState ):
 
 		if state == "PENALIZED":
 			self.ChangeSubBrain( "PenaltyState" )
+			self.doEnterfield = True
 			return
 
 		if gameState[ "game_state" ] == "STATE_INITIAL":
