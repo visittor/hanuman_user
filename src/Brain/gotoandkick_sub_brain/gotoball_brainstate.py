@@ -157,11 +157,13 @@ class GotoBall( FSMBrainState ):
 
 			if self.currSubBrainName != 'FollowBall' and self.pattern == self.scanBallPattern_followball:
 				self.pattern = self.scanBallPattern_align2ball if self.currSubBrainName == 'RotateToTheBall' else self.scanBallPattern
-				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
+				if self.pattern != self.scanBallPattern_followball:
+					self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 			elif self.currSubBrainName != 'RotateToTheBall' and self.pattern == self.scanBallPattern_align2ball:
 				self.pattern = self.scanBallPattern_followball if self.currSubBrainName == 'FollowBall' else self.scanBallPattern
-				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
+				if self.pattern != self.scanBallPattern_align2ball:
+					self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 		if self.currSubBrainName == 'None':
 			self.SignalChangeSubBrain( self.nextState )
