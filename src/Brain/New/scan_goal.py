@@ -112,6 +112,7 @@ class ScanGoal( FSMBrainState ):
 		self._time = float( self.config[ "ChangeStateParameter" ][ "ScanGoalTimeOut" ] )
 
 	def firstStep( self ):
+		self.setGlobalVariable( 'curveSlideAngle', 0.0 )
 
 		postDict = self.rosInterface.local_map( reset = False ).postDict
 
