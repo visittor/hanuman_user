@@ -42,11 +42,11 @@ class Stop( FSMBrainState ):
 
 class ScanGoal( FSMBrainState ):
 
-	def __init__( self, time = 10, nextSubbrain = 'None', kickingState = "None" ):
+	def __init__( self, nextSubbrain = 'None', kickingState = "None" ):
 
 		super( ScanGoal, self ).__init__( 'ScanGoal' )
 
-		self._time = time
+		self._time = None
 		self._startTime = 0
 		self._nextSubbrain = nextSubbrain
 
@@ -108,6 +108,8 @@ class ScanGoal( FSMBrainState ):
 		#	Get fx and fy from robot config
 		self.fy = float( self.config[ "CameraParameters" ][ "fy" ] )
 		self.fx = float( self.config[ "CameraParameters" ][ "fx" ] )
+
+		self._time = float( self.config[ "ChangeStateParameter" ][ "ScanGoalTimeOut" ] )
 
 	def firstStep( self ):
 
