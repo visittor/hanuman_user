@@ -225,11 +225,11 @@ class MainBrain( FSMBrainState ):
 		time.sleep(1)			
 		
 
-# walkAroundState = WalkAround()
+walkAroundState = WalkAround()
 
-# main_brain = MainBrain( "main_brain" )
-# main_brain.addSubBrain( walkAroundState )
-# main_brain.setFirstSubBrain( "WalkAround" ) 
+main_brain = MainBrain( "main_brain" )
+main_brain.addSubBrain( walkAroundState )
+main_brain.setFirstSubBrain( "WalkAround" ) 
 
 
 
