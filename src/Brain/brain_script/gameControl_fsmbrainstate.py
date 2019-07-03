@@ -27,6 +27,7 @@ from brain.HanumanRosInterface import HanumanRosInterface
 # from newbie_hanuman.msg import gameState, TeamInfo, RobotInfo
 
 from gameControl_brainstate import InitialState, ReadyState, SetState, PlayState, FinishState, PernaltyState
+from gameControl_brainstate import EnterField_dummy
 
 from gameController.gamestate import GameState
 
@@ -175,7 +176,8 @@ main_brain = Controller( initialState = initialState,
 						 setState = setState,
 						 playState = playState,
 						 finishState = finishState,
-						 penaltyState = penaltyState
+						 penaltyState = penaltyState,
+						 enter_field = EnterField_dummy(),
  )
 
 

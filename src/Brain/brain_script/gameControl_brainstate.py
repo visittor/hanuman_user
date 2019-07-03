@@ -62,7 +62,6 @@ class InitialState( FSMBrainState ):
 
 		# self.rosInterface.LocoCommand( command = 'standToSit', commandType = 1 )
 		
-	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Waiting for ready signal" )
 		
@@ -78,7 +77,6 @@ class ReadyState( FSMBrainState ):
 		rospy.logdebug( "Entering ready state" )
 		rospy.logdebug( "Enter to the field" )
 
-	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Go to own half of the field" )
 
@@ -96,9 +94,7 @@ class SetState( FSMBrainState ):
 		rospy.logdebug( "Stand up" )
 
 		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
-		
 
-	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Waiting for play signal" )
 
@@ -113,8 +109,6 @@ class PlayState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering play state" )
-		
-	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Play game!" )
 
@@ -128,8 +122,6 @@ class FinishState( FSMBrainState ):
 	def firstStep( self ):
 
 		rospy.logdebug( "Entering finish state" )
-		
-	def step( self ):
 		# do command in this state
 		rospy.logdebug( "Finish game" )
 
@@ -147,6 +139,20 @@ class PernaltyState( FSMBrainState ):
 		self.rosInterface.LocoCommand( command = "StandStill", commandType = 1, 
 									   ignorable =  False )
 	
-	def step( self ):
+	def firstStep( self ):
 		rospy.logdebug( "TT" )
 		rospy.logwarn( "You should stop the fucking robottttttttttttttttttttt" )
+
+class EnterField_dummy( FSMBrainState ):
+
+	def __init__( self ):
+
+		super( EnterField_dummy, self ).__init__( 'EnterField_dummy' )
+
+	def firstStep( self ):
+
+		rospy.logdebug( "Enter EnterField_dummy!!!" )
+
+	def leaveStateCallBack( self ):
+
+		rospy.logdebug( 'Finish Enterign Field.' )
