@@ -101,7 +101,9 @@ class GotoBall( FSMBrainState ):
 
 		#	Get time out from config
 		self.scanBallPattern = getParameters(self.config, 'PanTiltPlanner', 'ScanBallPattern')
+		self.scanBallPattern_align2ball = getParameters(self.config, 'PanTiltPlanner', 'ScanBallPatternAlign2Ball')
 		self.scanBallPattern_followball = getParameters(self.config, 'PanTiltPlanner', 'ScanBallPatternFollowBall')
+
 		self.confidenceThr = float( getParameters(self.config, 'ChangeStateParameter', 'BallConfidenceThreshold'))
 
 	def firstStep( self ):
@@ -146,12 +148,19 @@ class GotoBall( FSMBrainState ):
 				# rospy.loginfo( "LOST ball!!!!" )
 				if self.currSubBrainName == 'FollowBall':
 					self.pattern = self.scanBallPattern_followball
+				elif self.currSubBrainName == 'RotateToTheBall':
+					self.pattern = self.scanBallPattern_align2ball
 				else:
 					self.pattern = self.scanBallPattern
+
 				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 			if self.currSubBrainName != 'FollowBall' and self.pattern == self.scanBallPattern_followball:
-				self.pattern = self.scanBallPattern
+				self.pattern = self.scanBallPattern_align2ball if self.currSubBrainName == 'RotateToTheBall' else self.scanBallPattern
+				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
+
+			elif self.currSubBrainName != 'RotateToTheBall' and self.pattern == self.scanBallPattern_align2ball:
+				self.pattern = self.scanBallPattern_followball if self.currSubBrainName == 'FollowBall' else self.scanBallPattern
 				self.rosInterface.Pantilt( command = 1, pattern = self.pattern )
 
 		if self.currSubBrainName == 'None':

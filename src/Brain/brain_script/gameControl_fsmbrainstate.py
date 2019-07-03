@@ -79,9 +79,8 @@ class Controller( FSMBrainState ):
 
 		if enter_field is not None:
 			self.addSubBrain( enter_field, "EnterField" )
-			self.doEnterfield = True
-		else:
-			self.doEnterfield = False
+		
+		self.doEnterfield = False
 
 		self.startEnterField = -1
 
@@ -93,18 +92,18 @@ class Controller( FSMBrainState ):
 	def firstStep( self ):
 		rospy.loginfo( "Enter {} brainstate".format( self.name ) )
 
-		if self.doEnterfield and os.path.isfile(history_fn):
+		if os.path.isfile(history_fn):
 			with open( history_fn, 'r' ) as f:
 				state = f.read( )
 			
-			if state in ["PENALIZED", "STATE_PLAYING"]:
-				self.startEnterField = time.time( )
-				self.ChangeSubBrain( "EnterField" )
-
+			if self.subBrains.has_key("EnterField") and state in ["PENALIZED", "STATE_PLAYING"]:
+				# self.startEnterField = time.time( )
+				# self.ChangeSubBrain( "EnterField" )
+				self.doEnterfield = True
 
 	def step( self ):
 
-		if self.startEnterField != -1 and time.time() - self.startEnterField<46.0:
+		if self.startEnterField > 0.0 and time.time() - self.startEnterField<46.0:
 			return
 		
 		gameState = self.rosInterface.gameState
@@ -137,26 +136,30 @@ class Controller( FSMBrainState ):
 
 			self.prevState = state
 
-		if robotInfo[ "secs_till_unpenalized" ] != 0:
+		if state == "PENALIZED":
 			self.ChangeSubBrain( "PenaltyState" )
-			return
-		
-		if robotInfo[ "number_of_red_cards" ] != 0:
-			self.ChangeSubBrain( "PenaltyState" )
+			self.doEnterfield = True
 			return
 
 		if gameState[ "game_state" ] == "STATE_INITIAL":
 			self.ChangeSubBrain( "InitialState" )
+
 		elif gameState[ "game_state" ] == "STATE_READY":
 			self.ChangeSubBrain( "ReadyState" )
-			 #  Enter to the field
+
 		elif gameState[ "game_state" ] == "STATE_SET":
 			self.ChangeSubBrain( "SetState" )
+
 		elif gameState[ "game_state" ] == "STATE_PLAYING":
-			self.ChangeSubBrain( "PlayState" )
+			if self.doEnterfield:
+				self.ChangeSubBrain( "EnterField" )
+				self.doEnterfield = False
+				self.startEnterField = time.time()
+			else:
+				self.ChangeSubBrain( "PlayState" )
+		
 		elif gameState[ "game_state" ] == "STATE_FINISHED":
 			self.ChangeSubBrain( "FinishState" ) 
-
 
 #	For debug
 initialState = InitialState()
