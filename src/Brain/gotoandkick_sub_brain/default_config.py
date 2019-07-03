@@ -33,6 +33,7 @@ _DEFAULT_CONFIG = {
 							'TiltAngleForLookAtFoot'	: '60',
 							'ScanBallPattern' 			: 'basic_pattern_near',
 							'ScanBallPatternFollowBall' : 'basic_pattern_near',
+							'ScanBallPatternAlign2Ball'	: 'basic_pattern_near',
 						}
 }
 
