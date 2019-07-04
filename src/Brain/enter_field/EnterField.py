@@ -270,6 +270,8 @@ class EnterField( FSMBrainState ):
 
 	def firstStep( self ):
 
+		rospy.loginfo( "Enter to the {} brain state".format( self.name ) )
+
 		self.rosInterface.LocoCommand( command = 'sitToStand', commandType = 1 )
 
 		time.sleep( 3 )

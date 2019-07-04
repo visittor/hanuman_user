@@ -56,6 +56,7 @@ setState = SetState()
 playState = MainBrain()
 finishState = _IDLE()
 penaltyState = PernaltyState()
+enterToTheField = ReadyState()
 
 abnormalState = AbnormalState()
 
@@ -66,5 +67,6 @@ main_brain = Controller(
     playState = playState,
     finishState = finishState,
     penaltyState = penaltyState,
-    abnormalState = abnormalState
+    abnormalState = abnormalState,
+    enter_field= enterToTheField
 )

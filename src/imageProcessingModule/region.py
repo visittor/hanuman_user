@@ -211,7 +211,7 @@ class BoundingBoxList( object ):
 		#	flush all element in list
 		self.boundingBoxList = list()
 
-	def getImageROI( self, image, boundingBox, expandPixelSize = 10 ):
+	def getImageROI( self, image, boundingBox, expandPixelSize = 0 ):
 		
 		#	get image property : width, height
 		imageWidth = image.shape[ 1 ]

@@ -234,7 +234,7 @@ class RotateToTheBall2( FSMBrainState ):
 		#
 		# This is logic for changing state.
 		#
-		if time.time() - self.timeStart > 2:
+		if time.time() - self.timeStart > 1.0:
 			if 'ball' in localPosDict.object_name:	
 
 				idxBallLocalObj = localPosDict.object_name.index( 'ball' ) 

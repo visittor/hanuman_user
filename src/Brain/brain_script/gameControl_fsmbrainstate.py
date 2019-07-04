@@ -79,11 +79,11 @@ class Controller( FSMBrainState ):
 
 		self.addSubBrain( penaltyState, "PenaltyState" )
 
-		self.setFirstSubBrain( "None" )
-
 		if enter_field is not None:
 			self.addSubBrain( enter_field, "EnterField" )
 		
+		self.setFirstSubBrain( "None" )
+
 		self.doEnterfield = False
 
 		self.startEnterField = -1
@@ -115,8 +115,14 @@ class Controller( FSMBrainState ):
 		if gameState == None:
 			return
 
+		print gameState
+
 		teamInfo = filter( lambda x : x[ 'team_number' ] == self.teamNumber, gameState[ 'teams' ] )
-		robotInfo = teamInfo[ 0 ][ 'players' ][ self.playerNumber - 1 ]
+		if len( teamInfo )<=0 or len(teamInfo[0]['player']) < self.playerNumber:
+			print teamInfo
+			return
+		else:
+			robotInfo = teamInfo[ 0 ][ 'players' ][ self.playerNumber - 1 ]
 
 		# print "Second to unpenalize : {}".format( robotInfo[ "secs_till_unpenalized" ] )
 		# print "Number of red cards : {}".format( robotInfo[ "number_of_red_cards" ] )
