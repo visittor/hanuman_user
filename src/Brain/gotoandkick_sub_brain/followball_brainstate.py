@@ -110,6 +110,9 @@ class FollowBall( FSMBrainState ):
 		
 		localPosDict = self.rosInterface.local_map( reset = False ).postDict
 
+		if localPosDict == None:
+			return
+
 		pantiltJS = self.rosInterface.pantiltJS
 		pantiltJS = { n:p  for n, p in zip( pantiltJS.name, pantiltJS.position ) }
 

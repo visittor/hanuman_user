@@ -83,6 +83,9 @@ class SlideCurve( FSMBrainState ):
 		#	Get direction from global variable
 		direction = self.getGlobalVariable( 'curveSlideAngle' )
 
+		direction = direction % (2*np.pi)
+		direction = np.pi - direction
+
 		directionDegrees = int(math.degrees( math.fabs(direction) ))
 
 		self.actualWaitingTime = self.waitingTime * (directionDegrees / 20)
