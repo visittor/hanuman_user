@@ -115,10 +115,10 @@ class Controller( FSMBrainState ):
 		if gameState == None:
 			return
 
-		print gameState
+		# print gameState
 
 		teamInfo = filter( lambda x : x[ 'team_number' ] == self.teamNumber, gameState[ 'teams' ] )
-		if len( teamInfo )<=0 or len(teamInfo[0]['player']) < self.playerNumber:
+		if len( teamInfo )<=0 or len(teamInfo[0]['players']) < self.playerNumber:
 			print teamInfo
 			return
 		else:

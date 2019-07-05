@@ -172,7 +172,7 @@ class GoToField( FSMBrainState ):
 			self.startTime = time.time( )
 			self.ChangeSubBrain( 'IDLE' )
 
-		elif time.time() - self.startTime < 5 and self.prevSubBrainName == 'None':
+		elif time.time() - self.startTime < 2 and self.prevSubBrainName == 'None':
 			return
 
 		elif currPos[1] < 0:
